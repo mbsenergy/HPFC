@@ -1,0 +1,22 @@
+Package: refeHPFC
+Title: Set of functions and Models for REF-E
+Version: 0.2.6
+Authors@R: 
+    person(given = "Andrea",
+           family = "Chiantello",
+           role = c("aut", "cre"),
+           email = "a.chiantello@innovationteam.eu")
+Description: Internal Use Only. Reproduction and Distribution is forbidden.
+Depends: R (>= 4.1.0), data.table,
+Imports: ggplot2, knitr, data.table
+Suggests: chron, lubridate, neverhpfilter, mFilter, xts, changepoint,
+        grid, rmarkdown
+License: Apache License (>= 2)
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.2.3
+NeedsCompilation: no
+Packaged: 2023-04-18 16:13:24 UTC; CAA
+Author: Andrea Chiantello [aut, cre]
+Maintainer: Andrea Chiantello <a.chiantello@innovationteam.eu>

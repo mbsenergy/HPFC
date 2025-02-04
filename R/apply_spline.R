@@ -1,0 +1,137 @@
+
+#' Apply the spline smoothing to the daily forecast
+#'
+#' The spline is done through the function spline ...
+#'
+#' @param x An hourly dataframe calendar with date, long term seasonality and forward structure.
+#' @returns A hourly dataframe with 57 columns to be used for hourly estimation
+#' @export
+
+apply_spline=function(dataframe,smoothig_parameter){
+
+  if (!('L_e_u' %in% colnames(dataframe)) | class(dataframe$L_e_u) != 'numeric') {stop("L_e_u column must be format numeric")}
+  if (!(class(smoothig_parameter) == 'integer' | class(smoothig_parameter) == 'numeric')) {stop("smoothig_parameter must be format numeric or integer")}
+
+  Lt_Lu_hour=copy(dataframe)
+
+  #### create L_e_u deviation from week mean
+  #Lt_Lu_hour[, week_n := lubridate::week(date)]
+  #Lt_Lu_hour[, deviation_from_w_wmean := L_e_u - mean(L_e_u, na.rm = TRUE), by = .(week_n, year)]
+
+  #### create daily DB with L_e_u mean to find daily spline
+  DB_spline = copy(Lt_Lu_hour)
+  DB_spline[, D_mean := mean(L_e_u, na.rm = TRUE), by = date]
+  DB_spline = DB_spline[, .(date, D_mean)] |> unique()
+
+  #### create spline (smooth param set =15 at the beginning)
+  DB_spline[, obs := .I]
+  DB_spline[, spline_L_e_u := spline(obs,D_mean, xout = obs)$y]
+  DB_spline[, smooth_line := smooth.spline(obs, spline_L_e_u,
+                                           df = dim(DB_spline)[1] / smoothig_parameter)$y]
+
+  #### merge spline on hourly
+  Lt_Lu_hour = DB_spline[, .(smooth_line, date)][Lt_Lu_hour, on = 'date']
+
+  #### combine spline and weekly deviation
+  #Lt_Lu_hour[, W_mean_adj := mean(smooth_line, na.rm = TRUE), by = .(week_n, year)]
+  #Lt_Lu_hour[, L_e_u_adj := W_mean_adj + deviation_from_w_wmean]
+
+  #### substitute spline with spot before fwd date
+  #Lt_Lu_hour[, L_e_u_adj := fifelse(history_forecast == 0, spot_forward_month_BL, L_e_u_adj)]
+
+  #-------------------------------------------------------- return to forward
+
+  Lt_Lu_hour[, smooth_period := mean(smooth_line), by='period']
+
+  Lt_Lu_hour[, delta_smooth := epsilon_u - smooth_period]
+  Lt_Lu_hour[, smooth_corrected := smooth_line + delta_smooth]
+
+  # threeshold=abs(max(Lt_Lu_hour$delta_smooth))
+  # refinement_parameter = smoothig_parameter
+  # while(threeshold>0.5){
+  #
+  #   refinement_parameter = fifelse(refinement_parameter == 5,5,refinement_parameter-1)
+  #   print(refinement_parameter)
+  #
+  #   #### create daily DB with L_e_u mean to find daily spline
+  #   DB_spline = copy(Lt_Lu_hour)
+  #   DB_spline[, D_mean := mean(smooth_corrected, na.rm = TRUE), by = date]
+  #   DB_spline = DB_spline[, .(date, D_mean)] |> unique()
+  #
+  #   #### create spline (smooth param set =15 at the beginning)
+  #   DB_spline[, obs := .I]
+  #   DB_spline[, spline_L_e_u := spline(obs,D_mean, xout = obs)$y]
+  #   DB_spline[, smooth_line_refined := smooth.spline(obs, spline_L_e_u,
+  #                                            df = dim(DB_spline)[1] / refinement_parameter)$y]
+  #   #### merge spline on hourly
+  #   Lt_Lu_hour = DB_spline[, .(smooth_line_refined, date)][Lt_Lu_hour, on = 'date']
+  #
+  #   Lt_Lu_hour[, smooth_period := mean(smooth_line_refined), by='period']
+  #   Lt_Lu_hour[, delta_smooth := epsilon_u - smooth_period]
+  #   Lt_Lu_hour[, smooth_corrected := smooth_line + delta_smooth]
+  #
+  #   threeshold=abs(max(Lt_Lu_hour$delta_smooth))
+  #
+  #   ggplot(Lt_Lu_hour,
+  #          aes(x = date, group = 1)) +
+  #     labs(title = "Forecast new model 50",
+  #          y = "euro/MWh",
+  #          x = "date") +
+  #     geom_line(aes(y = smooth_line),
+  #               color = "darkblue", size=1, alpha=0.5)+
+  #     geom_line(aes(y = L_e_u),
+  #               color = "goldenrod", size=1, alpha=0.5)+
+  #     geom_line(aes(y = spot_forward_month_BL),
+  #               color = "grey",  size=1, alpha=0.5) +
+  #     geom_line(aes(y = smooth_corrected),
+  #               color = "darkred", size=0.5)
+  #
+  #   }
+
+  Lt_Lu_hour[, L_e_u_adj := smooth_corrected]
+
+  return(Lt_Lu_hour)
+
+}
+
+
+# dd_Leu=readRDS(file = file.path('..', 'HPFC','data', 'data_package', "dd_Leu.rds"))
+#
+# apply_spline=function(dataframe,smoothig_parameter){
+#
+#   if (!('L_e_u' %in% colnames(dataframe)) | class(dataframe$L_e_u) != 'numeric') {stop("L_e_u column must be format numeric")}
+#   if (!(class(smoothig_parameter) == 'integer' | class(smoothig_parameter) == 'numeric')) {stop("smoothig_parameter must be format numeric or integer")}
+#
+#   Lt_Lu_hour=copy(dataframe)
+#
+#   #### create L_e_u deviation from week mean
+#   Lt_Lu_hour[, week_n := lubridate::week(date)]
+#   Lt_Lu_hour[, deviation_from_w_wmean := L_e_u - mean(L_e_u, na.rm = TRUE), by = .(week_n, year)]
+#
+#   #### create daily DB with L_e_u mean to find daily spline
+#   DB_spline = copy(Lt_Lu_hour)
+#   DB_spline[, D_mean := mean(L_e_u, na.rm = TRUE), by = date]
+#   DB_spline = DB_spline[, .(date, D_mean)] |> unique()
+#
+#   #### create spline (smooth param set =15 at the beginning)
+#   DB_spline[, obs := .I]
+#   DB_spline[, spline_L_e_u := spline(obs,D_mean, xout = obs)$y]
+#   DB_spline[, smooth_line := smooth.spline(obs, spline_L_e_u,
+#                                            df = dim(DB_spline)[1] / smoothig_parameter)$y]
+#
+#   #### merge spline on hourly
+#   Lt_Lu_hour = DB_spline[, .(smooth_line, date)][Lt_Lu_hour, on = 'date']
+#
+#   #### combine spline and weekly deviation
+#   Lt_Lu_hour[, W_mean_adj := mean(smooth_line, na.rm = TRUE), by = .(week_n, year)]
+#   Lt_Lu_hour[, L_e_u_adj := W_mean_adj + deviation_from_w_wmean]
+#
+#   #### substitute spline with spot before fwd date
+#   Lt_Lu_hour[, L_e_u_adj := fifelse(history_forecast == 0, spot_forward_month_BL, L_e_u_adj)]
+#
+#   return(Lt_Lu_hour)
+#
+# }
+#
+# f7=apply_spline(dd_Leu,15)
+# saveRDS(f7, file = file.path('..', 'HPFC','data', 'data_package', "dd_Leu_spline.rds"))
