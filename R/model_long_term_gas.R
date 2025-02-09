@@ -59,7 +59,8 @@ model_long_term_gas=function(dataframe){
   profile_matrix=as.data.table(matrix(c(model_1$coefficients,rep(0,length(missing_terms))),nrow=1))
   setnames(profile_matrix,,c(names(model_1$coefficients),missing_terms))
 
-  kc_cols(profile_matrix, terms)
+  set(profile_matrix, , names(profile_matrix)[!names(profile_matrix) %in% terms], NULL)
+  
   setnames(profile_matrix,,substr(colnames(profile_matrix), 1, nchar(colnames(profile_matrix))-2L))
 
 

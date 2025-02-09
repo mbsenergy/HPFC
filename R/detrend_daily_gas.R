@@ -7,9 +7,7 @@
 #' @returns A dataframe with 4 columns date, trade_close, hp_trend and detr_smp_day
 #' @export
 
-detrend_daily_gas=function(dataframe){
-
-  # check formati
+detrend_daily_gas = function(dataframe) {
 
   if (!('date' %in% colnames(dataframe)) | class(dataframe$date) != 'Date') {stop("date column must be format Date")
   } else if (!('trade_close' %in% colnames(dataframe)) | class(dataframe$trade_close) != 'numeric') {stop("trade_close column must be format numeric")}
@@ -35,9 +33,8 @@ detrend_daily_gas=function(dataframe){
   # subtract hp_trend from raw data
   filtered_ttf_dd[, detr_smp_day := trade_close - hp_trend]
 
-  kc_cols(filtered_ttf_dd, c('date', 'trade_close', 'hp_trend', 'detr_smp_day', 'break_group_p'))
+  filtered_ttf_dd = filtered_ttf_dd[, .(date, trade_close, hp_trend, detr_smp_day, break_group_p)]
 
   return(filtered_ttf_dd)
 
 }
-
