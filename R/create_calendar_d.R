@@ -5,7 +5,6 @@
 #'
 #' @param x A daily dataframe calendar with date and holiday.
 #' @returns A dataframe with 31 columns
-#' @import data.table
 #' @export
 
 create_calendar = function(dataframe){

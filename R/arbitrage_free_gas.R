@@ -10,7 +10,7 @@
 #' @export
 
 
-arbitrage_free_gas=function(dataframe,time_series_past,colnames_forward){
+arbitrage_free_gas = function(dataframe,time_series_past,colnames_forward) {
 
   if (any(sapply(dataframe, class) != 'numeric')) {stop("all columns must be format numeric")}
 

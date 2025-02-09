@@ -7,7 +7,7 @@
 #' @returns A dataframe with 4 columns date, smp_day, hp_trend and detr_smp_day
 #' @export
 
-detrend_daily=function(dataframe){
+detrend_daily = function(dataframe){
 
   # check formati
 
@@ -15,7 +15,7 @@ detrend_daily=function(dataframe){
   } else if (!('smp_day' %in% colnames(dataframe)) | class(dataframe$smp_day) != 'numeric') {stop("smp_day column must be format numeric")}
 
 
-  filtered_dam_dd=copy(dataframe)
+  filtered_dam_dd = copy(dataframe)
 
   min_date = as.Date(min(filtered_dam_dd$date))
 
