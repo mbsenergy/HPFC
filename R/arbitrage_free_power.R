@@ -7,6 +7,7 @@
 #' @param y A dataframe with historic daily prices
 #' @param z a vector with 9 column names of dataframe: year, quarter, month, yearBL, quarterBL, monthBL, yearPL, quarterPL, monthPL.
 #' @returns A dataframe with 17 columns
+#' @import data.table
 #' @export
 
 

@@ -6,6 +6,7 @@
 #' @param x A hourly dataframe.
 #' @param y Gas Price column name.
 #' @returns A nls object representing the hourly model
+#' @import data.table
 #' @export
 
 hourly_model=function(dataframe,gas_name){

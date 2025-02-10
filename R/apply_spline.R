@@ -5,6 +5,7 @@
 #'
 #' @param x An hourly dataframe calendar with date, long term seasonality and forward structure.
 #' @returns A hourly dataframe with 57 columns to be used for hourly estimation
+#' @import data.table
 #' @export
 
 apply_spline=function(dataframe,smoothig_parameter){

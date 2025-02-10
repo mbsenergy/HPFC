@@ -7,6 +7,7 @@
 #' @param y The hourly model estimated as nls object
 #' @param y The modality of calibration: can be 'forecast' if forward are used or 'backtest' if month average spot price are used. default is forecast
 #' @returns A hourly dataframe with 15 columns to be used for hourly estimation
+#' @import data.table
 #' @export
 
 H_calibration=function(dataframe,model_h,modality){

@@ -5,6 +5,7 @@
 #'
 #' @param x An hourly dataframe calendar with date, and the forecast adjusted.
 #' @returns A hourly dataframe with 71 columns with the final_forecast
+#' @import data.table
 #' @export
 
 PL_correction=function(dataframe){

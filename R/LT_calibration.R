@@ -6,6 +6,7 @@
 #' @param x A dataframe with calendar regressor, ttf and power future.
 #' @param y Long term parameters created by the function 'long term models'.
 #' @returns A dataframe with 52 columns among whihch L_t
+#' @import data.table
 #' @export
 
 LT_calibration=function(dataframe,profile_matrix){

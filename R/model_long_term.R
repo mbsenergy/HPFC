@@ -6,9 +6,10 @@
 #' @param x A dataframe.
 #' @param y Gas Price column name.
 #' @returns A dataframe with 28 columns variable representing parameters
+#' @import data.table
 #' @export
 
-model_long_term=function(dataframe,gas_name){
+model_long_term = function(dataframe, gas_name) {
 
   # check formati
 
@@ -21,18 +22,20 @@ model_long_term=function(dataframe,gas_name){
   df_reg=copy(dataframe)
 
   setnames(df_reg, gas_name, 'trade_close')
-  df_reg[,trade_close2:=trade_close^2]
+  df_reg[, trade_close2 := trade_close^2]
 
-  regression ="detr_smp_day~cos_long_term+cos_season+cos_season_summer+holiday+day_2+day_3+day_4+day_5+day_6+day_7+sin_long_term+sin_season+sin_season_summer+summer"
+  regression = "detr_smp_day~cos_long_term+cos_season+cos_season_summer+holiday+day_2+day_3+day_4+day_5+day_6+day_7+sin_long_term+sin_season+sin_season_summer+summer"
 
   #model_0=step(lm(regression,weights = weight,data=filtered_dam_dd),direction="both")
 
   for (i in 1:10 ){
-    regression=paste(regression,"+",paste("yday", i, sep = "_"))
+    regression = paste(regression, "+", paste("yday", i, sep = "_"))
   }
 
-  regression=paste(regression,"+",'trade_close',"+",'trade_close2')
-  model_1=eval(substitute(step(lm(regression,weights = weight, data = df_reg),direction="both")))
+  regression=paste(regression, "+", 'trade_close', "+", 'trade_close2')
+  model_1 = suppressWarnings(suppressMessages(
+      eval(substitute(step(lm(regression,weights = weight, data = df_reg), direction = "both", trace = 0)))
+  ))
 
   #filtered_dam_dd[, LT_seas_1 := model_1$fitted.values]
 

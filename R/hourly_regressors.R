@@ -5,6 +5,7 @@
 #'
 #' @param x A hourly dataframe with price produced by filter outlier hourly
 #' @returns A dataframe with 49 columns
+#' @import data.table
 #' @export
 
 hourly_regressors=function(dataframe){

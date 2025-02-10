@@ -5,6 +5,7 @@
 #'
 #' @param x A dataframe.
 #' @returns A dataframe with 28 columns variable representing parameters
+#' @import data.table
 #' @export
 
 model_long_term_gas = function(dataframe) {
@@ -49,7 +50,9 @@ model_long_term_gas = function(dataframe) {
   }
 
   #regression=paste(regression,"+",'trade_close',"+",'trade_close2')
-  model_1 = eval(substitute(step(lm(regression, weights = weight, data = df_reg), direction = "both")))
+  model_1 = suppressWarnings(suppressMessages(
+      eval(substitute(step(lm(regression, weights = weight, data = df_reg), direction = "both", trace = 0)))
+  ))
   #filtered_ttf_dd_detr[, LT_seas_1 := model_1$fitted.values]
 
   n_groups = max(df_reg$break_group_p) + 1

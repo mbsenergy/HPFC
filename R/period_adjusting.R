@@ -6,6 +6,7 @@
 #' @param x An hourly dataframe calendar with date, long term seasonality and forward structure.
 #' @param y A string or date with the last date available for spot price history
 #' @returns A hourly dataframe with 15 columns to be used for hourly estimation
+#' @import data.table
 #' @export
 
 

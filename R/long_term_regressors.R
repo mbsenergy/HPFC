@@ -6,6 +6,7 @@
 #' @param x A daily dataframe with date, hp_trend and detr_smp_day
 #' @param y a parameter for weight
 #' @returns A dataframe with 41 columns
+#' @import data.table
 #' @export
 
 long_term_regressor=function(dataframe,alpha){

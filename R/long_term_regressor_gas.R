@@ -6,6 +6,7 @@
 #' @param x A daily dataframe with date, hp_trend, break_group_p and detr_smp_day
 #' @param y a parameter for weight
 #' @returns A dataframe with 41 columns
+#' @import data.table
 #' @export
 
 long_term_regressor_gas = function(dataframe, alpha) {
@@ -78,21 +79,21 @@ long_term_regressor_gas = function(dataframe, alpha) {
 
   for (x in 1:n_groups){
 
-    filtered_ttf_dd[,paste('cos_long_term', x,sep = '_')      := get(paste("break_group", x, sep = "_")) * cos_long_term]
-    filtered_ttf_dd[,paste('cos_season', x,sep = '_')         := get(paste("break_group", x, sep = "_")) * cos_season]
-    filtered_ttf_dd[,paste('cos_season_summer', x,sep = '_')  := get(paste("break_group", x, sep = "_")) * cos_season_summer]
-    filtered_ttf_dd[,paste('sin_long_term', x,sep = '_')      := get(paste("break_group", x, sep = "_")) * sin_long_term]
-    filtered_ttf_dd[,paste('sin_season', x,sep = '_')         := get(paste("break_group", x, sep = "_")) * sin_season]
-    filtered_ttf_dd[,paste('sin_season_summer', x,sep = '_')  := get(paste("break_group", x, sep = "_")) * sin_season_summer]
-    filtered_ttf_dd[,paste('holiday', x,sep = '_')            := get(paste("break_group", x, sep = "_")) * holiday]
-    filtered_ttf_dd[,paste('summer', x,sep = '_')             := get(paste("break_group", x, sep = "_")) * summer]
+    filtered_ttf_dd[, paste('cos_long_term', x,sep = '_')      := get(paste("break_group", x, sep = "_")) * cos_long_term]
+    filtered_ttf_dd[, paste('cos_season', x,sep = '_')         := get(paste("break_group", x, sep = "_")) * cos_season]
+    filtered_ttf_dd[, paste('cos_season_summer', x,sep = '_')  := get(paste("break_group", x, sep = "_")) * cos_season_summer]
+    filtered_ttf_dd[, paste('sin_long_term', x,sep = '_')      := get(paste("break_group", x, sep = "_")) * sin_long_term]
+    filtered_ttf_dd[, paste('sin_season', x,sep = '_')         := get(paste("break_group", x, sep = "_")) * sin_season]
+    filtered_ttf_dd[, paste('sin_season_summer', x,sep = '_')  := get(paste("break_group", x, sep = "_")) * sin_season_summer]
+    filtered_ttf_dd[, paste('holiday', x,sep = '_')            := get(paste("break_group", x, sep = "_")) * holiday]
+    filtered_ttf_dd[, paste('summer', x,sep = '_')             := get(paste("break_group", x, sep = "_")) * summer]
 
-    filtered_ttf_dd[,paste('day_2', x,sep = '_') := get(paste("break_group", x, sep = "_")) * day_2]
-    filtered_ttf_dd[,paste('day_3', x,sep = '_') := get(paste("break_group", x, sep = "_")) * day_3]
-    filtered_ttf_dd[,paste('day_4', x,sep = '_') := get(paste("break_group", x, sep = "_")) * day_4]
-    filtered_ttf_dd[,paste('day_5', x,sep = '_') := get(paste("break_group", x, sep = "_")) * day_5]
-    filtered_ttf_dd[,paste('day_6', x,sep = '_') := get(paste("break_group", x, sep = "_")) * day_6]
-    filtered_ttf_dd[,paste('day_7', x,sep = '_') := get(paste("break_group", x, sep = "_")) * day_7]
+    filtered_ttf_dd[, paste('day_2', x,sep = '_') := get(paste("break_group", x, sep = "_")) * day_2]
+    filtered_ttf_dd[, paste('day_3', x,sep = '_') := get(paste("break_group", x, sep = "_")) * day_3]
+    filtered_ttf_dd[, paste('day_4', x,sep = '_') := get(paste("break_group", x, sep = "_")) * day_4]
+    filtered_ttf_dd[,  paste('day_5', x,sep = '_') := get(paste("break_group", x, sep = "_")) * day_5]
+    filtered_ttf_dd[, paste('day_6', x,sep = '_') := get(paste("break_group", x, sep = "_")) * day_6]
+    filtered_ttf_dd[, paste('day_7', x,sep = '_') := get(paste("break_group", x, sep = "_")) * day_7]
 
     filtered_ttf_dd[, (paste("yday", 1:10, x, sep = "_")) := lapply(1:10, function(i) { get(paste("break_group", x, sep = "_")) * get(paste("yday", i, sep = "_")) })]
 

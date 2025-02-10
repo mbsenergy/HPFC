@@ -27,7 +27,7 @@ detrend_daily_gas = function(dataframe) {
   hp_filter2 = mFilter::hpfilter(df_ttf_dd_ts,
                                  freq = 8.322 * 10 ^ 7,  ### 8.322 * 10 ^ 7
                                  type = "lambda",
-                                 drift = F) ### lambda as in Caldana et al (2017)
+                                 drift = FALSE) ### lambda as in Caldana et al (2017)
 
   filtered_ttf_dd[, hp_trend := hp_filter2$trend]
 
