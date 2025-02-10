@@ -6,6 +6,7 @@
 #' @param x A dataframe.
 #' @param y Price column name.
 #' @returns A dataframe with 4 columns date, hour, price and break period
+#' @import data.table
 #' @export
 
 break_detection = function(dataframe, smp_name){

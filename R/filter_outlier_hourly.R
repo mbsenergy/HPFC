@@ -6,6 +6,8 @@
 #' @param x A hourly dataframe with breaks.
 #' @param y Price column name.
 #' @returns A dataframe with 5 columns date, hour, price and break period and ddhh
+#' @import data.table
+#' @import data.table
 #' @export
 
 filter_outlier_hourly = function(dataframe,smp_name) {

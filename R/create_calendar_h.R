@@ -5,6 +5,7 @@
 #'
 #' @param x A daily dataframe calendar with date and long term seasonality.
 #' @returns A hourly dataframe with 17 columns
+#' @import data.table
 #' @export
 
 

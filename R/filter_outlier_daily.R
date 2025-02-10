@@ -6,6 +6,7 @@
 #' @param x A hourly dataframe with breaks.
 #' @param y Price column name.
 #' @returns A dataframe with 2 columns date, price
+#' @import data.table
 #' @export
 
 filter_outlier_daily = function(dataframe, smp_name) {

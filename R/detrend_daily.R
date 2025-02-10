@@ -5,6 +5,7 @@
 #'
 #' @param x A daily dataframe with price
 #' @returns A dataframe with 4 columns date, smp_day, hp_trend and detr_smp_day
+#' @import data.table
 #' @export
 
 detrend_daily = function(dataframe){

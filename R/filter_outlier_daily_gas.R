@@ -5,6 +5,7 @@
 #'
 #' @param x A hourly dataframe with breaks.
 #' @returns A dataframe with 3 columns date, price, breaks
+#' @import data.table
 #' @export
 
 filter_outlier_daily_gas = function(dataframe){

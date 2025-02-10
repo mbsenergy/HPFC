@@ -6,6 +6,7 @@
 #' @param x A dataframe.
 #' @param y Price column name.
 #' @returns A dataframe with 4 columns date, price and break period
+#' @import data.table
 #' @export
 
 break_detection_gas = function(dataframe, price_name){
