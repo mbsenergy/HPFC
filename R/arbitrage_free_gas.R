@@ -11,14 +11,14 @@
 #' @export
 
 
-arbitrage_free_gas = function(dataframe,time_series_past,colnames_forward) {
+arbitrage_free_gas = function(dataframe, time_series_past, colnames_forward) {
 
   if (any(sapply(dataframe, class) != 'numeric')) {stop("all columns must be format numeric")}
 
-  forward_quotes_TTF=copy(dataframe)
+  forward_quotes_TTF = copy(dataframe)
   set(forward_quotes_TTF, , names(forward_quotes_TTF)[!names(forward_quotes_TTF) %in% colnames_forward], NULL)
   
-  setnames(forward_quotes_TTF, colnames(dataframe), c('year','quarter','month', 'forward_cal_BL_gas', 'forward_quarter_BL_gas', 'forward_month_BL_gas'))
+  setnames(forward_quotes_TTF, colnames(dataframe), c('year', 'quarter', 'month', 'forward_cal_BL_gas', 'forward_quarter_BL_gas', 'forward_month_BL_gas'))
 
   if (!('date' %in% colnames(time_series_past)) | class(time_series_past$date) != 'Date') {stop("date column must be format Date")
   } else if (!('trade_close' %in% colnames(time_series_past)) | class(time_series_past$trade_close) != 'numeric') {stop("trade_close column must be format numeric")
@@ -27,12 +27,12 @@ arbitrage_free_gas = function(dataframe,time_series_past,colnames_forward) {
   smp_prev_year=copy(time_series_past)
 
 
-  smp_prev_year[,':='(month=as.numeric(data.table::month(date)), quarter=as.numeric(data.table::quarter(date)), year=as.numeric(data.table::year(date)))]
-  smp_prev_year=smp_prev_year[, .(trade_close,month,quarter)]
-  smp_prev_year[, sum_bym:=sum(trade_close), by=month]
-  smp_prev_year[, sum_byq:=sum(trade_close), by=quarter]
-  smp_prev_year[, m_over_q:=sum_bym/sum_byq]
-  share_prev_year=unique(smp_prev_year[,.(month,m_over_q)])
+  smp_prev_year[, `:=` (month = as.numeric(data.table::month(date)), quarter = as.numeric(data.table::quarter(date)), year = as.numeric(data.table::year(date)))]
+  smp_prev_year=smp_prev_year[, .(trade_close, month, quarter)]
+  smp_prev_year[, sum_bym := sum(trade_close), by = month]
+  smp_prev_year[, sum_byq := sum(trade_close), by = quarter]
+  smp_prev_year[, m_over_q := sum_bym/sum_byq]
+  share_prev_year = unique(smp_prev_year[,.(month, m_over_q)])
 
   #-------------------------------------------------------------------------------
 
