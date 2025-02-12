@@ -22,7 +22,7 @@ model_long_term = function(dataframe, gas_name) {
   df_reg=copy(dataframe)
 
   setnames(df_reg, gas_name, 'trade_close')
-  df_reg[, trade_close2 := trade_close^2]
+  df_reg[, trade_close2 := trade_close ^ 2]
 
   regression = "detr_smp_day~cos_long_term+cos_season+cos_season_summer+holiday+day_2+day_3+day_4+day_5+day_6+day_7+sin_long_term+sin_season+sin_season_summer+summer"
 
