@@ -88,7 +88,7 @@ get_rics = function(rics, from_date = Sys.Date() - (365 * 10), to_date = Sys.Dat
 #' @import data.table
 #' @importFrom reikonapi get_series
 #' @export
-get_h_rics = function(rics, from_date = Sys.Date() - (365 * 7), to_date = Sys.Date(), interval = 'daily') {
+get_h_rics = function(rics, from_date = Sys.Date() - (365 * 10), to_date = Sys.Date(), interval = 'daily') {
     
     rics_id_24 = c('01','02','03','04','05','06','07','08','09','10','11','12',
                    '13','14','15','16','17','18','19','20','21','22','23','24')
@@ -159,7 +159,7 @@ retrieve_spot = function(ric, from_date, to_date, type = 'PWR') {
     
     if(type == 'GAS') {
         
-        rics_db = data.table::rbindlist(lapply(ric, get_rics))
+        rics_db = data.table::rbindlist(lapply(ric, get_rics, from_date = from_date, to_date = to_date))
         data.table::setDT(rics_db)
         rics_db = rics_db[, .(date = TIMESTAMP, trade_close = CLOSE, RIC = ric_column)]
         rics_db[, date := as.Date(substr(date, 1, 10))]
@@ -188,7 +188,7 @@ retrieve_spot = function(ric, from_date, to_date, type = 'PWR') {
         
     } else if(type == 'PWR') {
         
-        rics_db = data.table::rbindlist(lapply(ric, get_h_rics))
+        rics_db = data.table::rbindlist(lapply(ric, get_h_rics, from_date = from_date, to_date = to_date))
         data.table::setDT(rics_db)
         
         rics_db = rics_db[, .(TIMESTAMP, PRICE = CLOSE, RIC = ric_column, HOUR = hour)]
