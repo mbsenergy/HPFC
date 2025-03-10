@@ -12,6 +12,7 @@ years_code_pwr = 'YF'
 ## 1. POWER --------------------------------------------------------------------------------------
 
 countries = c('Greece', 'Germany', 'Hungary', 'France', 'Spain', 'Uk', 'Bulgaria', 'Italy', 'Romania', 'Czech Republic')
+countries_2d = c('GR', 'DE', 'HU', 'FR', 'ES', 'UK', 'BU', 'IT', 'RO', 'CZ')
 
 ### FORWARD ---------------------------------------------------------------
 products_PWR_code = c('FF', 'DE', 'F9', 'F7', 'FE', 'FU', 'FK', 'FD', 'FH', 'FX') 
@@ -24,7 +25,7 @@ setnames(eikon_PWR_products, names(eikon_PWR_products), c("country", "code"))
 spot_PWR_code = c('HEEGRAUCH', 'EHLDE', 'HPXH', 'PNX', 'OMELES', 'EHLGB', 'IBEIDMEUR', 'GMEIT', 'OPCOMRTR', 'OTECZEUR')
 spot_PWR_products = as.data.table(cbind(products_PWR_code, spot_PWR_code))
 setnames(spot_PWR_products, names(spot_PWR_products), c("forward_code", "spot_code"))
-spot_PWR_products_full = as.data.table(cbind(countries, products_PWR_code, spot_PWR_code))
+spot_PWR_products_full = as.data.table(cbind(countries_2d, countries, products_PWR_code, spot_PWR_code))
 
 ## 2. GAS --------------------------------------------------------------------------------------
 

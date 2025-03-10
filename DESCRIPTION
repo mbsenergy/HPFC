@@ -1,6 +1,6 @@
 Package: HPFC
 Title: Set of functions and Models for REF-E
-Version: 0.8.1
+Version: 0.8.4
 Authors@R: 
     person(given = "Alejandro",
            family = "Abraham",

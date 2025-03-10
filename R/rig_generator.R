@@ -96,6 +96,9 @@ generate_rics_gas = function(selected_GAS_codes, time_range) {
 #' lst_rics_pwr <- generate_rics_pwr(LST_PARAMS$selected_PWR_codes)
 generate_rics_pwr = function(selected_PWR_codes, time_range) {
     # Retrieve environment variables
+    
+    pwr_codes = HPFC::spot_PWR_products_full[countries %in% selected_PWR_codes]$products_PWR_code
+    
     time_range = time_range
     reuters_months = HPFC::reuters_months
     reuters_quarters_PWR = HPFC::reuters_quarters_PWR
@@ -105,7 +108,7 @@ generate_rics_pwr = function(selected_PWR_codes, time_range) {
                             "QF", "QJ", "QN", "QV", "YF")
     
     # Create data table with all combinations
-    dt_rics_pwr = expand.grid(selected_PWR_codes, c('B', 'P'), month_quarter_codes, time_range) |> setDT()
+    dt_rics_pwr = expand.grid(pwr_codes, c('B', 'P'), month_quarter_codes, time_range) |> setDT()
     
     # Generate RIC column based on conditions
     dt_rics_pwr[, RIC := paste0(
