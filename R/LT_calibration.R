@@ -32,10 +32,8 @@ LT_calibration=function(dataframe,profile_matrix){
 
                     # generate long-term seasonality (intra-year trends)  :
 
-                    cos((2 * pi / 365) * yday) * profile_matrix$cos_long_term[1] +
                     cos((2 * pi) * yday_season) * profile_matrix$cos_season[1] +
                     cos((2 * pi) * yday_season) * summer * profile_matrix$cos_season_summer[1] +
-                    sin((2 * pi) * yday / 365) * profile_matrix$sin_long_term[1] +
                     sin((2 * pi) * yday_season) * profile_matrix$sin_season[1] +
                     sin((2 * pi) * yday_season) * summer * profile_matrix$sin_season_summer[1] +
                     summer * profile_matrix$summer[1] +
@@ -52,18 +50,8 @@ LT_calibration=function(dataframe,profile_matrix){
                     day_4 * profile_matrix$day_4[1] +
                     day_5 * profile_matrix$day_5[1] +
                     day_6 * profile_matrix$day_6[1] +
-                    day_7 * profile_matrix$day_7[1] +
+                    day_7 * profile_matrix$day_7[1] 
 
-                    yday_1 * profile_matrix$yday_1[1] +
-                    yday_2 * profile_matrix$yday_2[1] +
-                    yday_3 * profile_matrix$yday_3[1] +
-                    yday_4 * profile_matrix$yday_4[1] +
-                    yday_5 * profile_matrix$yday_5[1] +
-                    yday_6 * profile_matrix$yday_6[1] +
-                    yday_7 * profile_matrix$yday_7[1] +
-                    yday_8 * profile_matrix$yday_8[1] +
-                    yday_9 * profile_matrix$yday_9[1] +
-                    yday_10 * profile_matrix$yday_10[1]
 
   ]
 
