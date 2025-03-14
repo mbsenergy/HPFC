@@ -7,7 +7,7 @@ box::use(
 
 devtools::load_all()
 
-LST_PARAMS <- jsonlite::fromJSON("inst/params.json")
+LST_PARAMS <- jsonlite::fromJSON("inst/backtest/params.json")
 
 if(LST_PARAMS$model_type == 'GAS') {
     LST_PARAMS$destination = LST_PARAMS$selected_gas_code
@@ -332,4 +332,4 @@ Lt_lu_hh_corrected[, RIC := spot_RIC]
 
 ENV_FOR$dt_pwr_for_ddhh = copy(Lt_lu_hh_corrected) ; rm(Lt_lu_hh_corrected)
 
-saveRDS(ENV_FOR$dt_pwr_for_ddhh, 'inst/new_forecast.rds')
+saveRDS(ENV_FOR$dt_pwr_for_ddhh, 'inst/backtest/new_forecast.rds')
