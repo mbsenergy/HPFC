@@ -14,9 +14,7 @@
 #' @import data.table
 #' @return A `data.table` containing structured forward quotes for gas.
 #' @export
-prep_fwd_curve = function(DT, list_rics, type = 'PWR', start_date = Sys.Date() - 365, end_date = Sys.Date(), calendar_sim = ENV_FWD$calendar) {
-    
-    calendar_sim = ENV_FWD$calendar
+prep_fwd_curve = function(DT, list_rics, type = 'PWR', start_date = Sys.Date() - 365, end_date = Sys.Date(), calendar_sim) {
     
     if(type == 'GAS') {
         
