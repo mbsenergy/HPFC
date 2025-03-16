@@ -1,0 +1,90 @@
+
+/* Link Color (applies to both themes) */
+a {
+  color: #75AADB; /* Link color */
+}
+
+
+body {
+  font-family: "Inter", sans-serif;
+  font-style: normal;
+  font-size: 14px;
+}
+
+pre, code {
+  font-family: "JetBrains Mono", sans-serif;
+  font-style: normal;
+  font-size: 13px;
+}
+
+
+/* ------------------------------------------- Titles ----------------- */
+
+h1 {
+  margin-block-start: 30px;
+  font-size: 2.25rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: #020817;
+}
+@media (min-width: 1024px) {
+  h1 {
+    font-size: 3rem;
+  }
+}
+h2 {
+  margin-top: 3rem;
+  margin-bottom: 3rem;
+  margin-block-start: 1rem;
+  border-bottom: 0.1px solid rgb(232, 232, 232);
+  padding-bottom: 1rem;
+  font-size: 1.875rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  transition: color 0.2s ease;
+}
+h2:first-of-type {
+  margin-top: 1rem;
+}
+h3 {
+  margin-top: 2rem;
+  margin-block-start: 20px;
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+/* ------------------------------------------- Text ----------------- */
+p {
+  line-height: 1.65;
+}
+
+p:not(:first-child) {
+  margin-top: 12px;
+}
+a {
+  font-weight: 500;
+  color: var(--primary-color);
+  text-decoration: underline;
+  text-underline-offset: 0.25rem;
+}
+
+
+/* ------------------------------------------- Footer ----------------- */
+.footer-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding-top: 40px;
+  padding-bottom: 40px;
+}
+
+/* ------------------------------------------- DT table: smaller font ----------------- */
+table.dataTable tbody th,
+table.dataTable tbody td {
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+

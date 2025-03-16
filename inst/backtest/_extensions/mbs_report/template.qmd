@@ -1,0 +1,67 @@
+---
+title: Report Template
+subtitle: Some grate subtitle explaining the document here
+author: Team names
+date: last-modified
+brand: _brand.yml
+format: 
+  mbs_report-html: 
+      logo: "logo.png"  
+      title-block-banner: "#020817"
+      primary-color: "#4299e1"  
+      is-particlejs-enabled: true
+      toc: true
+      toc-depth: 3
+      toc-title: 'TOC'
+      number-sections: true
+      number-depth: 3
+      smooth-scroll: true
+      anchor-sections: true
+      self-contained: true
+      embed-resources: true
+      highlight-style: github
+      code-fold: show
+theme: 
+  light: [light.scss]
+  dark: [dark.scss]  
+---
+
+```{r setup, include=FALSE}
+box::use(data.table[...],
+         reactable[...],
+         highcharter[...],
+         openxlsx[...],
+         magrittr[...])
+
+knitr::opts_chunk$set(
+               echo=FALSE,
+	           cache=FALSE,
+               prompt=FALSE,
+               # tidy=TRUE,
+               tidy=FALSE,
+               comment=NA,
+               message=FALSE,
+               warning=FALSE)
+options(knitr.kable.NA = '')
+```
+
+## Quarto
+
+Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+
+## Running Code
+
+When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+
+```{r}
+1 + 1
+```
+
+You can add options to executable code like this
+
+```{r}
+#| echo: false
+2 * 2
+```
+
+The `echo: false` option disables the printing of code (only output is displayed).
