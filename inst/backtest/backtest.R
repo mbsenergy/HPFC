@@ -174,6 +174,8 @@ dts = copy(dt_pwr_filt_ddhh)
 
 dts = dts[, RIC := NULL]
 
+saveRDS(dts, 'dts.rds')
+
 # devtools::load_all()
 dt_pwr_filt_ddhh_wreg = hourly_regressors(dts)
 dt_pwr_filt_ddhh_wreg = dt_gasdep_hs[dt_pwr_filt_ddhh_wreg, on = 'date']

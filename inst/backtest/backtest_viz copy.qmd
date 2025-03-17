@@ -1,0 +1,445 @@
+---
+title: "`r params$title`"
+subtitle: "`r paste('Model performance summary statistics and metrics from', params$from, 'to', params$to)`"
+author: MBS Energy
+params:
+  title: "New"
+  folder: 'Greece-Base'
+  from: '2024-01-01'
+  to: '2024-12-31'
+date: last-modified
+brand: _brand.yml
+format: 
+  mbs_report-html: 
+      primary-color: "#4299e1" 
+      title-block-banner: "#020817" 
+      is-particlejs-enabled: true
+      toc: true
+      toc-depth: 3
+      toc-title: 'NEW MODEL'
+      number-sections: true
+      number-depth: 3
+      smooth-scroll: true
+      anchor-sections: true
+      self-contained: true
+      embed-resources: true
+      highlight-style: github
+      fig-height: 3
+      code-fold: show
+theme: 
+  light: [light.scss]
+  dark: [dark.scss]  
+---
+
+
+```{r setup, include=FALSE}
+box::use(data.table[...],
+         reactable[...],
+         echarts4r[...],
+         magrittr[...])
+
+knitr::opts_chunk$set(
+               echo=FALSE,
+	           cache=FALSE,
+               prompt=FALSE,
+               # tidy=TRUE,
+               tidy=FALSE,
+               comment=NA,
+               message=FALSE,
+               warning=FALSE)
+
+options(scipen=999)
+remove_outliers = function(x) {
+  q1 = quantile(x, 0.25, na.rm = TRUE)  
+  q3 = quantile(x, 0.75, na.rm = TRUE)  
+  iqr_value = q3 - q1                   
+  lower_bound = q1 - 1.5 * iqr_value
+  upper_bound = q3 + 1.5 * iqr_value
+  x >= lower_bound & x <= upper_bound  # Return logical vector
+}
+
+e_common(font_family = "Inter", theme = "westeros")
+
+```
+
+```{r, data-upload}
+
+dts_new = readRDS(file = file.path('new_forecast.rds'))
+dts_new[, type := 'FOR_NEW']
+dts_old = readRDS(file = file.path('forecast_pwr-Greece.rds'))
+dts_old[, type := 'FOR_OLD']
+
+dtw = rbind(dts_old, dts_new, fill = TRUE)
+dtw = dtw[, .(date, hour, RIC, value = final_forecast, type)]
+dtw_w = dtw %>% dcast(date + hour ~ type)
+
+dtw[, .(mean(value)), by = .(type)]
+
+# 
+# # Forecast
+# dt_pwr_fwd = rbind(dts_old, dts_new)
+dt_pwr_fwd = readRDS(file = file.path('forecast_pwr-Greece-new.rds'))
+dt_pwr_fwd[, type := 'FOR']
+dt_pwr_fwd = dt_pwr_fwd[, .(date, hour, RIC, value = final_forecast, type)]
+
+# Spot
+dt_pwr_spot = HPFC::dt_spot_pwr[year(date) %in% unique(year(dt_pwr_fwd$date)) & RIC == unique(dt_pwr_fwd$RIC)]
+dt_pwr_spot = dt_pwr_spot[, .(date, hour, RIC, value = smp, type = 'OBS')]
+
+dt_pwr = rbind(dt_pwr_spot, dt_pwr_fwd)
+dt_pwr[, month := format(date, "%Y-%m-01")]
+
+dt_pwr[, season := fcase(
+  month(date) %in% c(1, 2, 3), "Winter",
+  month(date) %in% c(4, 5, 6), "Spring",
+  month(date) %in% c(7, 8, 9), "Summer",
+  month(date) %in% c(10, 11, 12), "Fall"
+)]
+dt_pwr[, wday := wday(date)]
+
+setorder(dt_pwr, -type, date)
+
+dt_pwr_lst = dt_pwr[year(date) == max(year(date))]
+
+dt_pwr_error = dt_pwr_lst[, .(date, hour, type, month, season, wday, value)] %>%
+   dcast(date + hour + month + season + wday ~ type)
+
+dt_pwr_error[, peak := fifelse(hour >= 9 & hour < 21, 'ON', 'OFF')]
+
+dt_pwr_error[, ERROR := OBS - FOR]
+dt_pwr_error[, DIR := fifelse(ERROR >= 0, 'POS', 'NEG')]
+
+```
+
+## Overview
+
+### Params
+
+```{r, overview-margin}
+#| fig-cap: "Mean Error"
+#| column: margin
+ e_charts() |> 
+  e_gauge(round(dt_pwr_error[, .(mean = mean(ERROR, na.rm = TRUE))][[1]], 2), "ERROR") |> 
+  e_title("Forecast Mean Error")
+```
+
+```{r, params}
+folder_path_params = file.path('params.json')
+dt_params = jsonlite::fromJSON(folder_path_params) %>% tidyjson::as_tibble() %>% as.data.table()
+dt_params = melt(dt_params, measure.vars = names(dt_params))
+
+dt_params %>% knitr::kable()
+```
+
+### Forecast
+
+```{r, overview}
+#| column: screen-inset-right
+dt_pwr[year(date) > 2023, .(value = round(mean(value))), by = .(date, type)] %>% 
+  group_by(type) %>% 
+  e_charts(date) %>% 
+  e_line(value, smooth = TRUE, symbol='none') %>% 
+  e_legend(show = TRUE, orient = 'horizontal') %>% 
+  e_title("Mean Monthly Curve", 'Whole period ') %>% 
+  e_tooltip(trigger = "axis") %>% 
+  e_toolbox_feature(feature = "saveAsImage", title = "Save as image") %>% 
+  e_datazoom(start = 0) 
+
+```
+
+
+### Datapoints distribution
+
+```{r, data-dist}
+#| column: screen-inset-right
+dt_pwr[year(date) == 2024] %>% 
+  group_by(type) %>% 
+  e_charts() %>% 
+  e_density(value, areaStyle = list(opacity = .4), smooth = TRUE, y_index = 1, symbol='none') %>%  
+  e_legend(show = TRUE, orient = 'horizontal') %>% 
+  e_tooltip(trigger = "axis") %>% 
+  e_toolbox_feature(feature = "saveAsImage", title = "Save as image") %>% 
+  e_datazoom(start = 0) 
+```
+
+## Curve Shape
+
+### Weekly
+```{r, weekly-year-2}
+#| column: screen-inset-right
+dts = dt_pwr[year(date) == 2024, .(value = round(mean(value))), by = .(wday, type)] 
+dts %>% 
+  group_by(type) %>% 
+  e_charts(wday) %>% 
+  e_line(value, smooth = TRUE) %>% 
+  e_legend(show = TRUE, orient = 'horizontal') %>% 
+  e_title("Mean Weekly Curve") %>% 
+  e_tooltip(trigger = "axis") %>% 
+  e_toolbox_feature(feature = "saveAsImage", title = "Save as image") %>% 
+  e_datazoom(start = 0) 
+```
+
+```{r, weekly-year-2-margin}
+#| fig-cap: "Curves Pseudo-Gini"
+
+dts_w = dcast(dts, wday ~ type)
+dts_w = dts_w[, .(
+  gini = sum(FOR - OBS) /.N,
+  gini_abs = sum(abs(FOR - OBS)) /.N
+)]
+knitr::kable(
+  dts_w
+)
+```
+
+### Daily
+
+```{r, daily-year-2}
+#| column: screen-inset-right
+dts = dt_pwr[year(date) == 2024, .(value = round(mean(value))), by = .(hour, type)] 
+dts %>% 
+  group_by(type) %>% 
+  e_charts(hour) %>% 
+  e_line(value, smooth = TRUE) %>% 
+  e_legend(show = TRUE, orient = 'horizontal') %>% 
+  e_title("Mean Daily Curve (24h)") %>% 
+  e_tooltip(trigger = "axis") %>% 
+  e_toolbox_feature(feature = "saveAsImage", title = "Save as image") %>% 
+  e_datazoom(start = 0) 
+```
+```{r, daily-year-2-margin}
+#| fig-cap: "Curves Pseudo-Gini"
+
+dts_w = dcast(dts, hour ~ type)
+dts_w = dts_w[, .(
+  gini = sum(FOR - OBS) /.N,
+  gini_abs = sum(abs(FOR - OBS)) /.N
+)]
+knitr::kable(
+  dts_w
+)
+```
+
+### Season 
+::: {.panel-tabset}
+#### Winter
+```{r, daily-season-1}
+#| column: screen-inset-right
+dts = dt_pwr[year(date) == 2024 & season == 'Winter', .(value = round(mean(value))), by = .(hour, type)] 
+dts %>% 
+  group_by(type) %>% 
+  e_charts(hour) %>% 
+  e_line(value, smooth = TRUE) %>% 
+  e_legend(show = TRUE, orient = 'horizontal') %>% 
+  e_title("Mean Daily Curve (24h)") %>% 
+  e_tooltip(trigger = "axis") %>% 
+  e_toolbox_feature(feature = "saveAsImage", title = "Save as image") %>% 
+  e_datazoom(start = 0) 
+```
+```{r, daily-season-1-margin}
+#| fig-cap: "Curves Pseudo-Gini"
+
+dts_w = dcast(dts, hour ~ type)
+dts_w = dts_w[, .(
+  gini = sum(FOR - OBS) /.N,
+  gini_abs = sum(abs(FOR - OBS)) /.N
+)]
+knitr::kable(
+  dts_w
+)
+```
+
+#### Spring
+```{r, daily-season-2}
+#| column: screen-inset-right
+dts = dt_pwr[year(date) == 2024 & season == 'Spring', .(value = round(mean(value))), by = .(hour, type)] 
+dts %>% 
+  group_by(type) %>% 
+  e_charts(hour) %>% 
+  e_line(value, smooth = TRUE) %>% 
+  e_legend(show = TRUE, orient = 'horizontal') %>% 
+  e_title("Mean Daily Curve (24h)") %>% 
+  e_tooltip(trigger = "axis") %>% 
+  e_toolbox_feature(feature = "saveAsImage", title = "Save as image") %>% 
+  e_datazoom(start = 0) 
+```
+
+```{r, daily-season-2-margin}
+#| fig-cap: "Curves Pseudo-Gini"
+
+dts_w = dcast(dts, hour ~ type)
+dts_w = dts_w[, .(
+  gini = sum(FOR - OBS) /.N,
+  gini_abs = sum(abs(FOR - OBS)) /.N
+)]
+knitr::kable(
+  dts_w
+)
+```
+
+#### Summer
+```{r, daily-season-3}
+#| column: screen-inset-right
+dts = dt_pwr[year(date) == 2024 & season == 'Summer', .(value = round(mean(value))), by = .(hour, type)] 
+dts %>% 
+  group_by(type) %>% 
+  e_charts(hour) %>% 
+  e_line(value, smooth = TRUE) %>% 
+  e_legend(show = TRUE, orient = 'horizontal') %>% 
+  e_title("Mean Daily Curve (24h)") %>% 
+  e_tooltip(trigger = "axis") %>% 
+  e_toolbox_feature(feature = "saveAsImage", title = "Save as image") %>% 
+  e_datazoom(start = 0) 
+```
+
+```{r, daily-season-3-margin}
+#| fig-cap: "Curves Pseudo-Gini"
+
+dts_w = dcast(dts, hour ~ type)
+dts_w = dts_w[, .(
+  gini = sum(FOR - OBS) /.N,
+  gini_abs = sum(abs(FOR - OBS)) /.N
+)]
+knitr::kable(
+  dts_w
+)
+```
+
+#### Fall
+```{r, daily-season-4}
+#| column: screen-inset-right
+dts = dt_pwr[year(date) == 2024 & season == 'Fall', .(value = round(mean(value))), by = .(hour, type)] 
+dts %>% 
+  group_by(type) %>% 
+  e_charts(hour) %>% 
+  e_line(value, smooth = TRUE) %>% 
+  e_legend(show = TRUE, orient = 'horizontal') %>% 
+  e_title("Mean Daily Curve (24h)") %>% 
+  e_tooltip(trigger = "axis") %>% 
+  e_toolbox_feature(feature = "saveAsImage", title = "Save as image") %>% 
+  e_datazoom(start = 0) 
+```
+```{r, daily-season-4-margin}
+#| fig-cap: "Curves Pseudo-Gini"
+
+dts_w = dcast(dts, hour ~ type)
+dts_w = dts_w[, .(
+  gini = sum(FOR - OBS) /.N,
+  gini_abs = sum(abs(FOR - OBS)) /.N
+)]
+knitr::kable(
+  dts_w
+)
+```
+:::
+
+
+## Error Metrics
+
+### Base metrics
+```{r, base-metrics}
+#| column: screen-inset-right
+dt_stats = 
+  dt_pwr_lst[dt_pwr_lst[, remove_outliers(value), by = .(season, type)]$V1][, 
+         .(mean = mean(value), sd = sd(value), iqr = IQR(value)),
+         by = .(type)] 
+  
+knitr::kable(
+  dt_stats
+)
+```
+
+### Error Base Metrics
+```{r, error-base-metrics}
+#| column: screen-inset-right
+#| layout-ncol: 3
+dt_pwr_error[, .(
+  MEAN = round(mean(ERROR, na.rm = TRUE), 2),
+  MEDIAN = round(median(ERROR, na.rm = TRUE), 2),
+  SD = round(sd(ERROR, na.rm = TRUE), 2),
+  IQR = round(IQR(ERROR, na.rm = TRUE), 2),
+  Qn1 = round(quantile(ERROR, 0.25, na.rm = TRUE), 2),
+  Qn3 = round(quantile(ERROR, 0.75, na.rm = TRUE), 2)
+), by = season] %>% 
+  knitr::kable()
+
+dt_pwr_error[order(wday), .(
+  MEAN = round(mean(ERROR, na.rm = TRUE), 2),
+  MEDIAN = round(median(ERROR, na.rm = TRUE), 2),
+  SD = round(sd(ERROR, na.rm = TRUE), 2),
+  IQR = round(IQR(ERROR, na.rm = TRUE), 2),
+  Qn1 = round(quantile(ERROR, 0.25, na.rm = TRUE), 2),
+  Qn3 = round(quantile(ERROR, 0.75, na.rm = TRUE), 2)
+), by = wday] %>% 
+  knitr::kable()
+
+dt_pwr_error[, .(
+  MEAN = round(mean(ERROR, na.rm = TRUE), 2),
+  MEDIAN = round(median(ERROR, na.rm = TRUE), 2),
+  SD = round(sd(ERROR, na.rm = TRUE), 2),
+  IQR = round(IQR(ERROR, na.rm = TRUE), 2),
+  Qn1 = round(quantile(ERROR, 0.25, na.rm = TRUE), 2),
+  Qn3 = round(quantile(ERROR, 0.75, na.rm = TRUE), 2)
+), by = peak] %>% 
+  knitr::kable()
+```
+
+### Error Bias
+
+```{r, error-bias}
+#| layout-ncol: 2
+dt_pwr_error[, .(
+  MAE = round(mean(abs(ERROR), na.rm = TRUE), 2)
+), by = .(season)] %>% 
+  knitr::kable()
+
+dt_pwr_error[, .(
+  MAE = round(mean(abs(ERROR), na.rm = TRUE), 2)
+), by = .(season, DIR)] %>% dcast(season ~ DIR) %>% 
+  knitr::kable()
+```
+
+### Error ANOVA
+
+```{r, error-correlation}
+#| column: screen-inset-right
+dt_pwr_error_cor = dt_pwr_error[!is.na(ERROR)]
+
+rolling_window = 30
+
+dt_pwr_error_cor[, rolling_mean := frollmean(ERROR, rolling_window, align = "right")]
+dt_pwr_error_cor[, rolling_std := frollapply(ERROR, rolling_window, function(x) sd(x, na.rm = TRUE), align = "right")]
+dt_pwr_error_cor[, rolling_corr := frollapply(ERROR, rolling_window, function(x) cor(x, OBS[seq_along(x)]), align = "right")]
+
+dt_pwr_error_cor = dt_pwr_error_cor[!is.na(rolling_mean)]
+
+cor(dt_pwr_error_cor$ERROR, dt_pwr_error_cor$OBS)
+```
+
+### Rolling View
+
+#### Rolling Mean Error
+```{r, roll-mean-error}
+#| column: screen-inset-right
+dt_pwr_error_cor[order(date), .(value = mean(rolling_mean)), by = .(date, season)] %>% 
+  group_by(season) %>% 
+  e_charts(date) %>% 
+  e_line(value, smooth = TRUE) %>% 
+  e_legend(show = TRUE, orient = 'horizontal') %>% 
+  e_tooltip(trigger = "axis") %>% 
+  e_toolbox_feature(feature = "saveAsImage", title = "Save as image") %>% 
+  e_datazoom(start = 0) 
+```
+
+#### Rolling Error Correlation to Observed 
+```{r, error-roll-cor}
+#| column: screen-inset-right
+dt_pwr_error_cor[order(date), .(value = mean(rolling_corr)), by = .(date, season)] %>% 
+  group_by(season) %>% 
+  e_charts(date) %>% 
+  e_line(value, smooth = TRUE) %>% 
+  e_legend(show = TRUE, orient = 'horizontal') %>% 
+  e_tooltip(trigger = "axis") %>% 
+  e_toolbox_feature(feature = "saveAsImage", title = "Save as image") %>% 
+  e_datazoom(start = 0) 
+```

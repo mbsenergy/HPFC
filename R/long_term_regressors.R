@@ -34,15 +34,6 @@ long_term_regressor=function(dataframe,alpha){
   filtered_dam_dd[, time_distance := (max(obs) + 1 - obs) / max(obs)] #TO CHECK / max(obs) su 365*3
   filtered_dam_dd[, weight := exp(-alpha * (time_distance))]
 
-  #correct weights
-  # filtered_dam_dd[, weight := fifelse(data.table::year(date) == 2020 | (data.table::year(date) == 2021 & (last_date - as.Date("2020-12-31") < 365)),
-  #                                     0,
-  #                                     weight)]
-
-  # filtered_dam_dd[, weight := fifelse(date < as.Date("2021-07-31"),
-  #                                     0,
-  #                                     weight)]
-
 
   # create day dummies (intra-week seasonality)
   filtered_dam_dd[, (paste("day", 1:7, sep = "_")) := lapply(1:7, function(i) {fifelse(wday == i, 1, 0)})]

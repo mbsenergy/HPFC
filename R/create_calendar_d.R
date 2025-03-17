@@ -20,6 +20,16 @@ create_calendar = function(dataframe){
   calendar[,`:=`(month = as.numeric(data.table::month(date)),
                  year = as.numeric(data.table::year(date)),
                  quarter = as.numeric(data.table::quarter(date)))]
+  
+  calendar[, season := fcase(
+    quarter == 1, "winter",
+    quarter == 2, "spring",
+    quarter == 3, "summer",
+    quarter == 4, "fall"
+  )]
+  
+  calendar[, (paste0("season_", c("winter", "spring", "summer", "fall"))) := 
+             lapply(c("winter", "spring", "summer", "fall"), function(s) fifelse(season == s, 1, 0))]
 
   calendar[, yday := data.table::yday(date)]
   calendar[, weekend := as.numeric(chron::is.weekend(date))]

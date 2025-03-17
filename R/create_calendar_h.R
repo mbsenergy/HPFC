@@ -37,6 +37,7 @@ create_calendar_h = function(dataframe){
   
   cols_vec = c("date", "hour", "ddhh", "period", 
                "weekend", "quarter", "holiday", "month", "year", "yday",
+               'season', 'season_winter', 'season_spring', 'season_summer', 'season_fall',
                "L_t", "spot_forward_month_BL", "spot_forward_month_PL",
                "trade_close", "trade_close2", "forward_month_BL", "forward_quarter_BL",
                "BL_prev_m", "history_forecast")
