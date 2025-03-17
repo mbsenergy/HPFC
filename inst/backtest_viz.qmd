@@ -400,27 +400,59 @@ dt_pwr_error[, .(
 ```
 
 ### Error ANOVA
+**Leven Test:**
+If **Levene’s test** shows **heterogeneity of variance**, ANOVA assumptions are violated. Standard ANOVA is unreliable in this case.
 
+**Kruskal-Wallis test:**
+Unlike ANOVA, the **Kruskal-Wallis test (a non-parametric test) does not assume normality and is robust to heteroskedasticity**.
+The significant p-value suggests at least one season has a different error distribution.
+
+**Wilcoxon rank sum test:**
+The Wilcoxon rank sum test shows significant differences in error distributions between most seasons.
 ```{r, error-correlation}
-#| column: screen-inset-right
-dt_pwr_error_cor = dt_pwr_error[!is.na(ERROR)]
+dt_pwr_error_anova = dt_pwr_error[!is.na(ERROR)]
 
-rolling_window = 30
+levene_result = car::leveneTest(ERROR ~ factor(season), data = dt_pwr_error_anova)
+knitr::kable(as.data.frame(levene_result), caption = "Levene's Test for Homogeneity of Variance")
 
-dt_pwr_error_cor[, rolling_mean := frollmean(ERROR, rolling_window, align = "right")]
-dt_pwr_error_cor[, rolling_std := frollapply(ERROR, rolling_window, function(x) sd(x, na.rm = TRUE), align = "right")]
-dt_pwr_error_cor[, rolling_corr := frollapply(ERROR, rolling_window, function(x) cor(x, OBS[seq_along(x)]), align = "right")]
+kruskal_result = kruskal.test(ERROR ~ factor(season), data = dt_pwr_error_anova)
 
-dt_pwr_error_cor = dt_pwr_error_cor[!is.na(rolling_mean)]
+# Create a formatted table for Kruskal-Wallis Test
+knitr::kable(data.frame(Statistic = kruskal_result$statistic, 
+                 DF = kruskal_result$parameter, 
+                 P_value = kruskal_result$p.value), 
+      caption = "Kruskal-Wallis Test Results")
 
-cor(dt_pwr_error_cor$ERROR, dt_pwr_error_cor$OBS)
+
+pairwise_result = pairwise.wilcox.test(dt_pwr_error_anova$ERROR, 
+                                        dt_pwr_error_anova$season, 
+                                        p.adjust.method = "bonferroni")
+
+# Convert pairwise test results to a data frame
+pairwise_table = as.data.table(pairwise_result$p.value)
+pairwise_table = melt(pairwise_table, variable.name = "Comparison", value.name = "P_value")
+
+
+# Create a formatted table for Pairwise Wilcoxon Test
+knitr::kable(pairwise_table, caption = "Pairwise Wilcoxon Test Results (Bonferroni Adjusted)")
+
 ```
+
 
 ### Rolling View
 
 #### Rolling Mean Error
 ```{r, roll-mean-error}
 #| column: screen-inset-right
+rolling_window = 30
+
+dt_pwr_error_cor = dt_pwr_error[!is.na(ERROR)]
+dt_pwr_error_cor[, rolling_mean := frollmean(ERROR, rolling_window, align = "right")]
+dt_pwr_error_cor[, rolling_std := frollapply(ERROR, rolling_window, function(x) sd(x, na.rm = TRUE), align = "right")]
+dt_pwr_error_cor[, rolling_corr := frollapply(ERROR, rolling_window, function(x) cor(x, OBS[seq_along(x)]), align = "right")]
+
+dt_pwr_error_cor = dt_pwr_error_cor[!is.na(rolling_mean)]
+
 dt_pwr_error_cor[order(date), .(value = mean(rolling_mean)), by = .(date, season)] %>% 
   group_by(season) %>% 
   e_charts(date) %>% 
@@ -434,6 +466,7 @@ dt_pwr_error_cor[order(date), .(value = mean(rolling_mean)), by = .(date, season
 #### Rolling Error Correlation to Observed 
 ```{r, error-roll-cor}
 #| column: screen-inset-right
+
 dt_pwr_error_cor[order(date), .(value = mean(rolling_corr)), by = .(date, season)] %>% 
   group_by(season) %>% 
   e_charts(date) %>% 
