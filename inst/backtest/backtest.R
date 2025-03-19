@@ -302,9 +302,9 @@ forecast_calendar_daily_raw = HPFC::create_calendar(calendar_future)
 ## 3.3 LONG TERM CALIBRATION
 
 #### merge calendar with daily spot
-forecast_calendar_daily = saved_history_pwr[forecast_calendar_daily_raw, on = 'date']                 # merge
-forecast_calendar_daily = free_fwd_pwr[forecast_calendar_daily, on = c('month', 'year')]        # merge
-forecast_calendar_daily = free_fwd_gas[forecast_calendar_daily, on = c('month', 'year')]        # merge
+forecast_calendar_daily = saved_history_pwr[forecast_calendar_daily_raw, on = 'date']                 
+forecast_calendar_daily = free_fwd_pwr[forecast_calendar_daily, on = c('month', 'year')]        
+forecast_calendar_daily = free_fwd_gas[forecast_calendar_daily, on = c('month', 'year')]        
 forecast_calendar_daily[, spot_forward_month_BL := fifelse(date <= LST_FOR$last_date, value_day, BL_quotes)]
 forecast_calendar_daily[, spot_forward_month_PL := fifelse(date <= LST_FOR$last_date | PL_quotes <= 0, as.numeric(NA), PL_quotes)]
 forecast_calendar_daily = calibration_gas[forecast_calendar_daily, on = c('date')]
@@ -315,7 +315,11 @@ Lt_day_adjusted = HPFC::period_adjusting(Lt_day, last_date = LST_FOR$last_date)
 
 forecast_calendar_hourly = HPFC::create_calendar_h(Lt_day_adjusted)
 
+# last_model_pwr_hourly2 = readRDS('last_model_pwr_hourly.rds')
+# setnames(forecast_calendar_hourly, 'value_gas', 'trade_close')
+
 Lt_lu_hh = HPFC::H_calibration(forecast_calendar_hourly, model_h = last_model_pwr_hourly)
+
 Lt_lu_hh_spline = HPFC::apply_spline_pwr(Lt_lu_hh, smoothig_parameter = 15)
 Lt_lu_hh_corrected = HPFC::PL_correction(Lt_lu_hh_spline)
 Lt_lu_hh_corrected[, RIC := spot_RIC]

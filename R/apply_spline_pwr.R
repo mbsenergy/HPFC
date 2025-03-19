@@ -13,7 +13,7 @@ apply_spline_pwr = function(DT, smoothig_parameter) {
   DTW = copy(DT)
 
   #### create L_e_u deviation from week mean
-  DTW[, week_n := lubridate::week(date)]
+  DTW[, week_n := data.table::week(date)]
   DTW[, deviation_from_w_wmean := L_e_u - mean(L_e_u, na.rm = TRUE), by = .(week_n, year)]
 
   #### create daily DB with L_e_u mean to find daily spline

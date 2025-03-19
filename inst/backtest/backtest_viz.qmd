@@ -3,7 +3,7 @@ title: "`r params$title`"
 subtitle: "`r paste('Model performance summary statistics and metrics from', params$from, 'to', params$to)`"
 author: MBS Energy
 params:
-  title: "Season + Season Hour New Model"
+  title: "V2"
   folder: 'Greece-Base'
   from: '2024-01-01'
   to: '2024-12-31'

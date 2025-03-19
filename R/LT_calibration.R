@@ -14,7 +14,7 @@ LT_calibration = function(DT, profile_matrix) {
   if(any(sapply(profile_matrix,class) != 'numeric')) {stop('long term parameters must be numeric')}
 
   DTW = copy(DT)
-  DTW[, value_day2 := value_day^2]
+  DTW[, value_gas2 := value_gas^2]
 
   DTW = DTW[, L_t :=
                     cos((2 * pi / 365) * yday) * profile_matrix$cos_long_term[1] +
@@ -25,8 +25,8 @@ LT_calibration = function(DT, profile_matrix) {
                     sin((2 * pi) * yday_season) * summer * profile_matrix$sin_season_summer[1] +
                     summer * profile_matrix$summer[1] +
 
-                    value_day * profile_matrix$value_day[1] +
-                    value_day2 * profile_matrix$value_day2[1] +
+                    value_gas * profile_matrix$value_gas[1] +
+                    value_gas2 * profile_matrix$value_gas2[1] +
 
                     # generate day-type deviations :
                     holiday * profile_matrix$holiday[1] +
