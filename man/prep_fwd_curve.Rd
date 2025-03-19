@@ -10,7 +10,7 @@ prep_fwd_curve(
   type = "PWR",
   start_date = Sys.Date() - 365,
   end_date = Sys.Date(),
-  calendar_sim = ENV_FWD$calendar
+  calendar_sim
 )
 }
 \arguments{

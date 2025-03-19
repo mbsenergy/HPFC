@@ -1,65 +1,110 @@
-
-#' Detect the breaks in the spot price time series
+#' Detect Breakpoints in Hourly Time Series Data
 #'
-#' The function use changepoint algorithm ...
+#' This function detects breakpoints in hourly time series data. It computes the deviation of the
+#' sample values (`value`) from the daily mean, applies a changepoint detection algorithm to the 
+#' residuals (deviation from the mean), and assigns each observation to a break group based on detected
+#' breakpoints. The function handles missing values using last observation carried forward (locf).
 #'
-#' @param x A dataframe.
-#' @param y Price column name.
-#' @returns A dataframe with 4 columns date, hour, price and break period
+#' @param DT A `data.table` containing at least three columns: 
+#'   - `date`: Date of the observation.
+#'   - `hour`: Hour of the day for each observation.
+#'   - `value`: The corresponding value for each date and hour.
+#'
+#' @return A `data.table` with the following columns:
+#'   - `date`: The original date.
+#'   - `hour`: The original hour.
+#'   - `value`: The original value.
+#'   - `break_group_p`: A grouping variable for the detected periods (breaks).
+#'
+#' @details The function performs the following steps:
+#'   - Calculates the deviation of each hourly value from the daily mean.
+#'   - Applies the `changepoint` package to detect breakpoints in the residuals (deviations).
+#'   - Assigns each observation to a break group based on the detected breakpoints.
+#'   - Removes any non-essential columns from the data.table.
+#'
 #' @import data.table
+#' @import changepoint
+#' @importFrom crayon red yellow
+#'
+#' @examples
+#' # Example usage with a sample data.table `DT`
+#' DT <- data.table(date = rep(as.Date("2020-01-01"), 24), 
+#'                  hour = 0:23, 
+#'                  value = rnorm(24))
+#' result <- break_detection_ddhh(DT)
+#' 
 #' @export
-
-break_detection = function(dataframe, smp_name){
-
-  if (!('date' %in% colnames(dataframe)) | class(dataframe$date) != 'Date') {stop("date column must be format Date")
-  } else if (!('hour' %in% colnames(dataframe)) | class(dataframe$hour) != 'numeric') {stop("hour column must be format numeric")
-  } else if (!(smp_name %in% colnames(dataframe)) | class(dataframe[,.(get(smp_name))][[1]]) != 'numeric') {stop("spot price column must be format numeric") }
-
-  if (nrow(dataframe)<365*24*2){stop('a minimum of 2 year history is required') }
-
-  # warning se ci sono NA su smp
-
-  df_dam = copy(dataframe)
-  set(df_dam, , names(df_dam)[!names(df_dam) %in% c('date', 'hour', smp_name)], NULL)
-  setnames(df_dam, colnames(df_dam), c('date', 'hour', 'smp'))
-
-  min_date = as.Date(min(df_dam$date))
-  setorderv(df_dam, cols = c('date'), order = 1L)
-  df_dam[, smp := nafill(smp, 'locf')]
-
-  #### create deviation from daily mean
-
-  df_dam[, smp_day := mean(smp), by = 'date']
-  df_dam[, smp_h := smp - smp_day]
-
-  #### create time series of h deviation
-  df_dam_ddhh_ts_detr = ts(df_dam$smp_h,
-                           start = c(format(min_date, '%Y'), format(min_date, '%m'), format(min_date, '%d')),
-                           frequency = 365 * 24)
-
-  #### start from n of breaks = to n years, check if there is a period with less than 3 months in the last 5 years,
-  #### if not stops, otherwise consider 1 break less
-
-  for (j in 1:round(length(df_dam_ddhh_ts_detr) / (365 * 24))) {
-
-    n_breaks = 1 + round(length(df_dam_ddhh_ts_detr) / (365 * 24)) - j
-
-    Vvalue_h = suppressWarnings(changepoint::cpt.var(df_dam_ddhh_ts_detr, Q = n_breaks, method = 'BinSeg'))
-
-    cutoff = length(df_dam_ddhh_ts_detr) - ((365 * 24) * 5)
-
-    vec = c(0, changepoint::cpts(Vvalue_h)[changepoint::cpts(Vvalue_h) > cutoff], length(df_dam_ddhh_ts_detr))
-
-    difs = diff(vec)
-    if (!any(24 * 90 > difs)){ break }}
-
-  #### create variable with period group
-  discv_date_h = df_dam$date[changepoint::cpts(Vvalue_h)]
-  df_dam[,break_group_p:=findInterval(date,discv_date_h)]
-
-  df_dam = df_dam[, .(date, hour, smp, break_group_p)]
-  setnames(df_dam, colnames(df_dam), c('date', 'hour', smp_name, 'break_group_p'))
-
-  return(df_dam)
-
+break_detection_ddhh = function(DT) {
+    
+    # Check for errors in input data
+    if (!"data.table" %in% class(DT)) {
+        stop(red("Error: Input is not a data.table"))
+    }
+    
+    if (!all(c("date", "hour", "value") %in% names(DT))) {
+        stop(red("Error: Data.table must contain 'date', 'hour', and 'value' columns"))
+    }
+    
+    if (any(is.na(DT$date))) {
+        stop(yellow("Warning: NA values found in 'date' column"))
+    }
+    
+    if (any(is.na(DT$hour))) {
+        stop(yellow("Warning: NA values found in 'hour' column"))
+    }
+    
+    if (any(is.na(DT$value))) {
+        stop(yellow("Warning: NA values found in 'value' column"))
+    }
+    
+    # Convert data.table to time series-friendly format
+    setDT(DT)
+    
+    # Find minimum date
+    min_date = as.Date(min(DT$date))
+    
+    # Sort data by date
+    setorderv(DT, cols = c('date'), order = 1L)
+    
+    # Handle missing values in 'value' column
+    DT[, value := nafill(value, 'locf')]
+    
+    # Calculate deviation from daily mean
+    DT[, value_day := mean(value), by = 'date']
+    DT[, value_h := value - value_day]
+    
+    # Create time series object of deviations
+    DT_ddhh_ts_detr = ts(DT$value_h,
+                         start = c(format(min_date, '%Y'), format(min_date, '%m'), format(min_date, '%d')),
+                         frequency = 365 * 24)
+    
+    # Iterate to detect breakpoints, reducing the number of breaks if needed
+    for (j in 1:round(length(DT_ddhh_ts_detr) / (365 * 24))) {
+        
+        n_breaks = 1 + round(length(DT_ddhh_ts_detr) / (365 * 24)) - j
+        
+        # Apply changepoint detection
+        Vvalue_h = suppressWarnings(changepoint::cpt.var(DT_ddhh_ts_detr, Q = n_breaks, method = 'BinSeg'))
+        
+        # Define cutoff for breaks within the last 5 years
+        cutoff = length(DT_ddhh_ts_detr) - ((365 * 24) * 5)
+        
+        # Find breakpoints greater than the cutoff and check differences between breakpoints
+        vec = c(0, changepoint::cpts(Vvalue_h)[changepoint::cpts(Vvalue_h) > cutoff], length(DT_ddhh_ts_detr))
+        difs = diff(vec)
+        
+        # Stop if no period with less than 3 months is found
+        if (!any(24 * 90 > difs)) { break } 
+        
+    }
+    
+    # Assign each observation to a break group based on the detected breakpoints
+    discv_date_h = DT$date[changepoint::cpts(Vvalue_h)]
+    DT[, break_group_p := findInterval(date, discv_date_h)]
+    
+    # Keep only necessary columns in the final output
+    DT = DT[, .(date, hour, value, break_group_p)]
+    
+    return(DT)
+    
 }

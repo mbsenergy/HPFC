@@ -6,7 +6,7 @@
 \usage{
 get_h_rics(
   rics,
-  from_date = Sys.Date() - (365 * 7),
+  from_date = Sys.Date() - (365 * 10),
   to_date = Sys.Date(),
   interval = "daily"
 )
