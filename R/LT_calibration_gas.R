@@ -3,29 +3,19 @@
 #'
 #' The function use changepoint algorithm ...
 #'
-#' @param x A dataframe with calendar regressor, ttf and power future.
+#' @param x A DT with calendar regressor, ttf and power future.
 #' @param y Long term parameters created by the function 'long term models'.
-#' @returns A dataframe with 52 columns among whihch L_t
+#' @returns A DT with 52 columns among whihch L_t
 #' @import data.table
 #' @export
 
-LT_calibration_gas=function(dataframe,profile_matrix){
-
-  if (!('date' %in% colnames(dataframe)) | class(dataframe$date) != 'Date') {stop("date column must be format Date")}
-  if (!('holiday' %in% colnames(dataframe)) | class(dataframe$holiday) != 'numeric') {stop("date column must be format numeric")}
-
-  if (!('forward_month_BL_gas' %in% colnames(dataframe)) | class(dataframe$forward_month_BL_gas) != 'numeric') {stop("forward_month_BL_gas column must be format numeric")
-  } else if (!('forward_quarter_BL_gas' %in% colnames(dataframe)) | class(dataframe$forward_quarter_BL_gas) != 'numeric') {stop("forward_quarter_BL column must be format numeric")
-  } else if (!('BL_gas_prev_m' %in% colnames(dataframe)) | class(dataframe$BL_gas_prev_m) != 'numeric') {stop("BL_gas_prev_m column must be format numeric") }
+LT_calibration_gas = function(DT, profile_matrix) {
 
   if(any(sapply(profile_matrix,class) != 'numeric')) {stop('long term parameters must be numeric')}
 
-  Lt_day=copy(dataframe)
+  DTW = copy(DT)
 
-  Lt_day = Lt_day[, L_t :=
-
-                    # generate long-term seasonality (intra-year trends)  :
-
+  DTW = DTW[, L_t :=
                     cos((2 * pi / 365) * yday) * profile_matrix$cos_long_term[1] +
                     cos((2 * pi) * yday_season) * profile_matrix$cos_season[1] +
                     cos((2 * pi) * yday_season) * summer * profile_matrix$cos_season_summer[1] +
@@ -34,17 +24,6 @@ LT_calibration_gas=function(dataframe,profile_matrix){
                     sin((2 * pi) * yday_season) * summer * profile_matrix$sin_season_summer[1] +
                     summer * profile_matrix$summer[1] +
                     profile_matrix$break_group[1] +
-
-                    # trade_close * profile_matrix$trade_close[1] +
-                    # trade_close2 * profile_matrix$trade_close2[1] +
-
-                    # cos((2 * pi / 365) * yday) * profile_matrix$cos_long_term_p[1] +
-                    # cos((2 * pi) * yday_season) * profile_matrix$cos_season_p[1] +
-                    # cos((2 * pi) * yday_season) * summer * profile_matrix$cos_season_summer_p[1] +
-                    # sin((2 * pi) * yday / 365) * profile_matrix$sin_long_term_p[1] +
-                    # sin((2 * pi) * yday_season) * profile_matrix$sin_season_p[1] +
-                    # sin((2 * pi) * yday_season) * summer * profile_matrix$sin_season_summer_p[1] +
-                    # profile_matrix$break_group[1] +
 
                     # generate day-type deviations :
 
@@ -70,8 +49,8 @@ LT_calibration_gas=function(dataframe,profile_matrix){
 
   ]
 
-  setnames(Lt_day, c('BL_gas_prev_m', 'forward_quarter_BL_gas', 'forward_month_BL_gas'), c('BL_prev_m', 'forward_quarter_BL', 'forward_month_BL'))
+  setnames(DTW, c('BL_gas_prev_m', 'forward_quarter_BL_gas', 'forward_month_BL_gas'), c('BL_prev_m', 'forward_quarter_BL', 'forward_month_BL'))
 
-  return(Lt_day)
+  return(DTW)
 
 }

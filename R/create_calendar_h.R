@@ -11,9 +11,6 @@
 
 create_calendar_h = function(dataframe){
 
-  if (!('date' %in% colnames(dataframe)) | class(dataframe$date) != 'Date') {stop("date column must be format Date")}
-  if (!('L_t' %in% colnames(dataframe)) | class(dataframe$L_t) != 'numeric') {stop("L_t column must be format numeric")}
-
   calendar=copy(dataframe)
 
   ### generate hourly calendar
@@ -29,17 +26,11 @@ create_calendar_h = function(dataframe){
 
   calendar_hourly = calendar_hourly[order(date,hour)]
   
-  # kc_cols(calendar_hourly, c("date", "hour", "ddhh", "period", 
-  #                            "weekend", "quarter", "holiday", "month", "year", "yday", 
-  #                            "L_t", "spot_forward_month_BL", "spot_forward_month_PL", 
-  #                            "trade_close", "trade_close2", "forward_month_BL", "forward_quarter_BL", 
-  #                            "BL_prev_m", "history_forecast"))
-  
-  cols_vec = c("date", "hour", "ddhh", "period", 
+  cols_vec = c("date", "hour", "ddhh", "period", "value_gas",
                "weekend", "quarter", "holiday", "month", "year", "yday",
                'season', 'season_winter', 'season_spring', 'season_summer', 'season_fall',
                "L_t", "spot_forward_month_BL", "spot_forward_month_PL",
-               "trade_close", "trade_close2", "forward_month_BL", "forward_quarter_BL",
+               "value_day", "value_day2", "forward_month_BL", "forward_quarter_BL",
                "BL_prev_m", "history_forecast")
   
   set(calendar_hourly, , names(calendar_hourly)[!names(calendar_hourly) %in% cols_vec], NULL)

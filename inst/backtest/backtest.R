@@ -99,7 +99,7 @@ ENV_MODELS = list()
 
 ## Prepare GAS ------------------------- 
 ENV_MODELS$dt_gas = ENV_SPOT$history_gas[date >= LST_PARAMS$history_start & date <= LST_PARAMS$history_end, .(date, value, RIC)]
-ric_gas = unique(ENV_MODELS$RIC)
+ric_gas = unique(ENV_MODELS$dt_gas$RIC)
 
 ### GAS Daily Filter and Clean
 print(paste('GAS DAY Filter'))
@@ -199,6 +199,8 @@ LST_FOR = list(
 
 LST_FOR$last_date = as.Date(LST_PARAMS$forecast_start) - 1
 
+
+## Forecast GAS ---------------------------------------
 print(paste('FORECAST GAS'))
 
 spot_RIC = unique(HPFC::spot_GAS_products_full[products_GAS %in% c(LST_PARAMS$selected_gas_code, LST_PARAMS$dependent_gas_code)]$spot_GAS_code)
@@ -211,7 +213,7 @@ saved_history_gas = copy(LST_FOR$saved_history_gas)
 saved_history_gas = saved_history_gas[, RIC := NULL]
 
 setcolorder(forward_quotes_TTF, c('year', 'quarter', 'month', 'forward_cal_BL_gas', 'forward_quarter_BL_gas', 'forward_month_BL_gas'))
-free_fwd_gas = HPFC::arbitrage_free_gas(forward_quotes_TTF, saved_history_gas, colnames(forward_quotes_TTF))
+free_fwd_gas = HPFC::arbitrage_free_gas(forward_quotes_TTF, DT_history = saved_history_gas, colnames(forward_quotes_TTF))
 dt_arbfree_fwd_gas = free_fwd_gas[, .(year, month, BL_quotes_gas, BL_gas_prev_m, RIC_s = spot_RIC, RIC_f = fwd_RIC)]
 
 last_model_gas = LST_FOR$last_model_gas[RIC == spot_RIC]
@@ -227,26 +229,28 @@ calendar[,`:=` (year = as.character(data.table::year(date)),
 calendar_future = calendar[date >= LST_PARAMS$forecast_start & date <= LST_PARAMS$forecast_end]
 
 forecast_calendar_daily = HPFC::create_calendar(calendar_future)
-
-forecast_calendar_daily = saved_history_gas[forecast_calendar_daily, on = 'date']                 # merge
+forecast_calendar_daily = saved_history_gas[forecast_calendar_daily, on = 'date']                 
 
 #### merge calendar with forward
-forecast_calendar_daily = free_fwd_gas[forecast_calendar_daily, on = c('month', 'year')]        # merge
+forecast_calendar_daily = free_fwd_gas[forecast_calendar_daily, on = c('month', 'year')]        
 
 #### spot before current date and fwd after for BL
-forecast_calendar_daily[, spot_forward_month_BL := fifelse(date <= LST_FOR$last_date, trade_close, BL_quotes_gas)]
-Lt_day = HPFC::LT_calibration_gas(forecast_calendar_daily, last_model_gas)
+forecast_calendar_daily[, spot_forward_month_BL := fifelse(date <= LST_FOR$last_date, value, BL_quotes_gas)]
+Lt_day = HPFC::LT_calibration_gas(forecast_calendar_daily, profile_matrix = last_model_gas)
 
-Lt_day_adjusted = HPFC::period_adjusting(Lt_day, LST_FOR$last_date)
+Lt_day_adjusted = HPFC::period_adjusting(Lt_day, last_date = LST_FOR$last_date)
 
 Lt_day_adjusted[, epsilon_u := spot_forward_month_BL]
 Lt_day_adjusted[, L_e_u := L_t + epsilon_u]
 
-Lt_spline = HPFC::apply_spline(Lt_day_adjusted, 20)
+Lt_spline = HPFC::apply_spline(Lt_day_adjusted, smoothig_parameter = 20)
 Lt_spline[, RIC := spot_RIC]
 
 
 ENV_FOR$dt_gas_for_dd = Lt_spline
+
+
+## Forecast PWR ---------------------------------------
 
 print(paste('FORECAST PWR'))
 #devtools::load_all()
@@ -268,9 +272,9 @@ saved_history_gas_bis = copy(LST_FOR$saved_history_gas_bis)
 saved_history_gas_bis = saved_history_gas_bis[, RIC := NULL]
 
 setcolorder(forward_quotes_PWR, c('year', 'quarter', 'month', 'forward_cal_BL_pwr', 'forward_quarter_BL_pwr', 'forward_month_BL_pwr', 'forward_cal_PL_pwr', 'forward_quarter_PL_pwr', 'forward_month_PL_pwr'))
-free_fwd_pwr = HPFC::arbitrage_free_power(forward_quotes_PWR, saved_history_pwr, colnames(forward_quotes_PWR))
+free_fwd_pwr = HPFC::arbitrage_free_power(forward_quotes_PWR, DT_history = saved_history_pwr, colnames(forward_quotes_PWR))
 setcolorder(forward_quotes_TTF, c( 'year', 'quarter', 'month', 'forward_cal_BL_gas', 'forward_quarter_BL_gas', 'forward_month_BL_gas'))
-free_fwd_gas = HPFC::arbitrage_free_gas(forward_quotes_TTF, saved_history_gas_bis, colnames(forward_quotes_TTF))
+free_fwd_gas = HPFC::arbitrage_free_gas(forward_quotes_TTF, DT_history = saved_history_gas_bis, colnames(forward_quotes_TTF))
 
 dt_arbfree_fwd_pwr = free_fwd_pwr[, .(year, month, BL_quotes, PL_quotes, RIC_s = spot_RIC, RIC_f = fwd_RIC)]
 
@@ -282,7 +286,7 @@ last_model_pwr_hourly = copy(LST_FOR$last_model_pwr_hh)
 
 ## 3.2 CREATE CALIBRATION GAS
 calibration_gas = copy(ENV_FOR$dt_gas_for_dd)
-calibration_gas = calibration_gas[, .(date, trade_close = smooth_corrected)]
+calibration_gas = calibration_gas[, .(date, value_gas = smooth_corrected)]
 
 ## 3.2 CREATE CALENDAR FOR FORECAST
 calendar = copy(ENV_CODES$calendar_holidays)
@@ -299,33 +303,20 @@ forecast_calendar_daily_raw = HPFC::create_calendar(calendar_future)
 
 #### merge calendar with daily spot
 forecast_calendar_daily = saved_history_pwr[forecast_calendar_daily_raw, on = 'date']                 # merge
-
-#### merge calendar with forward
 forecast_calendar_daily = free_fwd_pwr[forecast_calendar_daily, on = c('month', 'year')]        # merge
-
-#### merge calendar with forward
 forecast_calendar_daily = free_fwd_gas[forecast_calendar_daily, on = c('month', 'year')]        # merge
-
-#### spot before current date and fwd after for BL
-forecast_calendar_daily[, spot_forward_month_BL := fifelse(date <= LST_FOR$last_date, smp_day, BL_quotes)]
-#### NA before current date and fwd after for PL
+forecast_calendar_daily[, spot_forward_month_BL := fifelse(date <= LST_FOR$last_date, value_day, BL_quotes)]
 forecast_calendar_daily[, spot_forward_month_PL := fifelse(date <= LST_FOR$last_date | PL_quotes <= 0, as.numeric(NA), PL_quotes)]
-
 forecast_calendar_daily = calibration_gas[forecast_calendar_daily, on = c('date')]
 
-
-#devtools::load_all()
-
-Lt_day = HPFC::LT_calibration(forecast_calendar_daily, last_model_pwr_long)
-
-Lt_day_adjusted = HPFC::period_adjusting(Lt_day, LST_FOR$last_date)
+# devtools::load_all()
+Lt_day = HPFC::LT_calibration(forecast_calendar_daily, profile_matrix = last_model_pwr_long)
+Lt_day_adjusted = HPFC::period_adjusting(Lt_day, last_date = LST_FOR$last_date)
 
 forecast_calendar_hourly = HPFC::create_calendar_h(Lt_day_adjusted)
 
-Lt_lu_hh = HPFC::H_calibration(forecast_calendar_hourly, last_model_pwr_hourly, 'forecast')
-
-Lt_lu_hh_spline = HPFC::apply_spline_pwr(Lt_lu_hh, 15)
-
+Lt_lu_hh = HPFC::H_calibration(forecast_calendar_hourly, model_h = last_model_pwr_hourly)
+Lt_lu_hh_spline = HPFC::apply_spline_pwr(Lt_lu_hh, smoothig_parameter = 15)
 Lt_lu_hh_corrected = HPFC::PL_correction(Lt_lu_hh_spline)
 Lt_lu_hh_corrected[, RIC := spot_RIC]
 

@@ -3,35 +3,20 @@
 #'
 #' The function use changepoint algorithm ...
 #'
-#' @param x A dataframe with calendar regressor, ttf and power future.
+#' @param x A DT with calendar regressor, ttf and power future.
 #' @param y Long term parameters created by the function 'long term models'.
-#' @returns A dataframe with 52 columns among whihch L_t
+#' @returns A DT with 52 columns among whihch L_t
 #' @import data.table
 #' @export
 
-LT_calibration=function(dataframe,profile_matrix){
-
-  if (!('date' %in% colnames(dataframe)) | class(dataframe$date) != 'Date') {stop("date column must be format Date")}
-  if (!('holiday' %in% colnames(dataframe)) | class(dataframe$holiday) != 'numeric') {stop("date column must be format numeric")}
-  if (!('trade_close' %in% colnames(dataframe)) | class(dataframe$trade_close) != 'numeric') {stop("trade_close column must be format numeric")}
-  if (!('smp_day' %in% colnames(dataframe)) | class(dataframe$smp_day) != 'numeric') {stop("smp_day column must be format numeric")}
-  if (!('spot_forward_month_PL' %in% colnames(dataframe)) | class(dataframe$spot_forward_month_PL) != 'numeric') {stop("spot_forward_month_PL column must be format numeric")}
-
-  if (!('forward_month_BL' %in% colnames(dataframe)) | class(dataframe$forward_month_BL) != 'numeric') {stop("forward_month_BL column must be format numeric")
-  } else if (!('forward_quarter_BL' %in% colnames(dataframe)) | class(dataframe$forward_quarter_BL) != 'numeric') {stop("forward_quarter_BL column must be format numeric")
-  } else if (!('BL_prev_m' %in% colnames(dataframe)) | class(dataframe$BL_prev_m) != 'numeric') {stop("BL_prev_m column must be format numeric") }
-
-
+LT_calibration = function(DT, profile_matrix) {
 
   if(any(sapply(profile_matrix,class) != 'numeric')) {stop('long term parameters must be numeric')}
 
-  Lt_day=copy(dataframe)
-  Lt_day[,trade_close2:=trade_close^2]
+  DTW = copy(DT)
+  DTW[, value_day2 := value_day^2]
 
-  Lt_day = Lt_day[, L_t :=
-
-                    # generate long-term seasonality (intra-year trends)  :
-
+  DTW = DTW[, L_t :=
                     cos((2 * pi / 365) * yday) * profile_matrix$cos_long_term[1] +
                     cos((2 * pi) * yday_season) * profile_matrix$cos_season[1] +
                     cos((2 * pi) * yday_season) * summer * profile_matrix$cos_season_summer[1] +
@@ -40,11 +25,10 @@ LT_calibration=function(dataframe,profile_matrix){
                     sin((2 * pi) * yday_season) * summer * profile_matrix$sin_season_summer[1] +
                     summer * profile_matrix$summer[1] +
 
-                    trade_close * profile_matrix$trade_close[1] +
-                    trade_close2 * profile_matrix$trade_close2[1] +
+                    value_day * profile_matrix$value_day[1] +
+                    value_day2 * profile_matrix$value_day2[1] +
 
                     # generate day-type deviations :
-
                     holiday * profile_matrix$holiday[1] +
                     day_1 * profile_matrix$day_1[1] +
                     day_2 * profile_matrix$day_2[1] +
@@ -67,6 +51,6 @@ LT_calibration=function(dataframe,profile_matrix){
 
   ]
 
-  return(Lt_day)
+  return(DTW)
 
 }
