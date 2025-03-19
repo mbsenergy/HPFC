@@ -35,7 +35,7 @@ detrend_dd = function(DT, value_name) {
         stop(red("Error: Input is not a data.table"))
     }
     
-    required_cols = c("date", value_name, "break_group_p")
+    required_cols = c("date", value_name)
     missing_cols = setdiff(required_cols, names(DT))
     if (length(missing_cols) > 0) {
         stop(red(paste0("Error: Missing required columns: ", paste(missing_cols, collapse = ", "))))
@@ -72,11 +72,6 @@ detrend_dd = function(DT, value_name) {
     
     # Compute detrended values
     DT[, detr_value := DT[[value_name]] - hp_trend]
-    
-    # Return relevant columns
-    DT = DT[, .(date, get(value_name), hp_trend, detr_value, break_group_p)]
-    
-    setnames(DT, names(DT), c('date', value_name, 'hp_trend', 'detr_value', 'break_group_p'))
     
     return(DT)
 }

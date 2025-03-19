@@ -21,23 +21,23 @@ prep_fwd_curve = function(DT, list_rics, type = 'PWR', start_date = Sys.Date() -
         ## GAS 
         
         gas_forward_quotes_BL = copy(DT)
-        gas_forward_quotes_BL = gas_forward_quotes_BL[quote %like% paste(list_rics, collapse = '|')]
+        gas_forward_quotes_BL = gas_forward_quotes_BL[RIC %like% paste(list_rics, collapse = '|')]
         
         # Create key to merge on Reuter
         gas_forward_quotes_BL[, `:=` (
             year = paste0(
                 20, fcase(
-                    substr(quote, nchar(quote) - 1, nchar(quote) - 1) == "^",
-                    paste0(substr(quote, nchar(quote), nchar(quote)), substr(quote, nchar(quote) - 2, nchar(quote) - 2)),
-                    substr(quote, nchar(quote), nchar(quote)) >= substr(year(Sys.Date()), 4, 4),
-                    paste0(as.integer(substr(year(Sys.Date()), 3, 3)), substr(quote, nchar(quote), nchar(quote))),
-                    default = paste0(as.integer(substr(year(Sys.Date()), 3, 3)) + 1, substr(quote, nchar(quote), nchar(quote)))
+                    substr(RIC, nchar(RIC) - 1, nchar(RIC) - 1) == "^",
+                    paste0(substr(RIC, nchar(RIC), nchar(RIC)), substr(RIC, nchar(RIC) - 2, nchar(RIC) - 2)),
+                    substr(RIC, nchar(RIC), nchar(RIC)) >= substr(year(Sys.Date()), 4, 4),
+                    paste0(as.integer(substr(year(Sys.Date()), 3, 3)), substr(RIC, nchar(RIC), nchar(RIC))),
+                    default = paste0(as.integer(substr(year(Sys.Date()), 3, 3)) + 1, substr(RIC, nchar(RIC), nchar(RIC)))
                 )
             ),
             code = fcase(
-                substr(quote, nchar(quote) - 1, nchar(quote) - 1) == "^",
-                substr(quote, nchar(quote) - 3, nchar(quote) - 3),
-                default = substr(quote, nchar(quote) - 1, nchar(quote) - 1)
+                substr(RIC, nchar(RIC) - 1, nchar(RIC) - 1) == "^",
+                substr(RIC, nchar(RIC) - 3, nchar(RIC) - 3),
+                default = substr(RIC, nchar(RIC) - 1, nchar(RIC) - 1)
             )
         )]
         
@@ -47,9 +47,9 @@ prep_fwd_curve = function(DT, list_rics, type = 'PWR', start_date = Sys.Date() -
         string_gas_cal = paste(paste0(list_rics, 'Y'), collapse = '|')
         
         # Merge with HPFC tables
-        gas_forward_quotes_month_BL = HPFC::reuters_months[gas_forward_quotes_BL[quote %like% string_gas_month], on = 'code']
-        gas_forward_quotes_quarter_BL = HPFC::reuters_quarters_GAS[gas_forward_quotes_BL[quote %like% string_gas_quarter], on = 'code']
-        gas_forward_quotes_cal_BL = HPFC::reuters_quarters_GAS[gas_forward_quotes_BL[quote %like% string_gas_cal], on = 'code']
+        gas_forward_quotes_month_BL = HPFC::reuters_months[gas_forward_quotes_BL[RIC %like% string_gas_month], on = 'code']
+        gas_forward_quotes_quarter_BL = HPFC::reuters_quarters_GAS[gas_forward_quotes_BL[RIC %like% string_gas_quarter], on = 'code']
+        gas_forward_quotes_cal_BL = HPFC::reuters_quarters_GAS[gas_forward_quotes_BL[RIC %like% string_gas_cal], on = 'code']
         
         # Clean up
         setnames(gas_forward_quotes_month_BL, 'value', 'forward_month_BL_gas')
@@ -60,9 +60,9 @@ prep_fwd_curve = function(DT, list_rics, type = 'PWR', start_date = Sys.Date() -
         
         # Process each RIC
         lst_forward_quotes_gas = lapply(list_rics, function(i) {
-            gas_month = gas_forward_quotes_month_BL[quote %like% as.character(i)][, .(month, year, forward_month_BL_gas)]
-            gas_quarter = gas_forward_quotes_quarter_BL[quote %like% as.character(i)][, .(quarter, year, forward_quarter_BL_gas)]
-            gas_cal = gas_forward_quotes_cal_BL[quote %like% as.character(i)][, .(year, forward_cal_BL_gas)]
+            gas_month = gas_forward_quotes_month_BL[RIC %like% as.character(i)][, .(month, year, forward_month_BL_gas)]
+            gas_quarter = gas_forward_quotes_quarter_BL[RIC %like% as.character(i)][, .(quarter, year, forward_quarter_BL_gas)]
+            gas_cal = gas_forward_quotes_cal_BL[RIC %like% as.character(i)][, .(year, forward_cal_BL_gas)]
             
             forward_quotes_gas = gas_month[forward_quotes_gas, on = c('month', 'year')]
             forward_quotes_gas = gas_quarter[forward_quotes_gas, on = c('quarter', 'year')]
@@ -98,33 +98,33 @@ prep_fwd_curve = function(DT, list_rics, type = 'PWR', start_date = Sys.Date() -
         forward_quotes = copy(DT)
         
         # Filtering based on the 'B' or 'P' suffix for different types
-        forward_quotes_BL = forward_quotes[quote %like% paste0(list_rics, 'B', collapse = '|')]
-        forward_quotes_PL = forward_quotes[quote %like% paste0(list_rics, 'P', collapse = '|')]
+        forward_quotes_BL = forward_quotes[RIC %like% paste0(list_rics, 'B', collapse = '|')]
+        forward_quotes_PL = forward_quotes[RIC %like% paste0(list_rics, 'P', collapse = '|')]
         
         #### Baseload Processing -------------------------------------------
         forward_quotes_BL[, `:=` (
             year = paste0(
                 20, fcase(
-                    substr(quote, nchar(quote) - 1, nchar(quote) - 1) == "^",
+                    substr(RIC, nchar(RIC) - 1, nchar(RIC) - 1) == "^",
                     paste0(
-                        substr(quote, nchar(quote), nchar(quote)), 
-                        substr(quote, nchar(quote) - 2, nchar(quote) - 2)
+                        substr(RIC, nchar(RIC), nchar(RIC)), 
+                        substr(RIC, nchar(RIC) - 2, nchar(RIC) - 2)
                     ),
-                    substr(quote, nchar(quote), nchar(quote)) >= substr(year(Sys.Date()), 4, 4),
+                    substr(RIC, nchar(RIC), nchar(RIC)) >= substr(year(Sys.Date()), 4, 4),
                     paste0(
                         as.integer(substr(year(Sys.Date()), 3, 3)), 
-                        substr(quote, nchar(quote), nchar(quote))
+                        substr(RIC, nchar(RIC), nchar(RIC))
                     ),
                     default = paste0(
                         as.integer(substr(year(Sys.Date()), 3, 3)) + 1, 
-                        substr(quote, nchar(quote), nchar(quote))
+                        substr(RIC, nchar(RIC), nchar(RIC))
                     )
                 )
             ),
             code = fcase(
-                substr(quote, nchar(quote) - 1, nchar(quote) - 1) == "^",
-                substr(quote, nchar(quote) - 3, nchar(quote) - 3),
-                default = substr(quote, nchar(quote) - 1, nchar(quote) - 1)
+                substr(RIC, nchar(RIC) - 1, nchar(RIC) - 1) == "^",
+                substr(RIC, nchar(RIC) - 3, nchar(RIC) - 3),
+                default = substr(RIC, nchar(RIC) - 1, nchar(RIC) - 1)
             )
         )]
         
@@ -132,9 +132,9 @@ prep_fwd_curve = function(DT, list_rics, type = 'PWR', start_date = Sys.Date() -
         string_pwr_quarter_BL = paste(paste0(list_rics, 'BQ'), collapse = '|')
         string_pwr_cal_BL = paste(paste0(list_rics, 'BY'), collapse = '|')
         
-        forward_quotes_month_BL = HPFC::reuters_months[forward_quotes_BL[quote %like% string_pwr_month_BL], on = 'code']
-        forward_quotes_quarter_BL = HPFC::reuters_quarters_PWR[forward_quotes_BL[quote %like% string_pwr_quarter_BL], on = 'code']
-        forward_quotes_cal_BL = HPFC::reuters_quarters_PWR[forward_quotes_BL[quote %like% string_pwr_cal_BL], on = 'code'][, year := paste0(ifelse(substr(year(Sys.Date()), 4, 4) > substr(quote, 6, 6), paste0(substr(year(Sys.Date()), 1, 2), "3"), substr(year(Sys.Date()), 1, 3)), substr(quote, 6, 6))][, quarter := NULL]
+        forward_quotes_month_BL = HPFC::reuters_months[forward_quotes_BL[RIC %like% string_pwr_month_BL], on = 'code']
+        forward_quotes_quarter_BL = HPFC::reuters_quarters_PWR[forward_quotes_BL[RIC %like% string_pwr_quarter_BL], on = 'code']
+        forward_quotes_cal_BL = HPFC::reuters_quarters_PWR[forward_quotes_BL[RIC %like% string_pwr_cal_BL], on = 'code'][, year := paste0(ifelse(substr(year(Sys.Date()), 4, 4) > substr(RIC, 6, 6), paste0(substr(year(Sys.Date()), 1, 2), "3"), substr(year(Sys.Date()), 1, 3)), substr(RIC, 6, 6))][, quarter := NULL]
         
         setcolorder(forward_quotes_cal_BL, c("year", names(forward_quotes_cal_BL)[1:(ncol(forward_quotes_cal_BL) - 1)]))
         
@@ -148,26 +148,26 @@ prep_fwd_curve = function(DT, list_rics, type = 'PWR', start_date = Sys.Date() -
         forward_quotes_PL[, `:=` (
             year = paste0(
                 20, fcase(
-                    substr(quote, nchar(quote) - 1, nchar(quote) - 1) == "^",
+                    substr(RIC, nchar(RIC) - 1, nchar(RIC) - 1) == "^",
                     paste0(
-                        substr(quote, nchar(quote), nchar(quote)), 
-                        substr(quote, nchar(quote) - 2, nchar(quote) - 2)
+                        substr(RIC, nchar(RIC), nchar(RIC)), 
+                        substr(RIC, nchar(RIC) - 2, nchar(RIC) - 2)
                     ),
-                    substr(quote, nchar(quote), nchar(quote)) >= substr(year(Sys.Date()), 4, 4),
+                    substr(RIC, nchar(RIC), nchar(RIC)) >= substr(year(Sys.Date()), 4, 4),
                     paste0(
                         as.integer(substr(year(Sys.Date()), 3, 3)), 
-                        substr(quote, nchar(quote), nchar(quote))
+                        substr(RIC, nchar(RIC), nchar(RIC))
                     ),
                     default = paste0(
                         as.integer(substr(year(Sys.Date()), 3, 3)) + 1, 
-                        substr(quote, nchar(quote), nchar(quote))
+                        substr(RIC, nchar(RIC), nchar(RIC))
                     )
                 )
             ),
             code = fcase(
-                substr(quote, nchar(quote) - 1, nchar(quote) - 1) == "^",
-                substr(quote, nchar(quote) - 3, nchar(quote) - 3),
-                default = substr(quote, nchar(quote) - 1, nchar(quote) - 1)
+                substr(RIC, nchar(RIC) - 1, nchar(RIC) - 1) == "^",
+                substr(RIC, nchar(RIC) - 3, nchar(RIC) - 3),
+                default = substr(RIC, nchar(RIC) - 1, nchar(RIC) - 1)
             )
         )]
         
@@ -175,9 +175,9 @@ prep_fwd_curve = function(DT, list_rics, type = 'PWR', start_date = Sys.Date() -
         string_pwr_quarter_PL = paste(paste0(list_rics, 'PQ'), collapse = '|')
         string_pwr_cal_PL = paste(paste0(list_rics, 'PY'), collapse = '|')
         
-        forward_quotes_month_PL = HPFC::reuters_months[forward_quotes_PL[quote %like% string_pwr_month_PL], on = 'code']
-        forward_quotes_quarter_PL = HPFC::reuters_quarters_PWR[forward_quotes_PL[quote %like% string_pwr_quarter_PL], on = 'code']
-        forward_quotes_cal_PL = HPFC::reuters_quarters_PWR[forward_quotes_PL[quote %like% string_pwr_cal_PL], on = 'code'][, year := paste0(ifelse(substr(year(Sys.Date()), 4, 4) > substr(quote, 6, 6), paste0(substr(year(Sys.Date()), 1, 2), "3"), substr(year(Sys.Date()), 1, 3)), substr(quote, 6, 6))][, quarter := NULL]
+        forward_quotes_month_PL = HPFC::reuters_months[forward_quotes_PL[RIC %like% string_pwr_month_PL], on = 'code']
+        forward_quotes_quarter_PL = HPFC::reuters_quarters_PWR[forward_quotes_PL[RIC %like% string_pwr_quarter_PL], on = 'code']
+        forward_quotes_cal_PL = HPFC::reuters_quarters_PWR[forward_quotes_PL[RIC %like% string_pwr_cal_PL], on = 'code'][, year := paste0(ifelse(substr(year(Sys.Date()), 4, 4) > substr(RIC, 6, 6), paste0(substr(year(Sys.Date()), 1, 2), "3"), substr(year(Sys.Date()), 1, 3)), substr(RIC, 6, 6))][, quarter := NULL]
         
         setcolorder(forward_quotes_cal_PL, c("year", names(forward_quotes_cal_PL)[1:(ncol(forward_quotes_cal_PL) - 1)]))
         
@@ -191,17 +191,17 @@ prep_fwd_curve = function(DT, list_rics, type = 'PWR', start_date = Sys.Date() -
         
         lst_forward_quotes_pwr = lapply(list_rics, function(i) {
             
-            forward_quotes_month_BL   = forward_quotes_month_BL[quote %like% paste0(as.character(i),'B')]
-            forward_quotes_quarter_BL = forward_quotes_quarter_BL[quote %like% paste0(as.character(i),'B')]
-            forward_quotes_cal_BL     = forward_quotes_cal_BL[quote %like% paste0(as.character(i),'B')]
+            forward_quotes_month_BL   = forward_quotes_month_BL[RIC %like% paste0(as.character(i),'B')]
+            forward_quotes_quarter_BL = forward_quotes_quarter_BL[RIC %like% paste0(as.character(i),'B')]
+            forward_quotes_cal_BL     = forward_quotes_cal_BL[RIC %like% paste0(as.character(i),'B')]
             
             set(forward_quotes_month_BL, j   = setdiff(names(forward_quotes_month_BL), c("month", "year", "forward_month_BL_pwr")), value = NULL)
             set(forward_quotes_quarter_BL, j = setdiff(names(forward_quotes_quarter_BL), c("quarter", "year", "forward_quarter_BL_pwr")), value = NULL)
             set(forward_quotes_cal_BL, j     = setdiff(names(forward_quotes_cal_BL), c("quarter", "year", "forward_cal_BL_pwr")), value = NULL)
             
-            forward_quotes_month_PL   = forward_quotes_month_PL[quote %like% paste0(as.character(i),'P')]
-            forward_quotes_quarter_PL = forward_quotes_quarter_PL[quote %like% paste0(as.character(i),'P')]
-            forward_quotes_cal_PL     = forward_quotes_cal_PL[quote %like% paste0(as.character(i),'P')]
+            forward_quotes_month_PL   = forward_quotes_month_PL[RIC %like% paste0(as.character(i),'P')]
+            forward_quotes_quarter_PL = forward_quotes_quarter_PL[RIC %like% paste0(as.character(i),'P')]
+            forward_quotes_cal_PL     = forward_quotes_cal_PL[RIC %like% paste0(as.character(i),'P')]
             
             set(forward_quotes_month_PL, j   = setdiff(names(forward_quotes_month_PL), c("month", "year", "forward_month_PL_pwr")), value = NULL)
             set(forward_quotes_quarter_PL, j = setdiff(names(forward_quotes_quarter_PL), c("quarter", "year", "forward_quarter_PL_pwr")), value = NULL)

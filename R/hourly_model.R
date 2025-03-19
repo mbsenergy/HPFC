@@ -3,28 +3,23 @@
 #'
 #' The function use a nls function ...
 #'
-#' @param x A hourly dataframe.
+#' @param x A hourly DT.
 #' @param y Gas Price column name.
 #' @returns A nls object representing the hourly model
 #' @import data.table
 #' @export
 
-hourly_model=function(dataframe,gas_name){
+hourly_model = function(DT){
 
-  if (!('date' %in% colnames(dataframe)) | class(dataframe$date) != 'Date') {stop("date column must be format Date")
-  } else if (!(gas_name %in% colnames(dataframe)) | class(dataframe[,.(get(gas_name))][[1]]) != 'numeric') {stop("ttf price column must be format numeric")
-  } else if (!('break_h' %in% colnames(dataframe)) | class(dataframe$break_h) != 'numeric') {stop("break_h column must be format numeric")}
+  DTW=copy(DT)
 
-  filtered_dam_ddhh=copy(dataframe)
-
-  setnames(filtered_dam_ddhh, gas_name, 'trade_close')
-  filtered_dam_ddhh[,trade_close2:=trade_close^2]
+  DTW[, value_gas2 := value_gas^2]
 
   nls.control(maxiter = 50, tol = 1e-05, minFactor = 1/2100,
               printEval = FALSE, warnOnly = FALSE, scaleOffset = 0,
               nDcentral = FALSE)
 
-  model_h=nls(smp_h ~
+  model_h=nls(value_h ~
                 hour_1*coeff_hour_1+
                 hour_2*coeff_hour_2+
                 hour_3*coeff_hour_3+
@@ -275,76 +270,76 @@ hourly_model=function(dataframe,gas_name){
                        coeff_yday3_hour_19+coeff_yday3_hour_20+
                        coeff_yday3_hour_21+coeff_yday3_hour_22+
                        coeff_yday3_hour_23))*hour_24*yday3 + # end hour_ yday3 interaction --------------
-              hour_1*trade_close*coeff_trade_close_hour_1+
-                hour_2*trade_close*coeff_trade_close_hour_2+
-                hour_3*trade_close*coeff_trade_close_hour_3+
-                hour_4*trade_close*coeff_trade_close_hour_4+
-                hour_5*trade_close*coeff_trade_close_hour_5+
-                hour_6*trade_close*coeff_trade_close_hour_6+
-                hour_7*trade_close*coeff_trade_close_hour_7+
-                hour_8*trade_close*coeff_trade_close_hour_8+
-                hour_9*trade_close*coeff_trade_close_hour_9+
-                hour_10*trade_close*coeff_trade_close_hour_10+
-                hour_11*trade_close*coeff_trade_close_hour_11+
-                hour_12*trade_close*coeff_trade_close_hour_12+
-                hour_13*trade_close*coeff_trade_close_hour_13+
-                hour_14*trade_close*coeff_trade_close_hour_14+
-                hour_15*trade_close*coeff_trade_close_hour_15+
-                hour_16*trade_close*coeff_trade_close_hour_16+
-                hour_17*trade_close*coeff_trade_close_hour_17+
-                hour_18*trade_close*coeff_trade_close_hour_18+
-                hour_19*trade_close*coeff_trade_close_hour_19+
-                hour_20*trade_close*coeff_trade_close_hour_20+
-                hour_21*trade_close*coeff_trade_close_hour_21+
-                hour_22*trade_close*coeff_trade_close_hour_22+
-                hour_23*trade_close*coeff_trade_close_hour_23+
-                (-1*(coeff_trade_close_hour_1+coeff_trade_close_hour_2+
-                       coeff_trade_close_hour_3+coeff_trade_close_hour_4+
-                       coeff_trade_close_hour_5+coeff_trade_close_hour_6+
-                       coeff_trade_close_hour_7+coeff_trade_close_hour_8+
-                       coeff_trade_close_hour_9+coeff_trade_close_hour_10+
-                       coeff_trade_close_hour_11+coeff_trade_close_hour_12+
-                       coeff_trade_close_hour_13+coeff_trade_close_hour_14+
-                       coeff_trade_close_hour_15+coeff_trade_close_hour_16+
-                       coeff_trade_close_hour_17+coeff_trade_close_hour_18+
-                       coeff_trade_close_hour_19+coeff_trade_close_hour_20+
-                       coeff_trade_close_hour_21+coeff_trade_close_hour_22+
-                       coeff_trade_close_hour_23))*hour_24*trade_close + # end hour_ trade_close interaction --------------
-              hour_1*trade_close2*coeff_trade_close2_hour_1+
-                hour_2*trade_close2*coeff_trade_close2_hour_2+
-                hour_3*trade_close2*coeff_trade_close2_hour_3+
-                hour_4*trade_close2*coeff_trade_close2_hour_4+
-                hour_5*trade_close2*coeff_trade_close2_hour_5+
-                hour_6*trade_close2*coeff_trade_close2_hour_6+
-                hour_7*trade_close2*coeff_trade_close2_hour_7+
-                hour_8*trade_close2*coeff_trade_close2_hour_8+
-                hour_9*trade_close2*coeff_trade_close2_hour_9+
-                hour_10*trade_close2*coeff_trade_close2_hour_10+
-                hour_11*trade_close2*coeff_trade_close2_hour_11+
-                hour_12*trade_close2*coeff_trade_close2_hour_12+
-                hour_13*trade_close2*coeff_trade_close2_hour_13+
-                hour_14*trade_close2*coeff_trade_close2_hour_14+
-                hour_15*trade_close2*coeff_trade_close2_hour_15+
-                hour_16*trade_close2*coeff_trade_close2_hour_16+
-                hour_17*trade_close2*coeff_trade_close2_hour_17+
-                hour_18*trade_close2*coeff_trade_close2_hour_18+
-                hour_19*trade_close2*coeff_trade_close2_hour_19+
-                hour_20*trade_close2*coeff_trade_close2_hour_20+
-                hour_21*trade_close2*coeff_trade_close2_hour_21+
-                hour_22*trade_close2*coeff_trade_close2_hour_22+
-                hour_23*trade_close2*coeff_trade_close2_hour_23+
-                (-1*(coeff_trade_close2_hour_1+coeff_trade_close2_hour_2+
-                       coeff_trade_close2_hour_3+coeff_trade_close2_hour_4+
-                       coeff_trade_close2_hour_5+coeff_trade_close2_hour_6+
-                       coeff_trade_close2_hour_7+coeff_trade_close2_hour_8+
-                       coeff_trade_close2_hour_9+coeff_trade_close2_hour_10+
-                       coeff_trade_close2_hour_11+coeff_trade_close2_hour_12+
-                       coeff_trade_close2_hour_13+coeff_trade_close2_hour_14+
-                       coeff_trade_close2_hour_15+coeff_trade_close2_hour_16+
-                       coeff_trade_close2_hour_17+coeff_trade_close2_hour_18+
-                       coeff_trade_close2_hour_19+coeff_trade_close2_hour_20+
-                       coeff_trade_close2_hour_21+coeff_trade_close2_hour_22+
-                       coeff_trade_close2_hour_23))*hour_24*trade_close2 + # end hour_ trade_close2 interaction --------------
+              hour_1*value_gas*coeff_value_gas_hour_1+
+                hour_2*value_gas*coeff_value_gas_hour_2+
+                hour_3*value_gas*coeff_value_gas_hour_3+
+                hour_4*value_gas*coeff_value_gas_hour_4+
+                hour_5*value_gas*coeff_value_gas_hour_5+
+                hour_6*value_gas*coeff_value_gas_hour_6+
+                hour_7*value_gas*coeff_value_gas_hour_7+
+                hour_8*value_gas*coeff_value_gas_hour_8+
+                hour_9*value_gas*coeff_value_gas_hour_9+
+                hour_10*value_gas*coeff_value_gas_hour_10+
+                hour_11*value_gas*coeff_value_gas_hour_11+
+                hour_12*value_gas*coeff_value_gas_hour_12+
+                hour_13*value_gas*coeff_value_gas_hour_13+
+                hour_14*value_gas*coeff_value_gas_hour_14+
+                hour_15*value_gas*coeff_value_gas_hour_15+
+                hour_16*value_gas*coeff_value_gas_hour_16+
+                hour_17*value_gas*coeff_value_gas_hour_17+
+                hour_18*value_gas*coeff_value_gas_hour_18+
+                hour_19*value_gas*coeff_value_gas_hour_19+
+                hour_20*value_gas*coeff_value_gas_hour_20+
+                hour_21*value_gas*coeff_value_gas_hour_21+
+                hour_22*value_gas*coeff_value_gas_hour_22+
+                hour_23*value_gas*coeff_value_gas_hour_23+
+                (-1*(coeff_value_gas_hour_1+coeff_value_gas_hour_2+
+                       coeff_value_gas_hour_3+coeff_value_gas_hour_4+
+                       coeff_value_gas_hour_5+coeff_value_gas_hour_6+
+                       coeff_value_gas_hour_7+coeff_value_gas_hour_8+
+                       coeff_value_gas_hour_9+coeff_value_gas_hour_10+
+                       coeff_value_gas_hour_11+coeff_value_gas_hour_12+
+                       coeff_value_gas_hour_13+coeff_value_gas_hour_14+
+                       coeff_value_gas_hour_15+coeff_value_gas_hour_16+
+                       coeff_value_gas_hour_17+coeff_value_gas_hour_18+
+                       coeff_value_gas_hour_19+coeff_value_gas_hour_20+
+                       coeff_value_gas_hour_21+coeff_value_gas_hour_22+
+                       coeff_value_gas_hour_23))*hour_24*value_gas + # end hour_ value_gas interaction --------------
+              hour_1*value_gas2*coeff_value_gas2_hour_1+
+                hour_2*value_gas2*coeff_value_gas2_hour_2+
+                hour_3*value_gas2*coeff_value_gas2_hour_3+
+                hour_4*value_gas2*coeff_value_gas2_hour_4+
+                hour_5*value_gas2*coeff_value_gas2_hour_5+
+                hour_6*value_gas2*coeff_value_gas2_hour_6+
+                hour_7*value_gas2*coeff_value_gas2_hour_7+
+                hour_8*value_gas2*coeff_value_gas2_hour_8+
+                hour_9*value_gas2*coeff_value_gas2_hour_9+
+                hour_10*value_gas2*coeff_value_gas2_hour_10+
+                hour_11*value_gas2*coeff_value_gas2_hour_11+
+                hour_12*value_gas2*coeff_value_gas2_hour_12+
+                hour_13*value_gas2*coeff_value_gas2_hour_13+
+                hour_14*value_gas2*coeff_value_gas2_hour_14+
+                hour_15*value_gas2*coeff_value_gas2_hour_15+
+                hour_16*value_gas2*coeff_value_gas2_hour_16+
+                hour_17*value_gas2*coeff_value_gas2_hour_17+
+                hour_18*value_gas2*coeff_value_gas2_hour_18+
+                hour_19*value_gas2*coeff_value_gas2_hour_19+
+                hour_20*value_gas2*coeff_value_gas2_hour_20+
+                hour_21*value_gas2*coeff_value_gas2_hour_21+
+                hour_22*value_gas2*coeff_value_gas2_hour_22+
+                hour_23*value_gas2*coeff_value_gas2_hour_23+
+                (-1*(coeff_value_gas2_hour_1+coeff_value_gas2_hour_2+
+                       coeff_value_gas2_hour_3+coeff_value_gas2_hour_4+
+                       coeff_value_gas2_hour_5+coeff_value_gas2_hour_6+
+                       coeff_value_gas2_hour_7+coeff_value_gas2_hour_8+
+                       coeff_value_gas2_hour_9+coeff_value_gas2_hour_10+
+                       coeff_value_gas2_hour_11+coeff_value_gas2_hour_12+
+                       coeff_value_gas2_hour_13+coeff_value_gas2_hour_14+
+                       coeff_value_gas2_hour_15+coeff_value_gas2_hour_16+
+                       coeff_value_gas2_hour_17+coeff_value_gas2_hour_18+
+                       coeff_value_gas2_hour_19+coeff_value_gas2_hour_20+
+                       coeff_value_gas2_hour_21+coeff_value_gas2_hour_22+
+                       coeff_value_gas2_hour_23))*hour_24*value_gas2 + # end hour_ value_gas2 interaction --------------
               hour_1*weekend*coeff_weekend_hour_1+
                 hour_2*weekend*coeff_weekend_hour_2+
                 hour_3*weekend*coeff_weekend_hour_3+
@@ -429,21 +424,18 @@ hourly_model=function(dataframe,gas_name){
                          coeff_yday2_hour_14=0,coeff_yday2_hour_15=0,coeff_yday2_hour_16=0,coeff_yday2_hour_17=0,coeff_yday2_hour_18=0,coeff_yday2_hour_19=0,coeff_yday2_hour_20=0,coeff_yday2_hour_21=0,coeff_yday2_hour_22=0,coeff_yday2_hour_23=0,
                          coeff_yday3_hour_1=0,coeff_yday3_hour_2=0,coeff_yday3_hour_3=0,coeff_yday3_hour_4=0,coeff_yday3_hour_5=0,coeff_yday3_hour_6=0,coeff_yday3_hour_7=0,coeff_yday3_hour_8=0,coeff_yday3_hour_9=0,coeff_yday3_hour_10=0,coeff_yday3_hour_11=0,coeff_yday3_hour_12=0,coeff_yday3_hour_13=0,
                          coeff_yday3_hour_14=0,coeff_yday3_hour_15=0,coeff_yday3_hour_16=0,coeff_yday3_hour_17=0,coeff_yday3_hour_18=0,coeff_yday3_hour_19=0,coeff_yday3_hour_20=0,coeff_yday3_hour_21=0,coeff_yday3_hour_22=0,coeff_yday3_hour_23=0,
-                         coeff_trade_close_hour_1=0,coeff_trade_close_hour_2=0,coeff_trade_close_hour_3=0,coeff_trade_close_hour_4=0,coeff_trade_close_hour_5=0,coeff_trade_close_hour_6=0,coeff_trade_close_hour_7=0,coeff_trade_close_hour_8=0,coeff_trade_close_hour_9=0,coeff_trade_close_hour_10=0,coeff_trade_close_hour_11=0,coeff_trade_close_hour_12=0,coeff_trade_close_hour_13=0,
-                         coeff_trade_close_hour_14=0,coeff_trade_close_hour_15=0,coeff_trade_close_hour_16=0,coeff_trade_close_hour_17=0,coeff_trade_close_hour_18=0,coeff_trade_close_hour_19=0,coeff_trade_close_hour_20=0,coeff_trade_close_hour_21=0,coeff_trade_close_hour_22=0,coeff_trade_close_hour_23=0,
-                         coeff_trade_close2_hour_1=0,coeff_trade_close2_hour_2=0,coeff_trade_close2_hour_3=0,coeff_trade_close2_hour_4=0,coeff_trade_close2_hour_5=0,coeff_trade_close2_hour_6=0,coeff_trade_close2_hour_7=0,coeff_trade_close2_hour_8=0,coeff_trade_close2_hour_9=0,coeff_trade_close2_hour_10=0,coeff_trade_close2_hour_11=0,coeff_trade_close2_hour_12=0,coeff_trade_close2_hour_13=0,
-                         coeff_trade_close2_hour_14=0,coeff_trade_close2_hour_15=0,coeff_trade_close2_hour_16=0,coeff_trade_close2_hour_17=0,coeff_trade_close2_hour_18=0,coeff_trade_close2_hour_19=0,coeff_trade_close2_hour_20=0,coeff_trade_close2_hour_21=0,coeff_trade_close2_hour_22=0,coeff_trade_close2_hour_23=0,
+                         coeff_value_gas_hour_1=0,coeff_value_gas_hour_2=0,coeff_value_gas_hour_3=0,coeff_value_gas_hour_4=0,coeff_value_gas_hour_5=0,coeff_value_gas_hour_6=0,coeff_value_gas_hour_7=0,coeff_value_gas_hour_8=0,coeff_value_gas_hour_9=0,coeff_value_gas_hour_10=0,coeff_value_gas_hour_11=0,coeff_value_gas_hour_12=0,coeff_value_gas_hour_13=0,
+                         coeff_value_gas_hour_14=0,coeff_value_gas_hour_15=0,coeff_value_gas_hour_16=0,coeff_value_gas_hour_17=0,coeff_value_gas_hour_18=0,coeff_value_gas_hour_19=0,coeff_value_gas_hour_20=0,coeff_value_gas_hour_21=0,coeff_value_gas_hour_22=0,coeff_value_gas_hour_23=0,
+                         coeff_value_gas2_hour_1=0,coeff_value_gas2_hour_2=0,coeff_value_gas2_hour_3=0,coeff_value_gas2_hour_4=0,coeff_value_gas2_hour_5=0,coeff_value_gas2_hour_6=0,coeff_value_gas2_hour_7=0,coeff_value_gas2_hour_8=0,coeff_value_gas2_hour_9=0,coeff_value_gas2_hour_10=0,coeff_value_gas2_hour_11=0,coeff_value_gas2_hour_12=0,coeff_value_gas2_hour_13=0,
+                         coeff_value_gas2_hour_14=0,coeff_value_gas2_hour_15=0,coeff_value_gas2_hour_16=0,coeff_value_gas2_hour_17=0,coeff_value_gas2_hour_18=0,coeff_value_gas2_hour_19=0,coeff_value_gas2_hour_20=0,coeff_value_gas2_hour_21=0,coeff_value_gas2_hour_22=0,coeff_value_gas2_hour_23=0,
                          coeff_weekend_hour_1=0,coeff_weekend_hour_2=0,coeff_weekend_hour_3=0,coeff_weekend_hour_4=0,coeff_weekend_hour_5=0,coeff_weekend_hour_6=0,coeff_weekend_hour_7=0,coeff_weekend_hour_8=0,coeff_weekend_hour_9=0,coeff_weekend_hour_10=0,coeff_weekend_hour_11=0,coeff_weekend_hour_12=0,coeff_weekend_hour_13=0,
                          coeff_weekend_hour_14=0,coeff_weekend_hour_15=0,coeff_weekend_hour_16=0,coeff_weekend_hour_17=0,coeff_weekend_hour_18=0,coeff_weekend_hour_19=0,coeff_weekend_hour_20=0,coeff_weekend_hour_21=0,coeff_weekend_hour_22=0,coeff_weekend_hour_23=0,
                          coeff_break_h_hour_1=0,coeff_break_h_hour_2=0,coeff_break_h_hour_3=0,coeff_break_h_hour_4=0,coeff_break_h_hour_5=0,coeff_break_h_hour_6=0,coeff_break_h_hour_7=0,coeff_break_h_hour_8=0,coeff_break_h_hour_9=0,coeff_break_h_hour_10=0,coeff_break_h_hour_11=0,coeff_break_h_hour_12=0,coeff_break_h_hour_13=0,
                          coeff_break_h_hour_14=0,coeff_break_h_hour_15=0,coeff_break_h_hour_16=0,coeff_break_h_hour_17=0,coeff_break_h_hour_18=0,coeff_break_h_hour_19=0,coeff_break_h_hour_20=0,coeff_break_h_hour_21=0,coeff_break_h_hour_22=0,coeff_break_h_hour_23=0),
-              data=filtered_dam_ddhh,
+              data = DTW,
               control=  nls.control(maxiter = 50, tol = 1e-05, minFactor = 1/2100,
                                     printEval = FALSE, warnOnly = FALSE, scaleOffset = 0,
                                     nDcentral = FALSE))
-
-  #### store estimated coefficients
-  #coefs_xx = data.frame(coef = coefficients(model_xx),name = names(coefficients(model_xx))) |> setDT()
 
   return(model_h)
 

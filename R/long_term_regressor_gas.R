@@ -38,88 +38,83 @@
 #'
 #' @export
 long_term_regressor_gas = function(DT, alpha) {
-    
+
     # Check if DT is a data.table
     if (!"data.table" %in% class(DT)) {
         stop(red("Error: Input is not a data.table"))
     }
-    
+    if(class(alpha) != 'numeric' | alpha > 1 | alpha < 0) {stop("alpha must be format numeric between 0 and 1")}
+
     # Copy DT to avoid modifying the original
     DTW = copy(DT)
-    
-    # Add time-related features to the dataset
-    DTW[, `:=`(
-        yday = data.table::yday(date),
-        wday = data.table::wday(date),
-        quarter = data.table::quarter(date),
-        month = data.table::month(date),
-        weekend = as.numeric(chron::is.weekend(date)),
-        obs = .I
-    )]
-    
-    # Create smoothing weight based on time distance
-    DTW[, time_distance := (max(obs) + 1 - obs) / max(obs)] # Normalize time distance
-    DTW[, weight := exp(-alpha * (time_distance))] # Apply exponential smoothing
-    
-    # Create day-of-week dummy variables for intra-week seasonality
-    DTW[, (paste("day", 1:7, sep = "_")) := lapply(1:7, function(i) { fifelse(wday == i, 1, 0) })]
-    
-    # Create a summer season dummy (quarter 2 and 3 are considered summer)
+  
+    DTW[,`:=` (yday = data.table::yday(date),
+                           wday = data.table::wday(date),
+                           quarter = data.table::quarter(date),
+                           month = data.table::month(date),
+                           weekend = as.numeric(chron::is.weekend(date)),
+                           obs = .I)]
+  
+    #create weight with smoothing
+    DTW[, time_distance := (max(obs) + 1 - obs) / max(obs)] #TO CHECK / max(obs) su 365*3
+    DTW[, weight := exp(-alpha * (time_distance))]
+  
+    # create day dummies (intra-week seasonality)
+    DTW[, (paste("day", 1:7, sep = "_")) := lapply(1:7, function(i) {fifelse(wday == i, 1, 0)})]
+  
+    #create summer dummy
     DTW[, summer := as.numeric(quarter == 2 | quarter == 3)]
-    
-    # Create season beginning date and calculate distance from it
+  
+    #create variable beginning season date AND delta date-beginning
     DTW[, begining_season := as.Date(
-        fifelse(quarter == 4, paste0(format(date, format = "%Y"), "-10-01"),
-                fifelse(quarter == 1, paste0(data.table::year(date) - 1, "-10-01"),
-                        paste0(format(date, format = "%Y"), "-04-01"))))]
-    
-    DTW[, dist := as.numeric(date - begining_season)] # Distance from the beginning of the season
-    DTW[, yday_season := dist / max(dist)] # Normalize by maximum distance
-    
-    # Create season indicator (summer or winter)
+      fifelse(quarter == 4, paste0(format(date, format = "%Y"), "-10-01"),
+              fifelse(quarter == 1, paste0(data.table::year(date) - 1, "-10-01"),
+                      paste0(format(date, format = "%Y"), "-04-01"))))]
+  
+    DTW[, dist := as.numeric(date - begining_season)]
+    DTW[, yday_season := dist / max(dist)]
+  
+    #create variable season.year
     DTW[, season := fifelse(summer == 1, paste0("summer-", data.table::year(date)),
                                         fifelse(quarter == 4, paste0("winter-", data.table::year(date)),
                                                 paste0("winter-", data.table::year(date) - 1)))]
-    
-    # Generate long-term seasonal components (cosine and sine)
-    DTW[, `:=`(
-        cos_long_term = cos((2 * pi) * yday / 365),
-        cos_season = cos((2 * pi) * yday_season),
-        cos_season_summer = cos((2 * pi) * yday_season) * summer,
-        sin_long_term = sin((2 * pi) * yday / 365),
-        sin_season = sin((2 * pi) * yday_season),
-        sin_season_summer = sin((2 * pi) * yday_season) * summer
-    )]
-    
-    # Generate polynomial terms of yday (1 to 10) for non-linear effects
-    DTW[, (paste("yday", 1:10, sep = "_")) := lapply(1:10, function(i) { yday^i })]
-    
-    # Create dummy variables for different break groups
+  
+  
+    #### create LT components Caldana 6.2
+    DTW[,`:=`(cos_long_term = cos((2 * pi) * yday / 365),
+                          cos_season = cos((2 * pi) * yday_season),
+                          cos_season_summer = cos((2 * pi) * yday_season) * summer,
+                          sin_long_term = sin((2 * pi) * yday / 365),
+                          sin_season = sin((2 * pi) * yday_season),
+                          sin_season_summer = sin((2 * pi) * yday_season) * summer)]
+  
+    ### generate polynomial via lapply
+    DTW[, (paste("yday", 1:10, sep = "_")) := lapply(1:10, function(i) {yday^i})]
+  
     n_groups = max(DTW$break_group_p) + 1
-    DTW[, (paste("break_group", 1:n_groups, sep = "_")) := lapply(1:n_groups, function(i) { 
-        as.numeric(break_group_p == (i - 1)) 
-    })]
-    
-    # Multiply seasonal components by break group dummies
-    for (x in 1:n_groups) {
-        DTW[, paste('cos_long_term', x, sep = '_') := get(paste("break_group", x, sep = "_")) * cos_long_term]
-        DTW[, paste('cos_season', x, sep = '_') := get(paste("break_group", x, sep = "_")) * cos_season]
-        DTW[, paste('cos_season_summer', x, sep = '_') := get(paste("break_group", x, sep = "_")) * cos_season_summer]
-        DTW[, paste('sin_long_term', x, sep = '_') := get(paste("break_group", x, sep = "_")) * sin_long_term]
-        DTW[, paste('sin_season', x, sep = '_') := get(paste("break_group", x, sep = "_")) * sin_season]
-        DTW[, paste('sin_season_summer', x, sep = '_') := get(paste("break_group", x, sep = "_")) * sin_season_summer]
-        DTW[, paste('summer', x, sep = '_') := get(paste("break_group", x, sep = "_")) * summer]
-        
-        # Multiply day-of-week dummies by break group dummies
-        for (i in 1:7) {
-            DTW[, paste('day', i, x, sep = '_') := get(paste("break_group", x, sep = "_")) * get(paste("day", i, sep = "_"))]
-        }
-        
-        # Multiply yday polynomial terms by break group dummies
-        for (i in 1:10) {
-            DTW[, paste("yday", i, x, sep = "_") := get(paste("break_group", x, sep = "_")) * get(paste("yday", i, sep = "_"))]
-        }
+    DTW[, (paste("break_group", 1:n_groups, sep = "_")) := lapply(1:n_groups, function(i) { as.numeric(break_group_p == (i - 1)) })]
+  
+    for (x in 1:n_groups){
+  
+      DTW[, paste('cos_long_term', x,sep = '_')      := get(paste("break_group", x, sep = "_")) * cos_long_term]
+      DTW[, paste('cos_season', x,sep = '_')         := get(paste("break_group", x, sep = "_")) * cos_season]
+      DTW[, paste('cos_season_summer', x,sep = '_')  := get(paste("break_group", x, sep = "_")) * cos_season_summer]
+      DTW[, paste('sin_long_term', x,sep = '_')      := get(paste("break_group", x, sep = "_")) * sin_long_term]
+      DTW[, paste('sin_season', x,sep = '_')         := get(paste("break_group", x, sep = "_")) * sin_season]
+      DTW[, paste('sin_season_summer', x,sep = '_')  := get(paste("break_group", x, sep = "_")) * sin_season_summer]
+      DTW[, paste('holiday', x,sep = '_')            := get(paste("break_group", x, sep = "_")) * holiday]
+      DTW[, paste('summer', x,sep = '_')             := get(paste("break_group", x, sep = "_")) * summer]
+      DTW[, paste('day_2', x,sep = '_') := get(paste("break_group", x, sep = "_")) * day_2]
+      DTW[, paste('day_3', x,sep = '_') := get(paste("break_group", x, sep = "_")) * day_3]
+      DTW[, paste('day_4', x,sep = '_') := get(paste("break_group", x, sep = "_")) * day_4]
+      DTW[,  paste('day_5', x,sep = '_') := get(paste("break_group", x, sep = "_")) * day_5]
+      DTW[, paste('day_6', x,sep = '_') := get(paste("break_group", x, sep = "_")) * day_6]
+      DTW[, paste('day_7', x,sep = '_') := get(paste("break_group", x, sep = "_")) * day_7]
+  
+      DTW[, (paste("yday", 1:10, x, sep = "_")) := lapply(1:10, function(i) { get(paste("break_group", x, sep = "_")) * get(paste("yday", i, sep = "_")) })]
+  
     }
-    
+  
     return(DTW)
+  
 }
