@@ -64,7 +64,7 @@ e_common(font_family = "Inter", theme = "westeros")
 
 ```{r, data-upload}
 
-dts_new = readRDS(file = file.path('new_forecast.rds'))
+dts_new = readRDS(file = file.path('forecast.rds'))
 dts_new[, type := 'FOR_NEW']
 dts_old = readRDS(file = file.path('forecast_pwr-Greece.rds'))
 dts_old[, type := 'FOR_OLD']
@@ -78,7 +78,7 @@ dtw[, .(mean(value)), by = .(type)]
 # 
 # # Forecast
 # dt_pwr_fwd = rbind(dts_old, dts_new)
-dt_pwr_fwd = readRDS(file = file.path('new_forecast.rds'))
+dt_pwr_fwd = readRDS(file = file.path('forecast.rds'))
 dt_pwr_fwd[, type := 'FOR']
 dt_pwr_fwd = dt_pwr_fwd[, .(date, hour, RIC, value = final_forecast, type)]
 

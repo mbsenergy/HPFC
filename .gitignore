@@ -48,3 +48,4 @@ po/*~
 # RStudio Connect folder
 rsconnect/
 HPFC-Package.Rproj
+/inst/backtest/backtest_viz_files
