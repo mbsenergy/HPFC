@@ -9,14 +9,6 @@ devtools::load_all()
 
 LST_PARAMS <- jsonlite::fromJSON("inst/backtest/params.json")
 
-if(LST_PARAMS$model_type == 'GAS') {
-    LST_PARAMS$destination = LST_PARAMS$selected_gas_code
-}
-
-if(LST_PARAMS$model_type == 'pwr') {
-    LST_PARAMS$destination = LST_PARAMS$selected_pwr_code
-}
-
 
 LST_DIRS = list(
     dir_data_input_t  = file.path('run', 'LAST', 'data', '01_input'),
@@ -29,12 +21,12 @@ LST_DIRS = list(
 
 ### Directories path
 LST_DIRS_archive = list(
-    dir_data_input_t  = file.path('run', LST_PARAMS$archive, '01_input'),
-    dir_data_input_f  = file.path('run', LST_PARAMS$archive, '01_input'),
-    dir_data_inter    = file.path('run', LST_PARAMS$archive, '01_input'),
-    dir_data_output   = file.path('run', LST_PARAMS$archive, '02_output'),
-    dir_data_output_models   = file.path('run', LST_PARAMS$archive, '02_output'),
-    dir_data_other    = file.path('run', LST_PARAMS$archive, 'xx_other')
+    dir_data_input_t  = file.path('run', LST_PARAMS$sim_name, '01_input'),
+    dir_data_input_f  = file.path('run', LST_PARAMS$sim_name, '01_input'),
+    dir_data_inter    = file.path('run', LST_PARAMS$sim_name, '01_input'),
+    dir_data_output   = file.path('run', LST_PARAMS$sim_name, '02_output'),
+    dir_data_output_models   = file.path('run', LST_PARAMS$sim_name, '02_output'),
+    dir_data_other    = file.path('run', LST_PARAMS$sim_name, 'xx_other')
 )
 
 lapply(LST_DIRS_archive, dir.create, recursive = TRUE, showWarnings = FALSE)
@@ -219,13 +211,13 @@ model_lt_gas = LST_FOR$model_lt_gas[RIC == spot_RIC]
 model_lt_gas = model_lt_gas[, RIC := NULL]
 
 ## 3.2 CREATE CALENDAR FOR FORECAST
-calendar = copy(ENV_CODES$calendar_holidays)
-calendar[,`:=` (year = as.character(data.table::year(date)), 
+calendar_future = copy(ENV_CODES$calendar_holidays)
+calendar_future[,`:=` (year = as.character(data.table::year(date)), 
                 quarter = as.character(data.table::quarter(date)),
                 month = as.character(data.table::month(date)))
 ]
 
-calendar_future = calendar[date >= LST_PARAMS$forecast_start & date <= LST_PARAMS$forecast_end]
+calendar_future = calendar_future[date >= LST_PARAMS$forecast_start & date <= LST_PARAMS$forecast_end]
 
 forecast_calendar_daily = HPFC::create_calendar_dd(calendar_future)
 forecast_calendar_daily = saved_history_gas[forecast_calendar_daily, on = 'date']                 
@@ -235,18 +227,17 @@ forecast_calendar_daily = free_fwd_gas[forecast_calendar_daily, on = c('month', 
 
 #### spot before current date and fwd after for BL
 forecast_calendar_daily[, spot_forward_month_BL := fifelse(date <= LST_FOR$last_date, value, BL_quotes_gas)]
-Lt_day = HPFC::predict_lt_gas(forecast_calendar_daily, profile_matrix = model_lt_gas)
+ENV_FOR$dt_gas_for_dd = HPFC::predict_lt_gas(forecast_calendar_daily, profile_matrix = model_lt_gas)
 
-Lt_day_adjusted = HPFC::period_calibration(Lt_day, last_date = LST_FOR$last_date)
+ENV_FOR$dt_gas_for_dd = HPFC::period_calibration(ENV_FOR$dt_gas_for_dd, last_date = LST_FOR$last_date)
 
-Lt_day_adjusted[, epsilon_u := spot_forward_month_BL]
-Lt_day_adjusted[, L_e_u := L_t + epsilon_u]
+ENV_FOR$dt_gas_for_dd[, epsilon_u := spot_forward_month_BL]
+ENV_FOR$dt_gas_for_dd[, L_e_u := L_t + epsilon_u]
 
-Lt_spline = HPFC::spline_gas(Lt_day_adjusted, smoothig_parameter = 20)
-Lt_spline[, RIC := spot_RIC]
+ENV_FOR$dt_gas_for_dd = HPFC::spline_gas(ENV_FOR$dt_gas_for_dd, smoothig_parameter = 20)
+ENV_FOR$dt_gas_for_dd[, RIC := spot_RIC]
 
-
-ENV_FOR$dt_gas_for_dd = Lt_spline
+rm(forecast_calendar_daily, model_lt_gas, free_fwd_gas, dt_arbfree_fwd_gas, saved_history_gas, dt_gas_fwds, fwd_RIC, spot_RIC, calendar_future)
 
 
 ## Forecast PWR ---------------------------------------
@@ -278,7 +269,7 @@ dt_arbfree_fwd_pwr = free_fwd_pwr[, .(year, month, BL_quotes, PL_quotes, RIC_s =
 model_lt_pwr_long = copy(LST_FOR$model_lt_pwr) 
 model_lt_pwr_long = model_lt_pwr_long[, RIC := NULL]
 
-model_lt_pwr_hourly = copy(LST_FOR$model_st_pwr)
+model_st_pwr = copy(LST_FOR$model_st_pwr)
 
 
 ## 3.2 CREATE CALIBRATION GAS
@@ -286,13 +277,13 @@ calibration_gas = copy(ENV_FOR$dt_gas_for_dd)
 calibration_gas = calibration_gas[, .(date, value_gas = smooth_corrected)]
 
 ## 3.2 CREATE CALENDAR FOR FORECAST
-calendar = copy(ENV_CODES$calendar_holidays)
-calendar[,`:=` (year = as.character(data.table::year(date)),
+calendar_future = copy(ENV_CODES$calendar_holidays)
+calendar_future[,`:=` (year = as.character(data.table::year(date)),
                 quarter = as.character(data.table::quarter(date)),
                 month = as.character(data.table::month(date)))
 ]
 
-calendar_future = calendar[LST_PARAMS$forecast_start <= date & date <= LST_PARAMS$forecast_end]
+calendar_future = calendar_future[LST_PARAMS$forecast_start <= date & date <= LST_PARAMS$forecast_end]
 
 forecast_calendar_daily_raw = HPFC::create_calendar_dd(calendar_future)
 
@@ -307,20 +298,18 @@ forecast_calendar_daily[, spot_forward_month_PL := fifelse(date <= LST_FOR$last_
 forecast_calendar_daily = calibration_gas[forecast_calendar_daily, on = c('date')]
 
 # devtools::load_all()
-Lt_day = HPFC::predict_lt_pwr(forecast_calendar_daily, profile_matrix = model_lt_pwr_long)
-Lt_day_adjusted = HPFC::period_calibration(Lt_day, last_date = LST_FOR$last_date)
+ENV_FOR$dt_pwr_for_ddhh = HPFC::predict_lt_pwr(forecast_calendar_daily, profile_matrix = model_lt_pwr_long)
+ENV_FOR$dt_pwr_for_ddhh = HPFC::period_calibration(ENV_FOR$dt_pwr_for_ddhh, last_date = LST_FOR$last_date)
 
-forecast_calendar_hourly = HPFC::create_calendar_ddhh(Lt_day_adjusted)
+forecast_calendar_hourly = HPFC::create_calendar_ddhh(ENV_FOR$dt_pwr_for_ddhh)
 
-# model_lt_pwr_hourly2 = readRDS('model_lt_pwr_hourly.rds')
-# setnames(forecast_calendar_hourly, 'value_gas', 'trade_close')
+ENV_FOR$dt_pwr_for_ddhh = HPFC::predict_st_pwr(forecast_calendar_hourly, model_h = model_st_pwr)
 
-Lt_lu_hh = HPFC::predict_st_pwr(forecast_calendar_hourly, model_h = model_lt_pwr_hourly)
+ENV_FOR$dt_pwr_for_ddhh = HPFC::spline_pwr(ENV_FOR$dt_pwr_for_ddhh, smoothig_parameter = 15)
+ENV_FOR$dt_pwr_for_ddhh = HPFC::PL_correction(ENV_FOR$dt_pwr_for_ddhh)
+ENV_FOR$dt_pwr_for_ddhh[, RIC := spot_RIC]
 
-Lt_lu_hh_spline = HPFC::spline_pwr(Lt_lu_hh, smoothig_parameter = 15)
-Lt_lu_hh_corrected = HPFC::PL_correction(Lt_lu_hh_spline)
-Lt_lu_hh_corrected[, RIC := spot_RIC]
+rm(forecast_calendar_hourly, model_lt_pwr_long, model_st_pwr, free_fwd_gas, free_fwd_pwr, dt_arbfree_fwd_gas, saved_history_gas_bis, saved_history_pwr, dt_gas_fwds, dt_pwr_fwds, fwd_RIC, spot_RIC, calendar_future, calibration_gas)
 
-ENV_FOR$dt_pwr_for_ddhh = copy(Lt_lu_hh_corrected) ; rm(Lt_lu_hh_corrected)
 
 saveRDS(ENV_FOR$dt_pwr_for_ddhh, 'inst/backtest/forecast.rds')

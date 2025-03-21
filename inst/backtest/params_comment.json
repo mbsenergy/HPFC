@@ -1,0 +1,15 @@
+ "_options": {
+    "model_type": "PWR or GAS",
+    "selected_pwr_code": "Power Country Name",
+    "selected_gas_code": "Gas Name",
+    "dependent_gas_code": "Gas Name",
+    "history_start": "Training Start date for data retrieval",
+    "history_end": "Training End date for data retrieval",
+    "forecast_start": "Forecasting Start date horizon",
+    "forecast_end": "Forecasting End date horizon",
+    "model_source": "`TRAIN`, `ARCHIVE`, 'LAST'",
+    "data_source": "'REUTERS_KEY' or 'LOCAL', 'MANUAL'.",
+    "forecast_source": "'FWD' or 'DAM' (avg(DAM)).",
+    "sim_name": "`ARCHIVE` simulation name to use for 'data_source' and 'model_source'",
+    "archive": "'NO' or Name of the suffix to identify - Could be Sys.Date()"
+  }

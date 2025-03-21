@@ -84,7 +84,7 @@ dt_pwr_fwd = dt_pwr_fwd[, .(date, hour, RIC, value = final_forecast, type)]
 
 # Spot
 dt_pwr_spot = HPFC::dt_spot_pwr[year(date) %in% unique(year(dt_pwr_fwd$date)) & RIC == unique(dt_pwr_fwd$RIC)]
-dt_pwr_spot = dt_pwr_spot[, .(date, hour, RIC, value = smp, type = 'OBS')]
+dt_pwr_spot = dt_pwr_spot[, .(date, hour, RIC, value, type = 'OBS')]
 
 dt_pwr = rbind(dt_pwr_spot, dt_pwr_fwd)
 dt_pwr[, month := format(date, "%Y-%m-01")]
@@ -336,7 +336,7 @@ knitr::kable(
 
 ## Error Metrics
 
-### Base metrics
+### Base metrics (with outliers removed)
 ```{r, base-metrics}
 #| column: screen-inset-right
 dt_stats = 
@@ -399,8 +399,6 @@ dt_pwr_error[, .(
   knitr::kable()
 ```
 
-### Error ANOVA
-
 ```{r, error-correlation}
 #| column: screen-inset-right
 dt_pwr_error_cor = dt_pwr_error[!is.na(ERROR)]
@@ -413,7 +411,6 @@ dt_pwr_error_cor[, rolling_corr := frollapply(ERROR, rolling_window, function(x)
 
 dt_pwr_error_cor = dt_pwr_error_cor[!is.na(rolling_mean)]
 
-cor(dt_pwr_error_cor$ERROR, dt_pwr_error_cor$OBS)
 ```
 
 ### Rolling View
