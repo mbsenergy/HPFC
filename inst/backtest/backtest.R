@@ -7,6 +7,8 @@ box::use(
 
 devtools::load_all()
 
+smooth = 30
+
 LST_PARAMS <- jsonlite::fromJSON("inst/backtest/params.json")
 
 
@@ -63,7 +65,7 @@ ENV_FWD$calendar[,`:=` (year = as.character(data.table::year(date)), quarter = a
 
 ENV_FWD$dt_fwds = 
     rbind(HPFC::dt_fwds_gas[substr(RIC, 1, 4) == HPFC::spot_GAS_products_full[products_GAS %in% unique(c(LST_PARAMS$selected_gas_code, LST_PARAMS$dependent_gas_code))]$products_GAS_code],
-          HPFC::dt_fwds_pwr_fwddam[spot_PWR_code == 'HEEGRAUCH', .(date, RIC, value = DAM)]
+          HPFC::dt_fwds_pwr_fwddam[spot_PWR_code == HPFC::spot_PWR_products_full[countries %in% LST_PARAMS$selected_pwr_code]$spot_PWR_code, .(date, RIC, value = DAM)]
 )
 
 ENV_FWD$dt_fwds = ENV_FWD$dt_fwds[ENV_FWD$dt_fwds[, .I[date == max(date)], by = RIC]$V1]
@@ -305,11 +307,12 @@ forecast_calendar_hourly = HPFC::create_calendar_ddhh(ENV_FOR$dt_pwr_for_ddhh)
 
 ENV_FOR$dt_pwr_for_ddhh = HPFC::predict_st_pwr(forecast_calendar_hourly, model_h = model_st_pwr)
 
-ENV_FOR$dt_pwr_for_ddhh = HPFC::spline_pwr(ENV_FOR$dt_pwr_for_ddhh, smoothig_parameter = 15)
+ENV_FOR$dt_pwr_for_ddhh = HPFC::spline_pwr(ENV_FOR$dt_pwr_for_ddhh, smoothig_parameter = 12)
 ENV_FOR$dt_pwr_for_ddhh = HPFC::PL_correction(ENV_FOR$dt_pwr_for_ddhh)
 ENV_FOR$dt_pwr_for_ddhh[, RIC := spot_RIC]
 
 rm(forecast_calendar_hourly, model_lt_pwr_long, model_st_pwr, free_fwd_gas, free_fwd_pwr, dt_arbfree_fwd_gas, saved_history_gas_bis, saved_history_pwr, dt_gas_fwds, dt_pwr_fwds, fwd_RIC, spot_RIC, calendar_future, calibration_gas)
 
-
-saveRDS(ENV_FOR$dt_pwr_for_ddhh, 'inst/backtest/forecast.rds')
+paths = paste(LST_PARAMS$selected_pwr_code, smooth, 'forecast.rds', sep = '-')
+saveRDS(ENV_FOR$dt_pwr_for_ddhh, file.path('inst', 'backtest', paths))
+paths

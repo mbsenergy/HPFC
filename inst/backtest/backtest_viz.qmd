@@ -4,7 +4,7 @@ subtitle: "`r paste('Model performance summary statistics and metrics from', par
 author: MBS Energy
 params:
   title: "V2"
-  folder: 'Greece-Base'
+  folder: 'Italy-Base'
   from: '2024-01-01'
   to: '2024-12-31'
 date: last-modified
@@ -63,8 +63,8 @@ e_common(font_family = "Inter", theme = "westeros")
 ```
 
 ```{r, data-upload}
-
-dts_new = readRDS(file = file.path('forecast.rds'))
+paths = 'Italy-7-forecast.rds'
+dts_new = readRDS(file = paths)
 dts_new[, type := 'FOR_NEW']
 dts_old = readRDS(file = file.path('forecast_pwr-Greece.rds'))
 dts_old[, type := 'FOR_OLD']
@@ -78,7 +78,7 @@ dtw[, .(mean(value)), by = .(type)]
 # 
 # # Forecast
 # dt_pwr_fwd = rbind(dts_old, dts_new)
-dt_pwr_fwd = readRDS(file = file.path('forecast.rds'))
+dt_pwr_fwd = readRDS(file = paths)
 dt_pwr_fwd[, type := 'FOR']
 dt_pwr_fwd = dt_pwr_fwd[, .(date, hour, RIC, value = final_forecast, type)]
 
