@@ -282,3 +282,86 @@ regressors_st_model_pwr = function(DT) {
   
   return(DTW)
 }
+
+
+#' SHort Term model - PWR
+#'
+#' This function creates regressors for hourly time series analysis, incorporating seasonality, 
+#' dummies for hours, weekdays, and additional transformations.
+#'
+#' @param DT A `data.table` containing at least the following columns:
+#'   - `date` (Date): The date of each observation.
+#'   - `hour` (integer): The hour of the observation (1-24).
+#'   - `value` (numeric): Observed values for baseline calculations.
+#'   - `break_group_p` (integer): Grouping variable for breakpoints.
+#' @return A `data.table` with additional regressors for modeling.
+#' @import data.table
+#' @importFrom chron is.weekend
+#' @export
+
+regressors_st_model_pwr_v1 = function(DT) {
+  
+  # Check if DT is a data.table
+  if (!"data.table" %in% class(DT)) {
+    stop("Error: Input `DT` must be a data.table.")
+  }
+  
+  # Check if required columns exist
+  required_cols = c("date", "hour", "value", "break_group_p")
+  missing_cols = setdiff(required_cols, names(DT))
+  if (length(missing_cols) > 0) {
+    stop(paste("Error: Missing required columns in `DT`:", paste(missing_cols, collapse = ", ")))
+  }
+  
+  # Copy DT to avoid modifying the original
+  DTW = copy(DT)
+  
+  # Create seasonal, day, and time variables
+  DTW[, `:=` (
+    yday = data.table::yday(date),
+    wday = data.table::wday(date),
+    quarter = data.table::quarter(date),
+    month = data.table::month(date),
+    weekend = as.numeric(chron::is.weekend(date)),
+    obs = .I
+  )]
+  
+  # Assign seasons based on quarter
+  DTW[, season := fcase(
+    quarter == 1, "winter",
+    quarter == 2, "summer",
+    quarter == 3, "summer",
+    quarter == 4, "winter"
+  )]
+  
+  # Create season dummies
+  DTW[, (paste0("season_", c("winter", "summer"))) := 
+        lapply(c("winter", "summer"), function(s) fifelse(season == s, 1, 0))]
+  
+  ## Hourly Dummies ---------------------------------------------------------------------------------------------
+  
+  # Create weekday dummies
+  DTW[, (paste("day", 1:7, sep = "_")) := lapply(1:7, function(i) fifelse(wday == i, 1, 0))]
+  
+  # Create hourly dummies
+  DTW[, (paste("hour", 1:24, sep = "_")) := lapply(1:24, function(i) fifelse(hour == i, 1, 0))]
+  
+  # Create baseload (daily mean value)
+  DTW[, bl := mean(value), by = date]
+  
+  # Identify last market regime period
+  DTW[, break_h := fifelse(break_group_p == max(break_group_p), 1, 0)]
+  
+  # Compute hourly deviation from baseload
+  DTW[, value_h := value - bl]
+  
+  # Generate polynomial transformations
+  DTW[, `:=` (
+    yday2 = yday^2,
+    yday3 = yday^3,
+    bl2 = bl^2,
+    bl3 = bl^3
+  )]
+  
+  return(DTW)
+}

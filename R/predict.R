@@ -167,3 +167,52 @@ predict_st_pwr = function(DT, model_h) {
   
   return(DTW)
 }
+
+
+#' Short-Term Power Prediction
+#'
+#' This function predicts short-term power parameters (`L_u`, `L_e_u`) using a pre-trained model `model_h` and data from `DT`.
+#' 
+#' @param DT A data.table containing the input data, including time-related variables, gas values, and any additional predictors.
+#' @param model_h A pre-trained model used to predict the hourly power values.
+#' @return A data.table with the predicted power values (`L_u`, `L_e_u`) and relevant columns.
+#' @import data.table
+#' @export
+
+predict_st_pwr = function(DT, model_h) {
+  
+  # Ensure model_h is a valid model object
+  # if (missing(model_h) || !inherits(model_h, "model")) {
+  #   stop("The provided 'model_h' is not a valid model object.")
+  # }
+  
+  DTW = copy(DT)
+  
+  # Explicitly set epsilon_u as the spot_forward_month_BL
+  DTW[, epsilon_u := spot_forward_month_BL]
+  
+  # Create hour indicators (1 for the corresponding hour, 0 otherwise)
+  DTW[, break_h := 1]
+  DTW[, (paste("hour", 1:24, sep = "_")) := lapply(1:24, function(i) fifelse(hour == i, 1, 0))]
+  
+  # Generate polynomial terms for yday and value_gas
+  DTW[, yday2 := yday^2]
+  DTW[, yday3 := yday^3]
+  DTW[, value_gas2 := value_gas^2]
+  
+  # Calculate bl and its powers
+  DTW[, bl := epsilon_u + L_t]
+  DTW[, bl2 := bl^2]
+  DTW[, bl3 := bl^3]
+  
+  # Predict hourly values using the provided model
+  pred_hourly = predict(model_h, DTW)
+  DTW[, prediction_h := pred_hourly]
+  
+  # Calculate predicted L_u and L_e_u
+  DTW[, L_u := prediction_h + L_t]
+  DTW[, L_e_u := prediction_h + L_t + epsilon_u]
+  
+  return(DTW)
+}
+

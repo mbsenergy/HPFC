@@ -7,7 +7,7 @@ box::use(
 
 devtools::load_all()
 
-smooth = 30
+smooth = 20
 
 LST_PARAMS <- jsonlite::fromJSON("inst/backtest/params.json")
 
@@ -38,7 +38,8 @@ lapply(LST_DIRS_archive, dir.create, recursive = TRUE, showWarnings = FALSE)
 
 ENV_CODES = list()
 # sys.source(file.path("99_accessory.R"), envir = ENV_CODES)
-ENV_CODES$calendar_holidays = setnames(HPFC::calendar_holidays, paste0("holiday_", unique(HPFC::spot_PWR_products_full[countries %in% LST_PARAMS$selected_pwr_code]$countries_2d )), 'holiday', skip_absent = TRUE)
+# ENV_CODES$calendar_holidays = setnames(HPFC::calendar_holidays, paste0("holiday_", unique(HPFC::spot_PWR_products_full[countries %in% LST_PARAMS$selected_pwr_code]$countries_2d )), 'holiday', skip_absent = TRUE)
+ENV_CODES$calendar_holidays = setnames(HPFC::calendar_holidays, paste0("holiday_GR"), 'holiday', skip_absent = TRUE)
 ENV_CODES$calendar_holidays = ENV_CODES$calendar_holidays[, .(date, holiday)]
 
 
@@ -307,12 +308,12 @@ forecast_calendar_hourly = HPFC::create_calendar_ddhh(ENV_FOR$dt_pwr_for_ddhh)
 
 ENV_FOR$dt_pwr_for_ddhh = HPFC::predict_st_pwr(forecast_calendar_hourly, model_h = model_st_pwr)
 
-ENV_FOR$dt_pwr_for_ddhh = HPFC::spline_pwr(ENV_FOR$dt_pwr_for_ddhh, smoothig_parameter = 12)
+ENV_FOR$dt_pwr_for_ddhh = HPFC::spline_pwr(ENV_FOR$dt_pwr_for_ddhh, smoothig_parameter = smooth)
 ENV_FOR$dt_pwr_for_ddhh = HPFC::PL_correction(ENV_FOR$dt_pwr_for_ddhh)
 ENV_FOR$dt_pwr_for_ddhh[, RIC := spot_RIC]
 
 rm(forecast_calendar_hourly, model_lt_pwr_long, model_st_pwr, free_fwd_gas, free_fwd_pwr, dt_arbfree_fwd_gas, saved_history_gas_bis, saved_history_pwr, dt_gas_fwds, dt_pwr_fwds, fwd_RIC, spot_RIC, calendar_future, calibration_gas)
 
-paths = paste(LST_PARAMS$selected_pwr_code, smooth, 'forecast.rds', sep = '-')
+paths = paste(LST_PARAMS$selected_pwr_code, smooth, 'forecast-alt.rds', sep = '-')
 saveRDS(ENV_FOR$dt_pwr_for_ddhh, file.path('inst', 'backtest', paths))
 paths
