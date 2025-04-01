@@ -1,9 +1,9 @@
 ---
-title: "Model Sample"
+title: "HPFC Model Application"
 author: "Alejandro Abraham"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteIndexEntry{HPFC Model Application}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteContext{package}
 ---
@@ -24,7 +24,7 @@ devtools::load_all()
 
 smooth = 30
 
-LST_PARAMS <- jsonlite::fromJSON("inst/backtest/params.json")
+LST_PARAMS <- jsonlite::fromJSON("params.json")
 
 
 LST_DIRS = list(
@@ -336,6 +336,6 @@ ENV_FOR$dt_pwr_for_ddhh[, RIC := spot_RIC]
 rm(forecast_calendar_hourly, model_lt_pwr_long, model_st_pwr, free_fwd_gas, free_fwd_pwr, dt_arbfree_fwd_gas, saved_history_gas_bis, saved_history_pwr, dt_gas_fwds, dt_pwr_fwds, fwd_RIC, spot_RIC, calendar_future, calibration_gas)
 
 paths = paste(LST_PARAMS$selected_pwr_code, smooth, 'forecast.rds', sep = '-')
-saveRDS(ENV_FOR$dt_pwr_for_ddhh, file.path('inst', 'backtest', paths))
+# saveRDS(ENV_FOR$dt_pwr_for_ddhh, file.path('inst', 'backtest', paths))
 ```
 
