@@ -1,4 +1,4 @@
-url: https://mbsenergy.github.io/HPFC/
+url: https://mbsenergy.github.io/HPFC-Package/
 template:
   params:
     bootstrap: 5
@@ -13,5 +13,7 @@ home:
   sidebar:
     structure: [links, license]
     logo: man/figures/logo.png
+
+
 
 
