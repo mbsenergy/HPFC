@@ -64,28 +64,25 @@ load_inputs = function(params_path = 'params.json') {
     
     ENV_SPOT = list()
     
+    ENV_SPOT$history_gas_full = HPFC::dt_spot_gas[RIC == HPFC::spot_GAS_products_full[products_GAS %in% unique(c(LST_PARAMS$selected_gas_code, LST_PARAMS$dependent_gas_code))]$spot_GAS_code]
+    ENV_SPOT$history_pwr_full = HPFC::dt_spot_pwr[RIC == HPFC::spot_PWR_products_full[countries %in% LST_PARAMS$selected_pwr_code]$spot_PWR_code]
+    
+    ENV_SPOT$history_gas = ENV_SPOT$history_gas_full[date <= LST_PARAMS$history_end]
+    ENV_SPOT$spot_gas_RIC = unique(HPFC::spot_GAS_products_full[products_GAS %in% c(LST_PARAMS$selected_gas_code, LST_PARAMS$dependent_gas_code)]$spot_GAS_code)
+    
+    ENV_SPOT$history_pwr = ENV_SPOT$history_pwr_full[date <= LST_PARAMS$history_end]
+    ENV_SPOT$spot_pwr_RIC = unique(HPFC::spot_PWR_products_full[countries %in% LST_PARAMS$selected_pwr_code]$spot_PWR_code)
+    
+    
     if(LST_PARAMS$data_source != 'LOCAL') {
         ### Connection
         eikonapir::set_proxy_port(9000L)
         PLEASE_INSERT_REUTERS_KEY = LST_PARAMS$data_source
         eikonapir::set_app_id(as.character(PLEASE_INSERT_REUTERS_KEY[1]))
         
-        history_gas_full = HPFC::dt_spot_gas[RIC == HPFC::spot_GAS_products_full[products_GAS %in% unique(c(LST_PARAMS$selected_gas_code, LST_PARAMS$dependent_gas_code))]$spot_GAS_code]
-        history_pwr_full = HPFC::dt_spot_pwr[RIC == HPFC::spot_PWR_products_full[countries %in% LST_PARAMS$selected_pwr_code]$spot_PWR_code]
-        
     }
     
-    if(LST_PARAMS$data_source == 'LOCAL') {
-        
-        ENV_SPOT$history_gas_full = HPFC::dt_spot_gas[RIC == HPFC::spot_GAS_products_full[products_GAS %in% unique(c(LST_PARAMS$selected_gas_code, LST_PARAMS$dependent_gas_code))]$spot_GAS_code]
-        ENV_SPOT$history_gas = ENV_SPOT$history_gas_full[date <= LST_PARAMS$history_end]
-        ENV_SPOT$spot_gas_RIC = unique(HPFC::spot_GAS_products_full[products_GAS %in% c(LST_PARAMS$selected_gas_code, LST_PARAMS$dependent_gas_code)]$spot_GAS_code)
-        
-        ENV_SPOT$history_pwr_full = HPFC::dt_spot_pwr[RIC == HPFC::spot_PWR_products_full[countries %in% LST_PARAMS$selected_pwr_code]$spot_PWR_code]
-        ENV_SPOT$history_pwr = ENV_SPOT$history_pwr_full[date <= LST_PARAMS$history_end]
-        ENV_SPOT$spot_pwr_RIC = unique(HPFC::spot_PWR_products_full[countries %in% LST_PARAMS$selected_pwr_code]$spot_PWR_code)
-        
-    } else {
+    if(LST_PARAMS$data_source != 'LOCAL') {
         
         ## GAS
         if(as.character(LST_PARAMS$forecast_end) >= '2025-01-01') {
@@ -94,11 +91,12 @@ load_inputs = function(params_path = 'params.json') {
                 ric = HPFC::spot_GAS_products_full[products_GAS %in% unique(c(LST_PARAMS$selected_gas_code, LST_PARAMS$dependent_gas_code))]$spot_GAS_code,
                 from_date = as.character('2025-01-01'),
                 to_date = as.character(LST_PARAMS$forecast_end),
-                type = 'GAS')
+                type = 'GAS',
+                sleep = 1)
             
             ENV_SPOT$history_gas_full = 
                 rbind(
-                    history_gas_full,
+                    ENV_SPOT$history_gas_full,
                     DT_NEW 
                 )
         }
@@ -112,11 +110,12 @@ load_inputs = function(params_path = 'params.json') {
                 ric = HPFC::spot_PWR_products_full[countries %in% LST_PARAMS$selected_pwr_code]$spot_PWR_code,
                 from_date = '2025-01-01',
                 to_date = LST_PARAMS$forecast_end,
-                type = 'PWR')
+                type = 'PWR',
+                sleep = 5)
             
             ENV_SPOT$history_pwr_full = 
                 rbind(
-                    history_pwr_full,
+                    ENV_SPOT$history_pwr_full,
                     DT_NEW 
                 )
             
@@ -176,6 +175,8 @@ load_inputs = function(params_path = 'params.json') {
                   DT_PWR
             )  
         
+        ENV_FWD$dt_fwds = ENV_FWD$dt_fwds[ENV_FWD$dt_fwds[, .I[date == max(date)], by = RIC]$V1]
+        
         if(max(ENV_FWD$time_range) > 2024) {
             
             DT_NEW = HPFC::retrieve_fwd(ric = ENV_FWD$lst_rics)
@@ -184,6 +185,9 @@ load_inputs = function(params_path = 'params.json') {
                 ENV_FWD$dt_fwds,
                 DT_NEW
             )
+            
+            ENV_FWD$dt_fwds = ENV_FWD$dt_fwds[ENV_FWD$dt_fwds[, .I[date == max(date)], by = RIC]$V1]
+            ENV_FWD$dt_fwds = ENV_FWD$dt_fwds[, .(value = trade_close, quote = RIC)]
         }
         
         if (is.null(ENV_FWD$dt_fwds) && nrow(ENV_FWD$dt_fwds) == 0) {
@@ -191,9 +195,6 @@ load_inputs = function(params_path = 'params.json') {
             stop('NO RAW DATA RETRIEVED')
             
         }
-        
-        ENV_FWD$dt_fwds = ENV_FWD$dt_fwds[ENV_FWD$dt_fwds[, .I[date == max(date)], by = RIC]$V1]
-        ENV_FWD$dt_fwds = ENV_FWD$dt_fwds[, .(value = trade_close, quote = RIC)]
         
     }
 

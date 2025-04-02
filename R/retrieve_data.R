@@ -34,7 +34,7 @@
 #' @import data.table
 #' @importFrom reikonapi get_series
 #' @export
-get_rics = function(rics, from_date = Sys.Date() - (365 * 10), to_date = Sys.Date(), interval = 'daily') {
+get_rics_d = function(rics, from_date = Sys.Date() - (365 * 10), to_date = Sys.Date(), interval = 'daily', sleep = 0) {
     
     ### Download Data
     db =
@@ -59,6 +59,7 @@ get_rics = function(rics, from_date = Sys.Date() - (365 * 10), to_date = Sys.Dat
         db = db[, .(TIMESTAMP = as.Date(substr(TIMESTAMP, 1, 10)), HIGH, LOW, OPEN, CLOSE, VOLUME, ric_column)]
     }
     
+    Sys.sleep(sleep)
     print_retrieval_message(rics = rics, from_date = from_date, to_date = to_date)
     return(db)
 }
@@ -82,13 +83,13 @@ get_rics = function(rics, from_date = Sys.Date() - (365 * 10), to_date = Sys.Dat
 #' - Adjusts the data format and handles missing or empty data.
 #' 
 #' @examples
-#' # Example usage of get_h_rics function
-#' data <- get_h_rics(rics = "RIC_ABC", from_date = "2020-01-01", to_date = "2020-12-31")
+#' # Example usage of get_rics_h function
+#' data <- get_rics_h(rics = "RIC_ABC", from_date = "2020-01-01", to_date = "2020-12-31")
 #'
 #' @import data.table
 #' @importFrom reikonapi get_series
 #' @export
-get_h_rics = function(rics, from_date = Sys.Date() - (365 * 10), to_date = Sys.Date(), interval = 'daily') {
+get_rics_h = function(rics, from_date = Sys.Date() - (365 * 10), to_date = Sys.Date(), interval = 'daily', sleep = 0) {
     
     rics_id_24 = c('01','02','03','04','05','06','07','08','09','10','11','12',
                    '13','14','15','16','17','18','19','20','21','22','23','24')
@@ -128,6 +129,8 @@ get_h_rics = function(rics, from_date = Sys.Date() - (365 * 10), to_date = Sys.D
         }
         
         db[, hour := i]
+        print(i)
+        Sys.sleep(sleep)
         return(db)
         
     }))
@@ -153,15 +156,14 @@ get_h_rics = function(rics, from_date = Sys.Date() - (365 * 10), to_date = Sys.D
 #' data <- retrieve_gas("TTF", "2020-01-01", "2020-12-31")
 #'
 #' @import data.table
-#' @importFrom reikonapi get_rics
 #' @export
-retrieve_spot = function(ric, from_date, to_date, type = 'PWR') {
+retrieve_spot = function(ric, from_date, to_date, type = 'PWR', sleep = 0) {
     
     if(type == 'GAS') {
         
-        rics_db = data.table::rbindlist(lapply(ric, get_rics, from_date = from_date, to_date = to_date))
+        rics_db = data.table::rbindlist(lapply(ric, get_rics_d, from_date = from_date, to_date = to_date, sleep = sleep))
         data.table::setDT(rics_db)
-        rics_db = rics_db[, .(date = TIMESTAMP, trade_close = CLOSE, RIC = ric_column)]
+        rics_db = rics_db[, .(date = TIMESTAMP, value = CLOSE, RIC = ric_column)]
         rics_db[, date := as.Date(substr(date, 1, 10))]
         
         downloaded_spot = data.table::copy(rics_db)
@@ -178,9 +180,9 @@ retrieve_spot = function(ric, from_date, to_date, type = 'PWR') {
         history_ttf_s = history_ttf_all_s[date <= to_date]
         
         # Clean data (convert 'trade_close' to numeric and fill missing values)
-        history_ttf_s[, trade_close := as.numeric(trade_close)]
-        history_ttf_s[, trade_close := data.table::nafill(trade_close, 'locf'), by = 'RIC']
-        history_ttf_s[, trade_close := data.table::nafill(trade_close, 'nocb'), by = 'RIC']
+        history_ttf_s[, value := as.numeric(value)]
+        history_ttf_s[, value := data.table::nafill(value, 'locf'), by = 'RIC']
+        history_ttf_s[, value := data.table::nafill(value, 'nocb'), by = 'RIC']
         
         print_retrieval_done(message = 'Spot Gas retrieval finished.')
         
@@ -188,23 +190,23 @@ retrieve_spot = function(ric, from_date, to_date, type = 'PWR') {
         
     } else if(type == 'PWR') {
         
-        rics_db = data.table::rbindlist(lapply(ric, get_h_rics, from_date = from_date, to_date = to_date))
+        rics_db = data.table::rbindlist(lapply(ric, get_rics_h, from_date = from_date, to_date = to_date, sleep = sleep))
         data.table::setDT(rics_db)
         
         rics_db = rics_db[, .(TIMESTAMP, PRICE = CLOSE, RIC = ric_column, HOUR = hour)]
         rics_db[, TIMESTAMP := as.Date(substr(TIMESTAMP, 1, 10))]
         
         downloaded_spot = data.table::copy(rics_db)
-        downloaded_spot = downloaded_spot[, .(date = TIMESTAMP, hour = HOUR, smp = PRICE, RIC)]
+        downloaded_spot = downloaded_spot[, .(date = TIMESTAMP, hour = HOUR, value = PRICE, RIC)]
         
         history_pwr_all_s = downloaded_spot[date > from_date]
         data.table::setorderv(history_pwr_all_s, cols =c('date','hour'), order = -1L)
         
         history_ttf_s = history_pwr_all_s[date <= to_date]
         
-        history_pwr_all_s[, smp := as.numeric(smp)]
-        history_pwr_all_s[, smp := data.table::nafill(smp, 'locf'), by = 'RIC']
-        history_pwr_all_s[, smp := data.table::nafill(smp, 'nocb'), by = 'RIC']
+        history_pwr_all_s[, value := as.numeric(value)]
+        history_pwr_all_s[, value := data.table::nafill(value, 'locf'), by = 'RIC']
+        history_pwr_all_s[, value := data.table::nafill(value, 'nocb'), by = 'RIC']
         
         history_pwr_all_s[, hour := as.numeric(hour)]
         history_pwr_all_s[, RIC := substr(RIC, 1, nchar(RIC) - 2)]
@@ -235,7 +237,6 @@ retrieve_spot = function(ric, from_date, to_date, type = 'PWR') {
 #' data <- retrieve_gas("TTF", "2020-01-01", "2020-12-31")
 #'
 #' @import data.table
-#' @importFrom reikonapi get_rics
 #' @export
 retrieve_fwd = function(ric, from_date, to_date) {
     
