@@ -5,6 +5,8 @@
 \title{Short-Term Power Prediction}
 \usage{
 predict_st_pwr(DT, model_h)
+
+predict_st_pwr(DT, model_h)
 }
 \arguments{
 \item{DT}{A data.table containing the input data, including time-related variables, gas values, and any additional predictors.}
@@ -13,7 +15,11 @@ predict_st_pwr(DT, model_h)
 }
 \value{
 A data.table with the predicted power values (\code{L_u}, \code{L_e_u}) and relevant columns.
+
+A data.table with the predicted power values (\code{L_u}, \code{L_e_u}) and relevant columns.
 }
 \description{
+This function predicts short-term power parameters (\code{L_u}, \code{L_e_u}) using a pre-trained model \code{model_h} and data from \code{DT}.
+
 This function predicts short-term power parameters (\code{L_u}, \code{L_e_u}) using a pre-trained model \code{model_h} and data from \code{DT}.
 }

@@ -13,7 +13,6 @@ regressors_lt_model_gas(DT, alpha)
 \item \code{break_group_p} (integer): Grouping variable for breakpoints.
 \item \code{holiday} (numeric): Binary indicator for holidays.
 \item \code{hp_trend} (numeric): HP filter trend component.
-\item \code{detr_smp_day} (numeric): The de-trended daily values.
 }}
 
 \item{alpha}{A numeric weight parameter for exponential smoothing (must be between 0 and 1).}

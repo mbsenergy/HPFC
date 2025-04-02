@@ -1,0 +1,124 @@
+---
+title: "Montecarlo Sim"
+format: html
+---
+
+## Setup
+
+```{r, setup}
+
+# SETUP -----------------------------------------------------------------------------
+box::use(
+    data.table[...],
+    magrittr[...],
+    highcharter[...],
+    fluxer[...]
+)
+
+# A. SPOT RETRIEVAL ==============================================================================================
+ENV_SPOT = list()
+
+ENV_SPOT$history_pwr = HPFC::dt_spot_pwr[RIC == 'HEEGRAUCH']
+
+
+
+# B. FWD DRETRIEVAL ==============================================================================================
+
+ENV_FWD = list()
+
+ENV_FWD$time_range = as.numeric(as.Date('2024-01-01'):as.Date('2024-12-31'))
+ENV_FWD$calendar = HPFC::calendar_holidays
+ENV_FWD$calendar[,`:=` (year = as.character(data.table::year(date)), quarter = as.character(data.table::quarter(date)), month = as.character(data.table::month(date)))]
+
+ENV_FWD$dt_fwds = HPFC::dt_fwds_pwr[date == as.Date('2024-12-01') & substr(RIC, 1, 2) == "FF"]
+ENV_FWD$dt_fwds = ENV_FWD$dt_fwds[ENV_FWD$dt_fwds[, .I[date == max(date)], by = RIC]$V1]
+
+```
+
+```{r, sigma}
+
+dt_sigma = ENV_SPOT$history_pwr[,.(value = mean(value, na.rm=TRUE)), by = .(date)]
+setorder(dt_sigma, date)
+dt_sigma[, value_t1 := log(value)]
+dt_sigma[, value_t0 := shift(value)]
+dt_sigma[, ret := value_t1 / value_t0]
+dt_sigma = dt_sigma[!is.na(ret)]
+variance = dt_sigma$ret %>% sd()
+
+
+```
+
+You can add options to executable code like this
+
+```{r}
+# Parameters
+set.seed(42)
+S0 = ENV_FWD$dt_fwds
+sigma = exp(variance)     # Daily volatility
+Td = 365       # Time horizon (days)
+N = 20      # Number of simulations
+
+
+simulate_single_path = function(S0, sigma, Td, N = NULL) {
+  # Generate random shocks
+  shocks = rnorm(Td, mean=0, sd=sigma)
+  
+  # Compute random walk (cumulative sum of shocks)
+  path = c(S0, S0 + cumsum(shocks))  # Include initial price
+  
+  # Create a data.table with time index
+  DT = data.table(time_index=0:Td, price=path)
+  
+  if(!is.null(N)) {
+    setnames(DT, names(DT), c('time_index', paste0('sim_', N)))
+  }
+  
+  return(DT)
+}
+
+simulate_random_walk = function(S0, sigma, Td, N) {
+  # Run N simulations and merge by time_index
+  paths_list = lapply(1:N, function(i) simulate_single_path(S0, sigma, Td, N = i))
+  
+  # Merge all paths by time_index
+  merged_paths = Reduce(function(x, y) merge(x, y, by="time_index", all=TRUE), paths_list)
+  
+  return(merged_paths)
+}
+
+simulated_prices = simulate_random_walk(S0, sigma, Td, N)
+
+
+# Convert to data.table for plotting
+dtw = as.data.table(melt(simulated_prices, id.vars="time_index", variable.name = 'sim', value.name = 'value'))
+
+dtw[, date := as.Date("2024-01-01") + (time_index)]
+dtw[, yymm := paste0(format(date, "%Y-%m"), '-01')]
+dts = dtw[, .(value = round(mean(value, na.rm=TRUE))), by= .(sim, yymm)]
+
+setorder(dts, sim, yymm)
+
+dts = rbind(
+    ENV_FWD$dt_fwd_pwr[, .(
+                       sim = 'FWD',
+                       yymm = format(as.Date(paste(year, month, '01', sep = '-')), "%Y-%m-%d"),
+                       value = forward_month_BL_pwr)],
+    dts
+    )
+
+```
+
+
+```{r}
+dts |>
+  hchart(type = "line", hcaes(x = yymm, y = value, group = sim)) |>
+  hc_title(text = "Monte Carlo Simulation of a Random Walk") |>
+  hc_xAxis(title = list(text = "Time (Months)")) |>
+  hc_yAxis(title = list(text = "Price")) |>
+  hc_tooltip(shared = TRUE) |>
+  hc_theme("gridlight") |>
+  hc_colors(c("blue", "red"))
+
+```
+
+The `echo: false` option disables the printing of code (only output is displayed).

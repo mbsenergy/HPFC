@@ -1,16 +1,17 @@
 ---
-title: "HPFC Model Application"
+title: "HPFC Model Details"
 author: "Alejandro Abraham"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{HPFC Model Application}
+  %\VignetteIndexEntry{HPFC Model Details}
   %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteContext{package}
 ---
 
 # Model Sample
 
 This vignette demonstrates how to set up the required directories, load the relevant packages, and retrieve both spot and forward data for gas and power models.
+
+It provides great detail on the models flow and functioning.
 
 ## Setup
 

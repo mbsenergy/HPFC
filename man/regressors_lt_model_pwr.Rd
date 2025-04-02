@@ -11,7 +11,6 @@ regressors_lt_model_pwr(DT, alpha)
 \itemize{
 \item \code{date} (Date): The date of each observation.
 \item \code{hp_trend} (numeric): The HP trend component.
-\item \code{detr_smp_day} (numeric): The de-trended daily values.
 }}
 
 \item{alpha}{A numeric weight parameter for exponential smoothing (must be between 0 and 1).}

@@ -1,0 +1,94 @@
+---
+title: "HPFC Model Details"
+author: "Alejandro Abraham"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{HPFC Model Details}
+  %\VignetteEngine{knitr::rmarkdown}
+---
+
+# Model Sample
+
+This vignette demonstrates how to set up the required directories, load the relevant packages, and retrieve both spot and forward data for gas and power models.
+
+It provides high level model wrapping flow.
+
+## Setup
+
+- Load the necessary packages
+- Everything is conducted and determined in the `params.json` file. 
+
+```{r setup, echo = TRUE}
+box::use(
+    data.table[...],
+    magrittr[...]
+)
+
+devtools::load_all()
+```
+
+## Load Inputs and Retrieve data
+
+```{r}
+list_inputs = load_inputs(params_path = "vignettes/params.json")
+```
+
+## Train model
+
+### Prepare
+
+#### Prepare Gas
+
+```{r}
+ENV_MODELS_GAS = prepare_gas(list_inputs = list_inputs)
+```
+
+#### Prepare Power
+
+```{r}
+ENV_MODELS_PWR = prepare_pwr(list_inputs = list_inputs)
+```
+
+### Train
+
+#### Train Gas - Long term
+
+```{r}
+ENV_MODELS_GAS$dt_lt_param_gasdep = 
+  train_lt_gas(
+    gas_data = ENV_MODELS_GAS$dt_lt_param_gasdep,
+    ric_gas = unique(ENV_MODELS_GAS$dt_gas$RIC)
+  )
+```
+
+#### Train Power - Long term
+
+```{r}
+ENV_MODELS_PWR$dt_lt_param_pwr = 
+  train_lt_pwr(
+    pwr_data = ENV_MODELS_PWR$dt_lt_param_pwr,
+    ric_pwr = unique(ENV_MODELS_PWR$dt_pwr$RIC),
+    pwr_holidays = ENV_MODELS_PWR$calendar_holidays_pwr,
+    gas_history = ENV_MODELS_PWR$gas_history
+  )
+    
+```
+
+#### Train Power - Short term
+
+```{r}
+ENV_MODELS_PWR$lst_hr_param_pwr = 
+  train_st_pwr(
+    pwr_data = ENV_MODELS_PWR$dt_hr_param_pwr,
+    gas_history = ENV_MODELS_PWR$gas_history
+  )
+    
+```
+
+
+## Forecast 
+
+```{r}
+
+```
+
