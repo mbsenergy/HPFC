@@ -93,56 +93,54 @@ ENV_FWD$dt_fwd_pwr = HPFC::prep_fwd_curve(DT = ENV_FWD$dt_fwds,
 ENV_MODELS = list()
 
 ## Prepare GAS ------------------------- 
-ENV_MODELS_GAS = list()
 
-ENV_MODELS_GAS$dt_gas = ENV_SPOT$history_gas[date >= LST_PARAMS$history_start & date <= LST_PARAMS$history_end, .(date, value, RIC)]
-ric_gas = unique(ENV_MODELS_GAS$dt_gas$RIC)
+ENV_MODELS$dt_gas = ENV_SPOT$history_gas[date >= LST_PARAMS$history_start & date <= LST_PARAMS$history_end, .(date, value, RIC)]
+ric_gas = unique(ENV_MODELS$dt_gas$RIC)
 
 ### GAS Daily Filter and Clean
 print(paste('GAS DAY Filter'))
 
-ENV_MODELS_GAS$dt_gas = HPFC::break_detection_dd(ENV_MODELS_GAS$dt_gas)
-ENV_MODELS_GAS$dt_gas_dd_filt = HPFC::filter_outlier_dd(ENV_MODELS_GAS$dt_gas)
+ENV_MODELS$dt_gas = HPFC::break_detection_dd(ENV_MODELS$dt_gas)
+ENV_MODELS$dt_gas_dd_filt = HPFC::filter_outlier_dd(ENV_MODELS$dt_gas)
 
-ENV_MODELS_GAS$dt_lt_param_gasdep = copy(ENV_MODELS_GAS$dt_gas_dd_filt)
-ENV_MODELS_GAS$dt_lt_param_gasdep[, RIC := NULL]
+ENV_MODELS$dt_lt_param_gasdep = copy(ENV_MODELS$dt_gas_dd_filt)
+ENV_MODELS$dt_lt_param_gasdep[, RIC := NULL]
 
-ENV_MODELS_GAS$dt_lt_param_gasdep = HPFC::detrend_dd(ENV_MODELS_GAS$dt_lt_param_gasdep, value_name = 'value')
+ENV_MODELS$dt_lt_param_gasdep = HPFC::detrend_dd(ENV_MODELS$dt_lt_param_gasdep, value_name = 'value')
 
 ### merge with calendar holidays for model
-ENV_MODELS_GAS$dt_lt_param_gasdep = ENV_CODES$calendar_holidays[ENV_MODELS_GAS$dt_lt_param_gasdep, on = 'date']
+ENV_MODELS$dt_lt_param_gasdep = ENV_CODES$calendar_holidays[ENV_MODELS$dt_lt_param_gasdep, on = 'date']
 
 
 ## Prepare PWR ------------------------- 
-ENV_MODELS_PWR = list()
 
-ENV_MODELS_PWR$dt_pwr = ENV_SPOT$history_pwr[date >= LST_PARAMS$history_start & date <= LST_PARAMS$history_end, .(date, hour, value, RIC)]
-ric_pwr = unique(ENV_MODELS_PWR$dt_pwr$RIC)
+ENV_MODELS$dt_pwr = ENV_SPOT$history_pwr[date >= LST_PARAMS$history_start & date <= LST_PARAMS$history_end, .(date, hour, value, RIC)]
+ric_pwr = unique(ENV_MODELS$dt_pwr$RIC)
 
 ### PWR Daily Filter and Clean
 print(paste('PWR DAY Filter'))
 
-ENV_MODELS_PWR$dt_pwr_filt_dd = ENV_MODELS_PWR$dt_pwr[, .(date, hour, value)]
-ENV_MODELS_PWR$dt_pwr_filt_dd = HPFC::break_detection_ddhh(ENV_MODELS_PWR$dt_pwr_filt_dd)
-ENV_MODELS_PWR$dt_pwr_filt_dd = HPFC::filter_outlier_dd_pwr(ENV_MODELS_PWR$dt_pwr_filt_dd)
-ENV_MODELS_PWR$dt_pwr_filt_dd[, RIC := as.character(ric_pwr)]
-ENV_MODELS_PWR$dt_lt_param_pwr = copy(ENV_MODELS_PWR$dt_pwr_filt_dd)
-ENV_MODELS_PWR$dt_lt_param_pwr[, RIC := NULL]
+ENV_MODELS$dt_pwr_filt_dd = ENV_MODELS$dt_pwr[, .(date, hour, value)]
+ENV_MODELS$dt_pwr_filt_dd = HPFC::break_detection_ddhh(ENV_MODELS$dt_pwr_filt_dd)
+ENV_MODELS$dt_pwr_filt_dd = HPFC::filter_outlier_dd_pwr(ENV_MODELS$dt_pwr_filt_dd)
+ENV_MODELS$dt_pwr_filt_dd[, RIC := as.character(ric_pwr)]
+ENV_MODELS$dt_lt_param_pwr = copy(ENV_MODELS$dt_pwr_filt_dd)
+ENV_MODELS$dt_lt_param_pwr[, RIC := NULL]
 
-ENV_MODELS_PWR$dt_lt_param_pwr = HPFC::detrend_dd(ENV_MODELS_PWR$dt_lt_param_pwr, value_name = 'value_day')
+ENV_MODELS$dt_lt_param_pwr = HPFC::detrend_dd(ENV_MODELS$dt_lt_param_pwr, value_name = 'value_day')
 
 
 print(paste('PWR HOUR Filter'))
 
-dt_pwr_filt_wbreaks  = HPFC::break_detection_ddhh(ENV_MODELS_PWR$dt_pwr)
+dt_pwr_filt_wbreaks  = HPFC::break_detection_ddhh(ENV_MODELS$dt_pwr)
 dt_pwr_filt = HPFC::filter_outlier_dd_pwr(dt_pwr_filt_wbreaks)
-ENV_MODELS_PWR$dt_pwr_filt_ddhh = dt_pwr_filt_wbreaks[dt_pwr_filt, on = "date"]
-ENV_MODELS_PWR$dt_pwr_filt_ddhh = HPFC::filter_outlier_ddhh(ENV_MODELS_PWR$dt_pwr_filt_ddhh)
-ENV_MODELS_PWR$dt_pwr_filt_ddhh[, RIC := as.character(ric_pwr)]
+ENV_MODELS$dt_pwr_filt_ddhh = dt_pwr_filt_wbreaks[dt_pwr_filt, on = "date"]
+ENV_MODELS$dt_pwr_filt_ddhh = HPFC::filter_outlier_ddhh(ENV_MODELS$dt_pwr_filt_ddhh)
+ENV_MODELS$dt_pwr_filt_ddhh[, RIC := as.character(ric_pwr)]
 rm(dt_pwr_filt_wbreaks, dt_pwr_filt)
 
-ENV_MODELS_PWR$dt_hr_param_pwr = copy(ENV_MODELS_PWR$dt_pwr_filt_ddhh)
-ENV_MODELS_PWR$dt_hr_param_pwr[, RIC := NULL]
+ENV_MODELS$dt_hr_param_pwr = copy(ENV_MODELS$dt_pwr_filt_ddhh)
+ENV_MODELS$dt_hr_param_pwr[, RIC := NULL]
 
 
 
@@ -235,6 +233,8 @@ forecast_calendar_daily = free_fwd_gas[forecast_calendar_daily, on = c('month', 
 
 #### spot before current date and fwd after for BL
 forecast_calendar_daily[, spot_forward_month_BL := fifelse(date <= LST_FOR$last_date, value, BL_quotes_gas)]
+saveRDS(forecast_calendar_daily, 'data_check.rds')
+saveRDS(model_lt_gas, 'model_check.rds')
 ENV_FOR$dt_gas_for_dd = HPFC::predict_lt_gas(forecast_calendar_daily, profile_matrix = model_lt_gas)
 
 ENV_FOR$dt_gas_for_dd = HPFC::period_calibration(ENV_FOR$dt_gas_for_dd, last_date = LST_FOR$last_date)

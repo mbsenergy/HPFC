@@ -21,7 +21,9 @@ It provides high level model wrapping flow.
 ```{r setup, echo = TRUE}
 box::use(
     data.table[...],
-    magrittr[...]
+    magrittr[...],
+    echarts4r[...],
+    reactable[...]
 )
 
 devtools::load_all()
@@ -29,31 +31,29 @@ devtools::load_all()
 
 ## Load Inputs and Retrieve data
 
-```{r}
-list_inputs = load_inputs(params_path = "vignettes/params.json")
+```{r, inputs, echo = TRUE}
+list_inputs = load_inputs(params_path = "params.json")
 ```
 
-## Train model
+## Prepare
 
-### Prepare
+### Prepare Gas
 
-#### Prepare Gas
-
-```{r}
+```{r, prep-gas, echo = TRUE}
 ENV_MODELS_GAS = prepare_gas(list_inputs = list_inputs)
 ```
 
-#### Prepare Power
+### Prepare Power
 
-```{r}
+```{r, prep-pwr, echo = TRUE}
 ENV_MODELS_PWR = prepare_pwr(list_inputs = list_inputs)
 ```
 
-### Train
+## Train
 
-#### Train Gas - Long term
+### Train Gas - Long term
 
-```{r}
+```{r, train-gas-lt, echo = TRUE}
 ENV_MODELS_GAS$dt_lt_param_gasdep = 
   train_lt_gas(
     gas_data = ENV_MODELS_GAS$dt_lt_param_gasdep,
@@ -61,9 +61,9 @@ ENV_MODELS_GAS$dt_lt_param_gasdep =
   )
 ```
 
-#### Train Power - Long term
+### Train Power - Long term
 
-```{r}
+```{r, train-pwr-lt, echo = TRUE}
 ENV_MODELS_PWR$dt_lt_param_pwr = 
   train_lt_pwr(
     pwr_data = ENV_MODELS_PWR$dt_lt_param_pwr,
@@ -74,9 +74,9 @@ ENV_MODELS_PWR$dt_lt_param_pwr =
     
 ```
 
-#### Train Power - Short term
+### Train Power - Short term
 
-```{r}
+```{r, train-pwr-st, echo = TRUE}
 ENV_MODELS_PWR$lst_hr_param_pwr = 
   train_st_pwr(
     pwr_data = ENV_MODELS_PWR$dt_hr_param_pwr,
@@ -87,6 +87,75 @@ ENV_MODELS_PWR$lst_hr_param_pwr =
 
 
 ## Forecast 
+
+### Preparation
+```{r, pred-prep, echo = TRUE}
+LST_FOR = list(
+    model_lt_gas = copy(ENV_MODELS_GAS$dt_lt_param_gasdep),
+    model_lt_pwr = copy(ENV_MODELS_PWR$dt_lt_param_pwr),
+    model_st_pwr = copy(ENV_MODELS_PWR$lst_hr_param_pwr),
+    dt_gas_fwds = copy(list_inputs$ENV_FWD$dt_fwd_gas),
+    dt_pwr_fwds = copy(list_inputs$ENV_FWD$dt_fwd_pwr),
+    saved_history_gas = copy(ENV_MODELS_GAS$dt_gas_dd_filt),
+    saved_history_gas_bis = copy(ENV_MODELS_GAS$dt_gas_dd_filt),
+    saved_history_pwr = copy(ENV_MODELS_PWR$dt_pwr_filt_dd),
+    ric_spot_gas = list_inputs$ENV_SPOT$spot_gas_RIC,
+    ric_fwd_gas = list_inputs$ENV_SPOT$fwd_gas_RIC,
+    ric_spot_pwr = list_inputs$ENV_SPOT$spot_pwr_RIC,
+    ric_fwd_pwr = list_inputs$ENV_SPOT$fwd_pwr_RIC,
+    calendar_forecast = list_inputs$ENV_CODES$calendar_future,
+    last_date = list_inputs$ENV_CODES$last_date
+) 
+
+```
+
+### Predict Gas 
+
+```{r, pred-gas, echo = TRUE}
+ENV_FOR_GAS = forecast_gas(input_forecast = LST_FOR)
+```
+
+### Predict Power 
+
+```{r, pred-pwr, echo = TRUE}
+ENV_FOR_PWR = forecast_pwr(input_forecast = LST_FOR, gas_forecast = ENV_FOR_GAS)
+```
+
+## Visualization 
+
+### Prepare data for Backtesting
+
+```{r, viz, echo = TRUE}
+dt_pwr_for = ENV_FOR_PWR[, .(date, hour, forecast = final_forecast, RIC, season, peak, value_gas, value_bl = spot_forward_month_BL)]
+dt_pwr_obs = HPFC::dt_spot_pwr[year(date) %in% unique(year(dt_pwr_for$date)) & RIC == unique(LST_FOR$ric_spot_pwr)][, .(date, hour, spot = value, RIC)]
+dt_pwr = merge(dt_pwr_for, dt_pwr_obs, by = c('date', 'hour', 'RIC'))
+
+setcolorder(dt_pwr, c('date', 'hour', 'season', 'peak', 'RIC', 'spot', 'forecast', 'value_bl', 'value_gas'))
+setorder(dt_pwr, date, hour)
+
+```
+
+```{r, table data-backtesting}
+reactable(dt_pwr)
+```
+
+### Predicted vs Observed
+
+```{r, viz-predictedobserved}
+dt_pwr_lg = melt(dt_pwr, id.vars = c('date', 'hour', 'season', 'peak', 'RIC'), variable.name = 'type', value.name = 'value')
+dt_pwr_lg[year(date) > 2023, .(value = round(mean(value))), by = .(date, type)] %>% 
+  group_by(type) %>% 
+  e_charts(date) %>% 
+  e_line(value, smooth = TRUE, symbol='none') %>% 
+  e_legend(show = TRUE, orient = 'horizontal') %>% 
+  e_title("Mean Daily Curve", 'Whole period ') %>% 
+  e_tooltip(trigger = "axis") %>% 
+  e_toolbox_feature(feature = "saveAsImage", title = "Save as image") %>% 
+  e_datazoom(start = 0) 
+
+```
+
+
 
 ```{r}
 

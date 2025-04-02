@@ -24,7 +24,7 @@
 load_inputs = function(params_path = 'params.json') {
     
     LST_PARAMS <- jsonlite::fromJSON(file.path(params_path))
-    
+
     LST_DIRS = list(
         dir_data_input_t  = file.path('run', 'LAST', 'data', '01_input'),
         dir_data_input_f  = file.path('run', 'LAST', 'data', '01_input'),
@@ -50,33 +50,160 @@ load_inputs = function(params_path = 'params.json') {
     ENV_CODES$calendar_holidays = setnames(HPFC::calendar_holidays, paste0("holiday_GR"), 'holiday', skip_absent = TRUE)
     ENV_CODES$calendar_holidays = ENV_CODES$calendar_holidays[, .(date, holiday)]
     
-    # A. Spot Market Data
-    ENV_SPOT = list()
-    ENV_SPOT$history_gas_full = HPFC::dt_spot_gas[RIC == HPFC::spot_GAS_products_full[products_GAS %in% unique(c(LST_PARAMS$selected_gas_code, LST_PARAMS$dependent_gas_code))]$spot_GAS_code]
-    ENV_SPOT$history_gas = ENV_SPOT$history_gas_full[date <= LST_PARAMS$history_end]
+    ENV_CODES$last_date = as.Date(LST_PARAMS$forecast_start) - 1
     
-    ENV_SPOT$history_pwr_full = HPFC::dt_spot_pwr[RIC == HPFC::spot_PWR_products_full[countries %in% LST_PARAMS$selected_pwr_code]$spot_PWR_code]
-    ENV_SPOT$history_pwr = ENV_SPOT$history_pwr_full[date <= LST_PARAMS$history_end]
+    ENV_CODES$calendar_future = copy(ENV_CODES$calendar_holidays)
+    ENV_CODES$calendar_future[,`:=` (year = as.character(data.table::year(date)), 
+                           quarter = as.character(data.table::quarter(date)),
+                           month = as.character(data.table::month(date)))
+                    ]
+
+    ENV_CODES$calendar_future = ENV_CODES$calendar_future[date >= LST_PARAMS$forecast_start & date <= LST_PARAMS$forecast_end]
+    
+    # A. Spot Market Data
+    
+    ENV_SPOT = list()
+    
+    if(LST_PARAMS$data_source != 'LOCAL') {
+        ### Connection
+        eikonapir::set_proxy_port(9000L)
+        PLEASE_INSERT_REUTERS_KEY = LST_PARAMS$data_source
+        eikonapir::set_app_id(as.character(PLEASE_INSERT_REUTERS_KEY[1]))
+        
+        history_gas_full = HPFC::dt_spot_gas[RIC == HPFC::spot_GAS_products_full[products_GAS %in% unique(c(LST_PARAMS$selected_gas_code, LST_PARAMS$dependent_gas_code))]$spot_GAS_code]
+        history_pwr_full = HPFC::dt_spot_pwr[RIC == HPFC::spot_PWR_products_full[countries %in% LST_PARAMS$selected_pwr_code]$spot_PWR_code]
+        
+    }
+    
+    if(LST_PARAMS$data_source == 'LOCAL') {
+        
+        ENV_SPOT$history_gas_full = HPFC::dt_spot_gas[RIC == HPFC::spot_GAS_products_full[products_GAS %in% unique(c(LST_PARAMS$selected_gas_code, LST_PARAMS$dependent_gas_code))]$spot_GAS_code]
+        ENV_SPOT$history_gas = ENV_SPOT$history_gas_full[date <= LST_PARAMS$history_end]
+        ENV_SPOT$spot_gas_RIC = unique(HPFC::spot_GAS_products_full[products_GAS %in% c(LST_PARAMS$selected_gas_code, LST_PARAMS$dependent_gas_code)]$spot_GAS_code)
+        
+        ENV_SPOT$history_pwr_full = HPFC::dt_spot_pwr[RIC == HPFC::spot_PWR_products_full[countries %in% LST_PARAMS$selected_pwr_code]$spot_PWR_code]
+        ENV_SPOT$history_pwr = ENV_SPOT$history_pwr_full[date <= LST_PARAMS$history_end]
+        ENV_SPOT$spot_pwr_RIC = unique(HPFC::spot_PWR_products_full[countries %in% LST_PARAMS$selected_pwr_code]$spot_PWR_code)
+        
+    } else {
+        
+        ## GAS
+        if(as.character(LST_PARAMS$forecast_end) >= '2025-01-01') {
+            
+            DT_NEW = HPFC::retrieve_spot(
+                ric = HPFC::spot_GAS_products_full[products_GAS %in% unique(c(LST_PARAMS$selected_gas_code, LST_PARAMS$dependent_gas_code))]$spot_GAS_code,
+                from_date = as.character('2025-01-01'),
+                to_date = as.character(LST_PARAMS$forecast_end),
+                type = 'GAS')
+            
+            ENV_SPOT$history_gas_full = 
+                rbind(
+                    history_gas_full,
+                    DT_NEW 
+                )
+        }
+        
+        ENV_SPOT$history_gas = ENV_SPOT$history_gas_full[date <= LST_PARAMS$history_end]
+        
+        ## PWR
+        if(as.character(LST_PARAMS$forecast_end) >= '2025-01-01') {
+            
+            DT_NEW = HPFC::retrieve_spot(
+                ric = HPFC::spot_PWR_products_full[countries %in% LST_PARAMS$selected_pwr_code]$spot_PWR_code,
+                from_date = '2025-01-01',
+                to_date = LST_PARAMS$forecast_end,
+                type = 'PWR')
+            
+            ENV_SPOT$history_pwr_full = 
+                rbind(
+                    history_pwr_full,
+                    DT_NEW 
+                )
+            
+        }
+        
+        ENV_SPOT$history_pwr = ENV_SPOT$history_pwr_full[date <= LST_PARAMS$history_end]
+        
+    }
+    
     
     # B. Forward Market Data
     ENV_FWD = list()
+    
+    ENV_FWD$fwd_gas_RIC = unique(HPFC::spot_GAS_products_full[products_GAS %in% c(LST_PARAMS$selected_gas_code, LST_PARAMS$dependent_gas_code)]$products_GAS_code)
+    ENV_FWD$fwd_pwr_RIC =  unique(HPFC::spot_PWR_products_full[countries %in% LST_PARAMS$selected_pwr_code]$products_PWR_code)
+    
     ENV_FWD$time_range = as.numeric(data.table::year(as.Date(LST_PARAMS$forecast_start))):as.numeric(data.table::year(as.Date(LST_PARAMS$forecast_end)))
     ENV_FWD$calendar = HPFC::calendar_holidays
     ENV_FWD$calendar[, `:=` (year = as.character(data.table::year(date)), quarter = as.character(data.table::quarter(date)), month = as.character(data.table::month(date)))]
     
-    ENV_FWD$dt_fwds = 
-        rbind(HPFC::dt_fwds_gas[substr(RIC, 1, 4) == HPFC::spot_GAS_products_full[products_GAS %in% unique(c(LST_PARAMS$selected_gas_code, LST_PARAMS$dependent_gas_code))]$products_GAS_code],
-              HPFC::dt_fwds_pwr_fwddam[spot_PWR_code == HPFC::spot_PWR_products_full[countries %in% LST_PARAMS$selected_pwr_code]$spot_PWR_code, .(date, RIC, value = DAM)]
-        )
+    DT_GAS = HPFC::dt_fwds_gas[substr(RIC, 1, 4) == HPFC::spot_GAS_products_full[products_GAS %in% unique(c(LST_PARAMS$selected_gas_code, LST_PARAMS$dependent_gas_code))]$products_GAS_code]
+    if(LST_PARAMS$forecast_source == 'FWD') {
+        DT_PWR = HPFC::dt_fwds_pwr_fwddam[spot_PWR_code == HPFC::spot_PWR_products_full[countries %in% LST_PARAMS$selected_pwr_code]$spot_PWR_code, .(date, RIC, value = FWD)]
+    } else {
+        DT_PWR = HPFC::dt_fwds_pwr_fwddam[spot_PWR_code == HPFC::spot_PWR_products_full[countries %in% LST_PARAMS$selected_pwr_code]$spot_PWR_code, .(date, RIC, value = DAM)]
+    }
     
-    ENV_FWD$dt_fwds = ENV_FWD$dt_fwds[ENV_FWD$dt_fwds[, .I[date == max(date)], by = RIC]$V1]
-    
+    if(LST_PARAMS$data_source == 'LOCAL') {
+        
+        ENV_FWD$dt_fwds = 
+            rbind(DT_GAS,
+                  DT_PWR
+            )
+        
+        ENV_FWD$dt_fwds = ENV_FWD$dt_fwds[ENV_FWD$dt_fwds[, .I[date == max(date)], by = RIC]$V1]
+
+    } else {
+        
+        ## Generate RICS
+        lst_rics_gas = HPFC::generate_rics_gas(unique(HPFC::spot_GAS_products_full[products_GAS %in% unique(c(LST_PARAMS$selected_gas_code, LST_PARAMS$dependent_gas_code))]$products_GAS_code), time_range = 2025:as.numeric(data.table::year(as.Date(LST_PARAMS$forecast_end))))
+        
+        if(LST_PARAMS$model_type == 'PWR') {
+            ### POWER 
+            lst_rics_pwr = HPFC::generate_rics_pwr(LST_PARAMS$selected_pwr_code, time_range = 2025:as.numeric(data.table::year(as.Date(LST_PARAMS$forecast_end))))
+            
+            ENV_FWD$lst_rics = c(lst_rics_pwr, lst_rics_gas) ; rm(lst_rics_pwr, lst_rics_gas)
+            
+        } else {
+            
+            ENV_FWD$lst_rics = c(lst_rics_gas) ; rm(lst_rics_gas)
+            
+        }
+        
+        ## RETRIEVE
+        ENV_FWD$dt_fwds = 
+            rbind(DT_GAS,
+                  DT_PWR
+            )  
+        
+        if(max(ENV_FWD$time_range) > 2024) {
+            
+            DT_NEW = HPFC::retrieve_fwd(ric = ENV_FWD$lst_rics)
+            
+            ENV_FWD$dt_fwds = rbind(
+                ENV_FWD$dt_fwds,
+                DT_NEW
+            )
+        }
+        
+        if (is.null(ENV_FWD$dt_fwds) && nrow(ENV_FWD$dt_fwds) == 0) {
+            
+            stop('NO RAW DATA RETRIEVED')
+            
+        }
+        
+        ENV_FWD$dt_fwds = ENV_FWD$dt_fwds[ENV_FWD$dt_fwds[, .I[date == max(date)], by = RIC]$V1]
+        ENV_FWD$dt_fwds = ENV_FWD$dt_fwds[, .(value = trade_close, quote = RIC)]
+        
+    }
+
     ENV_FWD$dt_fwd_gas = HPFC::prep_fwd_curve(DT = ENV_FWD$dt_fwds,
                                               list_rics = HPFC::spot_GAS_products_full[products_GAS %in% unique(c(LST_PARAMS$selected_gas_code, LST_PARAMS$dependent_gas_code))]$products_GAS_code,
                                               type = 'GAS',
                                               start_date = LST_PARAMS$forecast_start,
                                               end_date = LST_PARAMS$forecast_end, 
                                               calendar_sim = ENV_FWD$calendar)
+
     
     ENV_FWD$dt_fwd_pwr = HPFC::prep_fwd_curve(DT = ENV_FWD$dt_fwds,
                                               list_rics = unique(HPFC::spot_PWR_products_full[countries %in% LST_PARAMS$selected_pwr_code]$products_PWR_code),
@@ -84,6 +211,8 @@ load_inputs = function(params_path = 'params.json') {
                                               start_date = LST_PARAMS$forecast_start,
                                               end_date = LST_PARAMS$forecast_end, 
                                               calendar_sim = ENV_FWD$calendar)
+    
+    ## PREPARE AND RETURN
     
     return_list = list(LST_PARAMS, LST_DIRS, LST_DIRS_archive, ENV_CODES, ENV_SPOT, ENV_FWD)
     names(return_list) = c('LST_PARAMS', 'LST_DIRS', 'LST_DIRS_archive', 'ENV_CODES', 'ENV_SPOT', 'ENV_FWD')
@@ -121,7 +250,7 @@ prepare_gas = function(list_inputs = list_inputs) {
     LST_PARAMS = list_inputs$LST_PARAMS
     ENV_SPOT = list_inputs$ENV_SPOT
     ENV_CODES = list_inputs$ENV_CODES
-    
+
     ENV_MODELS_GAS$dt_gas = ENV_SPOT$history_gas[
         date >= LST_PARAMS$history_start & date <= LST_PARAMS$history_end, 
         .(date, value, RIC)
@@ -314,4 +443,150 @@ train_st_pwr = function(pwr_data, gas_history) {
 }
 
 
+#' Forecast Gas Prices
+#'
+#' This function generates gas price forecasts using historical data, forward market quotes, and a long-term model.
+#'
+#' @param input_forecast A list containing the required data for forecasting:
+#'   \itemize{
+#'     \item `ric_spot_gas`: RIC identifier for spot gas prices.
+#'     \item `ric_fwd_gas`: RIC identifier for forward gas prices.
+#'     \item `dt_gas_fwds`: Data.table with forward market quotes (year, quarter, month, and price columns).
+#'     \item `saved_history_gas`: Data.table with historical gas prices.
+#'     \item `model_lt_gas`: Data.table with the trained long-term gas model.
+#'     \item `calendar_forecast`: Data.table defining the forecast calendar.
+#'     \item `last_date`: The last available historical date for calibration.
+#'   }
+#'
+#' @return A data.table with gas price forecasts, including adjusted spot-forward blends.
+#'
+#' @import data.table
+#' @import HPFC
+#' @export
+forecast_gas = function(input_forecast = LST_FOR) {
+    ## Forecast GAS ---------------------------------------
+    print(paste('FORECAST GAS'))
+    
+    LST_FOR = input_forecast
+    spot_RIC = LST_FOR$ric_spot_gas
+    fwd_RIC = LST_FOR$ric_fwd_gas
+    
+    dt_gas_fwds = LST_FOR$dt_gas_fwds[, .(year, quarter, month, forward_cal_BL_gas, forward_quarter_BL_gas, forward_month_BL_gas)]
+    dt_gas_fwds = dt_gas_fwds[, lapply(.SD, as.numeric)]
+    
+    saved_history_gas = copy(LST_FOR$saved_history_gas)
+    saved_history_gas = saved_history_gas[, RIC := NULL]
+    
+    free_fwd_gas = HPFC::arbitrage_free_gas(dt_gas_fwds, DT_history = saved_history_gas, colnames(dt_gas_fwds))
+    dt_arbfree_fwd_gas = free_fwd_gas[, .(year, month, BL_quotes_gas, BL_gas_prev_m, RIC_s = spot_RIC, RIC_f = fwd_RIC)]
+    
+    model_lt_gas = LST_FOR$model_lt_gas
+    model_lt_gas = model_lt_gas[, RIC := NULL]
+    
+    ## 3.2 CREATE CALENDAR FOR FORECAST
+    forecast_calendar_daily = HPFC::create_calendar_dd(LST_FOR$calendar_forecast)
+    forecast_calendar_daily = saved_history_gas[forecast_calendar_daily, on = 'date']                 
+    
+    #### Merge calendar with forward market data
+    forecast_calendar_daily = free_fwd_gas[forecast_calendar_daily, on = c('month', 'year')]        
+    
+    #### Spot before current date and forward price after
+    forecast_calendar_daily[, spot_forward_month_BL := fifelse(date <= LST_FOR$last_date, value, BL_quotes_gas)]
+    dt_gas_for_dd = HPFC::predict_lt_gas(forecast_calendar_daily, profile_matrix = model_lt_gas)
+    
+    dt_gas_for_dd = HPFC::period_calibration(dt_gas_for_dd, last_date = LST_FOR$last_date)
+    
+    dt_gas_for_dd[, epsilon_u := spot_forward_month_BL]
+    dt_gas_for_dd[, L_e_u := L_t + epsilon_u]
+    
+    dt_gas_for_dd = HPFC::spline_gas(dt_gas_for_dd, smoothig_parameter = 20)
+    dt_gas_for_dd[, RIC := spot_RIC]
+    
+    rm(forecast_calendar_daily, model_lt_gas, free_fwd_gas, dt_arbfree_fwd_gas, saved_history_gas, dt_gas_fwds, fwd_RIC, spot_RIC, calendar_future)
+    
+    return(dt_gas_for_dd)
+}
 
+
+
+#' Forecast Power Prices
+#'
+#' This function forecasts power prices using long-term and short-term models, forward market quotes, and gas price dependencies.
+#'
+#' @param input_forecast A list containing required data for power forecasting:
+#'   \itemize{
+#'     \item `ric_spot_gas`: RIC identifier for spot gas prices.
+#'     \item `ric_fwd_gas`: RIC identifier for forward gas prices.
+#'     \item `dt_gas_fwds`: Data.table with forward market quotes for gas.
+#'     \item `dt_pwr_fwds`: Data.table with forward market quotes for power.
+#'     \item `saved_history_pwr`: Data.table with historical power prices.
+#'     \item `saved_history_gas_bis`: Data.table with historical gas prices.
+#'     \item `model_lt_pwr`: Data.table with the long-term power model.
+#'     \item `model_st_pwr`: Data.table with the short-term power model.
+#'     \item `calendar_forecast`: Data.table defining the forecast calendar.
+#'     \item `last_date`: The last available historical date for calibration.
+#'   }
+#' @param gas_forecast A data.table containing the gas price forecast with columns `date` and `smooth_corrected`.
+#'
+#' @return A data.table with power price forecasts, including short-term and long-term components.
+#'
+#' @import data.table
+#' @import HPFC
+#' @export
+forecast_pwr = function(input_forecast = LST_FOR, gas_forecast = ENV_FOR_GAS, smooth = 13) {
+    
+    print(paste('FORECAST PWR'))
+    
+    LST_FOR = input_forecast
+    spot_RIC = LST_FOR$ric_spot_pwr
+    fwd_RIC = LST_FOR$ric_fwd_pwr
+    
+    # Extract and convert forward market data
+    dt_gas_fwds = LST_FOR$dt_gas_fwds[, .(year, quarter, month, forward_cal_BL_gas, forward_quarter_BL_gas, forward_month_BL_gas)]
+    dt_gas_fwds = dt_gas_fwds[, lapply(.SD, as.numeric)]
+    
+    dt_pwr_fwds = LST_FOR$dt_pwr_fwds[, .(year, quarter, month, forward_cal_BL_pwr, forward_quarter_BL_pwr, 
+                                          forward_month_BL_pwr, forward_cal_PL_pwr, forward_quarter_PL_pwr, forward_month_PL_pwr)]
+    dt_pwr_fwds = dt_pwr_fwds[, lapply(.SD, as.numeric)]
+    
+    saved_history_pwr = copy(LST_FOR$saved_history_pwr)[, RIC := NULL]
+    saved_history_gas_bis = copy(LST_FOR$saved_history_gas_bis)[, RIC := NULL]
+    
+    # Apply arbitrage-free transformations
+    free_fwd_pwr = HPFC::arbitrage_free_power(dt_pwr_fwds, DT_history = saved_history_pwr, colnames(dt_pwr_fwds))
+    free_fwd_gas = HPFC::arbitrage_free_gas(dt_gas_fwds, DT_history = saved_history_gas_bis, colnames(dt_gas_fwds))
+    
+    dt_arbfree_fwd_pwr = free_fwd_pwr[, .(year, month, BL_quotes, PL_quotes, RIC_s = spot_RIC, RIC_f = fwd_RIC)]
+    
+    # Copy models
+    model_lt_pwr_long = copy(LST_FOR$model_lt_pwr)[, RIC := NULL]
+    model_st_pwr = copy(LST_FOR$model_st_pwr)
+    
+    ## Gas Calibration
+    calibration_gas = copy(gas_forecast)[, .(date, value_gas = smooth_corrected)]
+    
+    forecast_calendar_daily_raw = HPFC::create_calendar_dd(LST_FOR$calendar_forecast)
+    
+    ## Long-Term Calibration
+    forecast_calendar_daily = saved_history_pwr[forecast_calendar_daily_raw, on = 'date']
+    forecast_calendar_daily = free_fwd_pwr[forecast_calendar_daily, on = c('month', 'year')]
+    forecast_calendar_daily = free_fwd_gas[forecast_calendar_daily, on = c('month', 'year')]
+    
+    forecast_calendar_daily[, spot_forward_month_BL := fifelse(date <= LST_FOR$last_date, value_day, BL_quotes)]
+    forecast_calendar_daily[, spot_forward_month_PL := fifelse(date <= LST_FOR$last_date | PL_quotes <= 0, as.numeric(NA), PL_quotes)]
+    
+    forecast_calendar_daily = calibration_gas[forecast_calendar_daily, on = 'date']
+    
+    dt_pwr_for_ddhh = HPFC::predict_lt_pwr(forecast_calendar_daily, profile_matrix = model_lt_pwr_long)
+    dt_pwr_for_ddhh = HPFC::period_calibration(dt_pwr_for_ddhh, last_date = LST_FOR$last_date)
+    
+    ## Short-Term Forecasting
+    forecast_calendar_hourly = HPFC::create_calendar_ddhh(dt_pwr_for_ddhh)
+    dt_pwr_for_ddhh = HPFC::predict_st_pwr(forecast_calendar_hourly, model_h = model_st_pwr)
+    
+    dt_pwr_for_ddhh = HPFC::spline_pwr(dt_pwr_for_ddhh, smoothig_parameter = smooth)
+    dt_pwr_for_ddhh = HPFC::PL_correction(dt_pwr_for_ddhh)
+    dt_pwr_for_ddhh[, RIC := spot_RIC]
+    
+    return(dt_pwr_for_ddhh)
+}
