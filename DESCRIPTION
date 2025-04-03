@@ -1,6 +1,6 @@
 Package: HPFC
-Title: Set of functions and Models for REF-E
-Version: 0.9.3
+Title: Hourly Price Forward Curve Model & Utils
+Version: 0.9.5
 Authors@R: 
     person(given = "Alejandro",
            family = "Abraham",
@@ -8,7 +8,7 @@ Authors@R:
            email = "alejandro.abraham@cerved.com")
 Description: Internal Use Only. Reproduction and Distribution is forbidden.
 Depends: R (>= 4.1.0), data.table
-Imports: knitr, chron, lubridate, neverhpfilter, mFilter, changepoint, crayon, reikonapi
+Imports: knitr, chron, lubridate, neverhpfilter, mFilter, changepoint, crayon, eikonapir
 License: Apache License (>= 2)
 Encoding: UTF-8
 LazyData: true

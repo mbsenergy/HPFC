@@ -89,7 +89,7 @@ load_inputs = function(params_path = 'params.json') {
         if(as.character(LST_PARAMS$forecast_end) >= '2025-01-01') {
             
             DT_NEW = HPFC::retrieve_spot(
-                ric = HPFC::spot_GAS_products_full[products_GAS %in% unique(c(LST_PARAMS$selected_gas_code, LST_PARAMS$dependent_gas_code))]$spot_GAS_code,
+                ric = ENV_SPOT$spot_gas_RIC,
                 from_date = as.character('2025-01-01'),
                 to_date = as.character(LST_PARAMS$forecast_end),
                 type = 'GAS')
@@ -108,7 +108,7 @@ load_inputs = function(params_path = 'params.json') {
         if(as.character(LST_PARAMS$forecast_end) >= '2025-01-01') {
             
             DT_NEW = HPFC::retrieve_spot(
-                ric = HPFC::spot_PWR_products_full[countries %in% LST_PARAMS$selected_pwr_code]$spot_PWR_code,
+                ric = ENV_SPOT$spot_pwr_RIC,
                 from_date = '2025-01-01',
                 to_date = LST_PARAMS$forecast_end,
                 type = 'PWR')
@@ -267,7 +267,7 @@ prepare_gas = function(list_inputs = list_inputs) {
     ENV_MODELS_GAS$dt_gas_dd_filt = HPFC::filter_outlier_dd(ENV_MODELS_GAS$dt_gas)
     
     ENV_MODELS_GAS$dt_lt_param_gasdep = copy(ENV_MODELS_GAS$dt_gas_dd_filt)
-    ENV_MODELS_GAS$dt_lt_param_gasdep[, RIC := NULL]
+    # ENV_MODELS_GAS$dt_lt_param_gasdep[, RIC := NULL]
     
     ENV_MODELS_GAS$dt_lt_param_gasdep = HPFC::detrend_dd(
         ENV_MODELS_GAS$dt_lt_param_gasdep, 
@@ -477,7 +477,7 @@ forecast_gas = function(input_forecast = LST_FOR) {
     dt_gas_fwds = dt_gas_fwds[, lapply(.SD, as.numeric)]
     
     saved_history_gas = copy(LST_FOR$saved_history_gas)
-    saved_history_gas = saved_history_gas[, RIC := NULL]
+    # saved_history_gas = saved_history_gas[, RIC := NULL]
     
     free_fwd_gas = HPFC::arbitrage_free_gas(dt_gas_fwds, DT_history = saved_history_gas, colnames(dt_gas_fwds))
     dt_arbfree_fwd_gas = free_fwd_gas[, .(year, month, BL_quotes_gas, BL_gas_prev_m, RIC_s = spot_RIC, RIC_f = fwd_RIC)]
@@ -504,7 +504,7 @@ forecast_gas = function(input_forecast = LST_FOR) {
     dt_gas_for_dd = HPFC::spline_gas(dt_gas_for_dd, smoothig_parameter = 20)
     dt_gas_for_dd[, RIC := spot_RIC]
     
-    rm(forecast_calendar_daily, model_lt_gas, free_fwd_gas, dt_arbfree_fwd_gas, saved_history_gas, dt_gas_fwds, fwd_RIC, spot_RIC, calendar_future)
+    rm(forecast_calendar_daily, model_lt_gas, free_fwd_gas, dt_arbfree_fwd_gas, saved_history_gas, dt_gas_fwds, fwd_RIC, spot_RIC)
     
     return(dt_gas_for_dd)
 }
@@ -552,7 +552,7 @@ forecast_pwr = function(input_forecast = LST_FOR, gas_forecast = ENV_FOR_GAS, sm
     dt_pwr_fwds = dt_pwr_fwds[, lapply(.SD, as.numeric)]
     
     saved_history_pwr = copy(LST_FOR$saved_history_pwr)[, RIC := NULL]
-    saved_history_gas_bis = copy(LST_FOR$saved_history_gas_bis)[, RIC := NULL]
+    saved_history_gas_bis = copy(LST_FOR$saved_history_gas_bis)
     
     # Apply arbitrage-free transformations
     free_fwd_pwr = HPFC::arbitrage_free_power(dt_pwr_fwds, DT_history = saved_history_pwr, colnames(dt_pwr_fwds))
