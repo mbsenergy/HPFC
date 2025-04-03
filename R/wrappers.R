@@ -18,7 +18,8 @@
 #' }
 #'
 #' @importFrom jsonlite fromJSON
-#' @importFrom data.table year quarter month setnames
+#' @importFrom data.table year quarter month setnames 
+#' @importFrom eikonapir set_proxy_port set_app_id
 #' 
 #' @export
 load_inputs = function(params_path = 'params.json') {
@@ -91,13 +92,13 @@ load_inputs = function(params_path = 'params.json') {
                 ric = HPFC::spot_GAS_products_full[products_GAS %in% unique(c(LST_PARAMS$selected_gas_code, LST_PARAMS$dependent_gas_code))]$spot_GAS_code,
                 from_date = as.character('2025-01-01'),
                 to_date = as.character(LST_PARAMS$forecast_end),
-                type = 'GAS',
-                sleep = 1)
+                type = 'GAS')
             
             ENV_SPOT$history_gas_full = 
                 rbind(
                     ENV_SPOT$history_gas_full,
-                    DT_NEW 
+                    DT_NEW,
+                    use.names=TRUE
                 )
         }
         
@@ -110,13 +111,13 @@ load_inputs = function(params_path = 'params.json') {
                 ric = HPFC::spot_PWR_products_full[countries %in% LST_PARAMS$selected_pwr_code]$spot_PWR_code,
                 from_date = '2025-01-01',
                 to_date = LST_PARAMS$forecast_end,
-                type = 'PWR',
-                sleep = 5)
+                type = 'PWR')
             
             ENV_SPOT$history_pwr_full = 
                 rbind(
                     ENV_SPOT$history_pwr_full,
-                    DT_NEW 
+                    DT_NEW,
+                    use.names=TRUE
                 )
             
         }
@@ -147,7 +148,8 @@ load_inputs = function(params_path = 'params.json') {
         
         ENV_FWD$dt_fwds = 
             rbind(DT_GAS,
-                  DT_PWR
+                  DT_PWR,
+                  use.names=TRUE
             )
         
         ENV_FWD$dt_fwds = ENV_FWD$dt_fwds[ENV_FWD$dt_fwds[, .I[date == max(date)], by = RIC]$V1]
@@ -179,15 +181,14 @@ load_inputs = function(params_path = 'params.json') {
         
         if(max(ENV_FWD$time_range) > 2024) {
             
-            DT_NEW = HPFC::retrieve_fwd(ric = ENV_FWD$lst_rics)
+            DT_NEW = HPFC::retrieve_fwd(ric = ENV_FWD$lst_rics, from_date = '2025-01-01', to_date = LST_PARAMS$forecast_end)
             
             ENV_FWD$dt_fwds = rbind(
                 ENV_FWD$dt_fwds,
-                DT_NEW
+                DT_NEW,
+                use.names=TRUE
             )
-            
             ENV_FWD$dt_fwds = ENV_FWD$dt_fwds[ENV_FWD$dt_fwds[, .I[date == max(date)], by = RIC]$V1]
-            ENV_FWD$dt_fwds = ENV_FWD$dt_fwds[, .(value = trade_close, quote = RIC)]
         }
         
         if (is.null(ENV_FWD$dt_fwds) && nrow(ENV_FWD$dt_fwds) == 0) {

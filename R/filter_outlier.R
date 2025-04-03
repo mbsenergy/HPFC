@@ -24,7 +24,7 @@
 #'
 #' @import data.table
 #' @import neverhpfilter
-#' @import xts
+#' @importFrom xts as.xts
 #' @importFrom crayon red yellow
 #'
 #' @examples

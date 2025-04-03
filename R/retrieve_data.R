@@ -1,144 +1,229 @@
 ## Eikon Wrappers -------------------------------------------------------------------------------------
 
-#' Retrieve Historical Market Data for a Given RIC
+#' Retrieve Daily Historical Market Data for a Given RIC
 #'
-#' @description This function fetches historical market data for a given RIC (identifier) over a specified date range. It uses `reikonapi::get_series()` to download the data and formats the results into a `data.table`.
+#' @description
+#' Fetches historical daily market data for a given Reuters Instrument Code (RIC) over a specified date range.
+#' It uses `eikonapir::get_timeseries()` to retrieve the data and formats it into a `data.table`.
 #'
-#' @param rics A string representing the RIC (identifier) whose historical data is to be retrieved.
-#' @param from_date A Date object or character string representing the start date for data retrieval. Defaults to 10 years before the current date.
-#' @param to_date A Date object or character string representing the end date for data retrieval. Defaults to the current date.
-#' @param interval A string specifying the time interval for the data (e.g., "daily"). Defaults to "daily".
-#' 
-#' @return A `data.table` containing the historical data for the specified RIC. The columns included in the returned table are:
-#' - `TIMESTAMP`: The date of the data point.
-#' - `HIGH`: The highest price of the day.
-#' - `LOW`: The lowest price of the day.
-#' - `OPEN`: The opening price.
-#' - `CLOSE`: The closing price.
-#' - `VOLUME`: The trading volume.
-#' - `ric_column`: The RIC identifier.
+#' @param rics A character string representing the RIC (identifier) for which historical data is to be retrieved.
+#' @param from_date A Date object or character string specifying the start date for data retrieval. Defaults to 10 years before the current date.
+#' @param to_date A Date object or character string specifying the end date for data retrieval. Defaults to the current date.
 #'
-#' If no data is available, the function returns a `data.table` with `NA` values.
+#' @return A `data.table` containing the historical data for the specified RIC with the following columns:
+#' \itemize{
+#'   \item \code{date} - The date of the observation (YYYY-MM-DD).
+#'   \item \code{ric} - The RIC identifier.
+#'   \item \code{value} - The closing price of the RIC.
+#'   \item \code{volume} - The trading volume.
+#' }
 #'
-#' @details This function:
-#' - Calls `reikonapi::get_series()` to fetch market data for the specified RIC.
-#' - Checks if the returned data is valid; if not, it creates a placeholder `data.table` with `NA` values.
-#' - Extracts and formats the necessary columns (`TIMESTAMP`, `HIGH`, `LOW`, `OPEN`, `CLOSE`, `VOLUME`, `ric_column`).
-#' - Converts the `TIMESTAMP` column to a proper date format (`YYYY-MM-DD`).
-#' - Prints the RIC being processed.
+#' If no data is available, the function returns an empty `data.table`.
+#'
+#' @details
+#' This function:
+#' \itemize{
+#'   \item Calls `eikonapir::get_timeseries()` to fetch market data for the specified RIC.
+#'   \item Removes unnecessary columns (`HIGH`, `LOW`, `OPEN`, `COUNT`).
+#'   \item Converts the `DATE` column to the `YYYY-MM-DD` format.
+#'   \item Orders the dataset by `DATE`.
+#'   \item Prints a message summarizing the data retrieval.
+#' }
 #'
 #' @examples
-#' # Example usage of get_rics function
-#' data <- get_rics("AAPL.O", start_date = "2020-01-01", end_date = "2023-01-01")
+#' \dontrun{
+#' data <- get_rics_d("AAPL.O", from_date = "2020-01-01", to_date = "2023-01-01")
+#' }
 #'
 #' @import data.table
-#' @importFrom reikonapi get_series
+#' @importFrom eikonapir get_timeseries
 #' @export
-get_rics_d = function(rics, from_date = Sys.Date() - (365 * 10), to_date = Sys.Date(), interval = 'daily', sleep = 0) {
+get_rics_d = function(rics, from_date = Sys.Date() - (365 * 10), to_date = Sys.Date()) {
     
-    ### Download Data
-    db =
-        reikonapi::get_series(
-            rics =  rics,
-            # fields = list("TIMESTAMP", "VOLUME", "CLOSE"),
-            start_date = from_date,
-            end_date  = to_date,
-            interval = "daily")
+    start_date = paste0(from_date, 'T00:00:00')
+    end_date = paste0(to_date, 'T00:00:00')
     
-    ### Adjust data.frame shape
-    if (is.na(db[[1]][1])) {
-        db = data.table::data.table(TIMESTAMP = as.Date(paste0(Sys.Date())),
-                                    HIGH = NA,
-                                    LOW = NA,
-                                    OPEN = NA,
-                                    CLOSE = NA,
-                                    VOLUME = NA,
-                                    ric_column = NA
-        )
-    } else {
-        db = db[, .(TIMESTAMP = as.Date(substr(TIMESTAMP, 1, 10)), HIGH, LOW, OPEN, CLOSE, VOLUME, ric_column)]
-    }
+    # Download Data
+    db = eikonapir::get_timeseries(
+        rics = list(rics),
+        fields = list('TIMESTAMP', 'CLOSE', 'VOLUME'),
+        start_date = start_date,
+        end_date = end_date,
+        interval = "daily"
+    )
     
-    Sys.sleep(sleep)
-    print_retrieval_message(rics = rics, from_date = from_date, to_date = to_date)
+    # Rename and process columns
+    colnames(db) = c('DATE', 'CLOSE','VOLUME', 'RIC')
+    setDT(db)
+    
+    db[, DATE := substr(DATE, 1, 10)]
+    
+    colnames(db) = c('DATE', 'VALUE', 'VOLUME', 'RIC')
+    setcolorder(db, c('DATE', 'RIC', 'VALUE', 'VOLUME'))
+    
+    # Order data
+    data.table::setorderv(db, cols = c('DATE'), order = 1L)
+    colnames(db) = tolower(names(db))
+    
+    # Print retrieval message
+    rows_count = nrow(db)
+    print_retrieval_message(rics = rics, from_date = from_date, to_date = to_date, nrows = rows_count)
+    
     return(db)
 }
 
 
 
-#' Retrieve Hourly Data for a List of RICS
+#' Retrieve Hourly Time Series Data for a Given RIC
 #'
-#' @description This function retrieves hourly time-series data for a list of RICS from the Eikon API over a specified date range and interval. It aggregates data for 24 hours and returns it as a data table.
+#' This function retrieves 24-hour time series data for a given Reuters Instrument Code (RIC).
+#' It fetches data for each hour individually, processes it, and returns a structured data.table.
 #'
-#' @param rics A string or vector of strings representing the RICs (identifiers) for which to retrieve data.
-#' @param from_date A Date object or character string representing the start date of the data range (default is 7 years before the current date).
-#' @param to_date A Date object or character string representing the end date of the data range (default is the current date).
-#' @param interval A string specifying the data interval (default is `'daily'`).
+#' @param rics Character string representing the base RIC (without the hour suffix).
+#' @param from_date Character or Date, the start date of the time series (default: 10 years ago).
+#' @param to_date Character or Date, the end date of the time series (default: today).
+#' @param interval Character, the data frequency (default: "daily").
+#' @param sleep Numeric, time (in seconds) to wait between API calls (default: 0).
 #'
-#' @return A data.table containing time-series data for each RIC across the specified date range. The data includes `TIMESTAMP`, `CLOSE`, `ric_column`, and `hour`.
+#' @return A `data.table` with columns:
+#' \itemize{
+#'   \item \code{date} - Date of the observation (YYYY-MM-DD).
+#'   \item \code{hour} - Hour of the day (integer from 1 to 24).
+#'   \item \code{ric} - The base RIC.
+#'   \item \code{value} - The retrieved value for the RIC.
+#'   \item \code{volume} - Trading volume or relevant metric.
+#' }
 #'
-#' @details This function:
-#' - Loops through 24 hours to collect data for each RIC.
-#' - Downloads the data using the `reikonapi::get_series()` function.
-#' - Adjusts the data format and handles missing or empty data.
-#' 
+#' @details
+#' The function constructs RICs for each of the 24 hours by appending `01` to `24` to the base RIC.
+#' It then retrieves time series data using `eikonapir::get_timeseries()` and processes it into a unified table.
+#'
+#' @note If not all 24 hours are present in the dataset, a warning is issued.
+#'
 #' @examples
-#' # Example usage of get_rics_h function
-#' data <- get_rics_h(rics = "RIC_ABC", from_date = "2020-01-01", to_date = "2020-12-31")
+#' \dontrun{
+#' get_rics_h("HEEGRAUCH", from_date = "2020-01-01", to_date = "2023-01-01")
+#' }
 #'
 #' @import data.table
-#' @importFrom reikonapi get_series
+#' @importFrom eikonapir get_timeseries
 #' @export
-get_rics_h = function(rics, from_date = Sys.Date() - (365 * 10), to_date = Sys.Date(), interval = 'daily', sleep = 0) {
+get_rics_h = function(rics, from_date = Sys.Date() - (365 * 10), to_date = Sys.Date()) {
     
     rics_id_24 = c('01','02','03','04','05','06','07','08','09','10','11','12',
                    '13','14','15','16','17','18','19','20','21','22','23','24')
+    rics_id_h = paste0(rics, rics_id_24)
     
-    db_24h = data.table::rbindlist(lapply(1:24, function(i) {
-        rics_id_h = paste0(rics, rics_id_24[i])
-        ### Download Data
-        db =
-            reikonapi::get_series( #eikonapir::get_timeseries
-                rics =  rics_id_h,
-                start_date = from_date,
-                end_date  = to_date,
-                interval = "daily")
-        
-        ### Adjust data.frame shape
-        if (!is.null(db)) {
-            if (is.na(db[[1]][[1]])) {
-                
-                db = data.table(TIMESTAMP = as.Date(paste0(Sys.Date())),
-                                CLOSE = NA,
-                                ric_column = NA
-                                # RIC = rics,
-                                # TRADED = 0
-                )
-                cat(paste(rics, 'founded, no data.'))
-            } else {
-                db = db[, .(TIMESTAMP = as.Date(substr(TIMESTAMP, 1, 10)), CLOSE, ric_column)]
-            }
-        } else {
-            db = data.table::data.table(TIMESTAMP = as.Date(paste0(Sys.Date())),
-                                        CLOSE = NA,
-                                        ric_column = NA
-                                        # RIC = rics,
-                                        # TRADED = 0
-            )
-            cat(paste(rics, 'not founded.'))
-        }
-        
-        db[, hour := i]
-        print(i)
-        Sys.sleep(sleep)
-        return(db)
-        
-    }))
+    # Format dates
+    start_date = paste0(from_date, 'T00:00:00')
+    end_date = paste0(to_date, 'T00:00:00')
     
-    data.table::setorderv(db_24h, cols = c('TIMESTAMP','hour'), order = 1L)
-    print_retrieval_message(rics = rics, from_date = from_date, to_date = to_date)
+    # Fetch data
+    db = lapply(rics_id_h, eikonapir::get_timeseries, start_date = start_date, end_date = end_date)
+    
+    # Combine results
+    db_24h = rbindlist(db, use.names = TRUE, fill = TRUE)
+    colnames(db_24h) = c('DATE', 'VALUE', 'VOLUME', 'RIC_H')
+    
+    db_24h[, DATE := substr(DATE, 1, 10)]
+    db_24h[, HOUR := as.integer(substr(RIC_H, nchar(RIC_H) - 1, nchar(RIC_H)))]
+    db_24h[, RIC := rics]
+    db_24h[, RIC_H := NULL]
+    
+    setcolorder(db_24h, c('DATE', 'HOUR', 'RIC', 'VALUE', 'VOLUME'))
+    
+    # Order data
+    data.table::setorderv(db_24h, cols = c('DATE','HOUR'), order = 1L)
+    colnames(db_24h) = tolower(names(db_24h))
+    
+    # Check if all 24 hours are present
+    if (uniqueN(db_24h$hour) < 24) {
+        warning("Not all 24 hours are present in the data.")
+    }
+    
+    # Print retrieval message
+    rows_count = nrow(db_24h)
+    print_retrieval_message(rics = rics, from_date = from_date, to_date = to_date, nrows = rows_count)
+    
     return(db_24h)
 }
+
+
+#' Retrieve Forward Market Data for a Given RIC
+#'
+#' @description This function fetches forward market data for a given RIC (identifier) over a specified date range. 
+#' It uses `eikonapir::get_timeseries()` to download the data and formats the results into a `data.table`.
+#'
+#' @param rics A string representing the RIC (identifier) whose forward market data is to be retrieved.
+#' @param from_date A Date object or character string representing the start date for data retrieval. Defaults to 10 years before the current date.
+#' @param to_date A Date object or character string representing the end date for data retrieval. Defaults to the current date.
+#'
+#' @return A `data.table` containing the forward market data for the specified RIC. The table includes the following columns:
+#' - `date`: The date of the forward contract.
+#' - `ric`: The RIC identifier.
+#' - `value`: The forward contract price.
+#' - `volume`: The trading volume.
+#'
+#' If no data is available, the function returns a `data.table` with `NA` values.
+#'
+#' @details This function:
+#' - Calls `eikonapir::get_timeseries()` to fetch forward market data.
+#' - Handles cases where no valid data is found, returning a placeholder table with `NA` values.
+#' - Renames and formats the columns (`date`, `value`, `volume`, `ric`).
+#' - Converts the `date` column to `YYYY-MM-DD` format.
+#' - Orders the data chronologically by `date`.
+#' - Prints a retrieval summary message.
+#'
+#' @examples
+#' # Example usage:
+#' data <- get_rics_f("TTF=", from_date = "2023-01-01", to_date = "2023-12-31")
+#'
+#' @import data.table
+#' @importFrom eikonapir get_timeseries
+#' @export
+get_rics_f = function(rics, from_date = Sys.Date() - (365 * 10), to_date = Sys.Date()) {
+    
+    start_date = paste0(from_date, 'T00:00:00')
+    end_date = paste0(to_date, 'T00:00:00')
+    
+    # Download Data
+    db = eikonapir::get_timeseries(
+        rics = list(rics),
+        fields = list('TIMESTAMP', 'CLOSE', 'VOLUME'),
+        start_date = start_date,
+        end_date = end_date,
+        interval = "daily"
+    )
+    
+    if (is.null(db) || nrow(db) == 0 || all(is.na(db[[1]]))) {
+        warning(sprintf("No valid data found for RIC: %s", rics))
+        db = data.table(date = NA_character_, ric = rics, value = NA_real_, volume = NA_real_)
+        print_retrieval_message(rics = rics, from_date = 'NO DATA', to_date = 'NO DATA', nrows = 'NO DATA')
+    } else {
+        
+        # Rename and process columns
+        colnames(db) = c('DATE', 'CLOSE', 'VOLUME', 'RIC')
+        setDT(db)
+        
+        db[, DATE := substr(DATE, 1, 10)]
+        
+        colnames(db) = c('DATE', 'VALUE', 'VOLUME', 'RIC')
+        setcolorder(db, c('DATE', 'RIC', 'VALUE', 'VOLUME'))
+        
+        # Order data
+        data.table::setorderv(db, cols = c('DATE'), order = 1L)
+        colnames(db) = tolower(names(db))
+        
+        # Print retrieval message
+        rows_count = nrow(db)
+        print_retrieval_message(rics = rics, from_date = from_date, to_date = to_date, nrows = rows_count)
+        
+    }
+    
+    return(db)
+    
+}
+
 
 #' Retrieve Spot Data for a Given Date Range
 #'
@@ -157,14 +242,13 @@ get_rics_h = function(rics, from_date = Sys.Date() - (365 * 10), to_date = Sys.D
 #'
 #' @import data.table
 #' @export
-retrieve_spot = function(ric, from_date, to_date, type = 'PWR', sleep = 0) {
+retrieve_spot = function(ric, from_date, to_date, type = 'PWR') {
     
     if(type == 'GAS') {
         
-        rics_db = data.table::rbindlist(lapply(ric, get_rics_d, from_date = from_date, to_date = to_date, sleep = sleep))
+        rics_db = data.table::rbindlist(lapply(ric, get_rics_d, from_date = from_date, to_date = to_date))
         data.table::setDT(rics_db)
-        rics_db = rics_db[, .(date = TIMESTAMP, value = CLOSE, RIC = ric_column)]
-        rics_db[, date := as.Date(substr(date, 1, 10))]
+        rics_db = rics_db[, .(date = as.Date(date), value = value, RIC = ric)]
         
         downloaded_spot = data.table::copy(rics_db)
         
@@ -173,7 +257,7 @@ retrieve_spot = function(ric, from_date, to_date, type = 'PWR', sleep = 0) {
         # downloaded_spot = downloaded_spot[, .(date = TIMESTAMP, trade_close = PRICE, RIC)]
         
         # Filter data from the 'from_date'
-        history_ttf_all_s = downloaded_spot[date > from_date]
+        history_ttf_all_s = downloaded_spot[date >= from_date]
         data.table::setorderv(history_ttf_all_s, cols = 'date', order = -1L)
         
         # Filter data until the 'to_date'
@@ -190,16 +274,14 @@ retrieve_spot = function(ric, from_date, to_date, type = 'PWR', sleep = 0) {
         
     } else if(type == 'PWR') {
         
-        rics_db = data.table::rbindlist(lapply(ric, get_rics_h, from_date = from_date, to_date = to_date, sleep = sleep))
+        rics_db = data.table::rbindlist(lapply(ric, get_rics_h, from_date = from_date, to_date = to_date))
         data.table::setDT(rics_db)
         
-        rics_db = rics_db[, .(TIMESTAMP, PRICE = CLOSE, RIC = ric_column, HOUR = hour)]
-        rics_db[, TIMESTAMP := as.Date(substr(TIMESTAMP, 1, 10))]
+        rics_db = rics_db[, .(date = as.Date(date), hour = hour, value = value, RIC = ric)]
         
         downloaded_spot = data.table::copy(rics_db)
-        downloaded_spot = downloaded_spot[, .(date = TIMESTAMP, hour = HOUR, value = PRICE, RIC)]
         
-        history_pwr_all_s = downloaded_spot[date > from_date]
+        history_pwr_all_s = downloaded_spot[date >= from_date]
         data.table::setorderv(history_pwr_all_s, cols =c('date','hour'), order = -1L)
         
         history_ttf_s = history_pwr_all_s[date <= to_date]
@@ -240,15 +322,14 @@ retrieve_spot = function(ric, from_date, to_date, type = 'PWR', sleep = 0) {
 #' @export
 retrieve_fwd = function(ric, from_date, to_date) {
     
-    rics_db = data.table::rbindlist(lapply(ric, get_rics))
+    rics_db = data.table::rbindlist(lapply(ric, get_rics_f, from_date = from_date, to_date = to_date))
     data.table::setDT(rics_db)
-    rics_db = rics_db[, .(date = TIMESTAMP, trade_close = CLOSE, RIC = ric_column)]
-    rics_db[, date := as.Date(substr(date, 1, 10))]
+    rics_db = rics_db[, .(date = as.Date(date), value, RIC = ric)]
     
     downloaded_fwd = data.table::copy(rics_db)
     
     # downloaded_RICS = refenergy::merge_rics(lst_rics)
-    downloaded_fwd = downloaded_fwd[!(is.na(RIC)) & !(is.na(trade_close))]
+    downloaded_fwd = downloaded_fwd[!(is.na(RIC)) & !(is.na(value))]
     downloaded_fwd = downloaded_fwd[downloaded_fwd[, .I[date == max(date)], by = RIC]$V1]
     
     print_retrieval_done(message = 'FWD retrieval finished.')
@@ -277,8 +358,8 @@ retrieve_fwd = function(ric, from_date, to_date) {
 #' @import crayon
 #' @importFrom glue glue
 #' @export
-print_retrieval_message = function(rics, from_date, to_date) {
-    message = glue::glue("- {crayon::blue('Retrieving:')} {crayon::green(rics)}, {crayon::blue('from')} {crayon::yellow(from_date)}, {crayon::blue('to')} {crayon::yellow(to_date)}")
+print_retrieval_message = function(rics, from_date, to_date, nrows = NULL) {
+    message = glue::glue("- {crayon::blue('Retrieving:')} {crayon::green(rics)}, {crayon::blue('from')} {crayon::yellow(from_date)}, {crayon::blue('to')} {crayon::yellow(to_date)}, {crayon::blue('with nrows>')} {crayon::yellow(nrows)}")
     cat(message, "\n")
 }
 

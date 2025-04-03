@@ -4,7 +4,7 @@
 \alias{retrieve_spot}
 \title{Retrieve Spot Data for a Given Date Range}
 \usage{
-retrieve_spot(ric, from_date, to_date, type = "PWR", sleep = 0)
+retrieve_spot(ric, from_date, to_date, type = "PWR")
 }
 \arguments{
 \item{ric}{A string representing the RIC (identifier) for the spot data.}

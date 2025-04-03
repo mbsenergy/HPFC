@@ -4,7 +4,7 @@
 \alias{print_retrieval_message}
 \title{Print Retrieval Message with Colors}
 \usage{
-print_retrieval_message(rics, from_date, to_date)
+print_retrieval_message(rics, from_date, to_date, nrows = NULL)
 }
 \arguments{
 \item{rics}{A character string representing the RIC (Reuters Instrument Code) or a vector of RICs.}

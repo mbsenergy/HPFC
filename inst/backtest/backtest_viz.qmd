@@ -1,5 +1,5 @@
 ---
-title: Italy - 2023 & 2024: v1 to v2
+title: "`r params$title`"
 subtitle: "`r paste('Model performance summary statistics and metrics from', params$from, 'to', params$to)`"
 author: MBS Energy
 params:

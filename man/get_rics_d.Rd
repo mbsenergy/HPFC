@@ -2,54 +2,45 @@
 % Please edit documentation in R/retrieve_data.R
 \name{get_rics_d}
 \alias{get_rics_d}
-\title{Retrieve Historical Market Data for a Given RIC}
+\title{Retrieve Daily Historical Market Data for a Given RIC}
 \usage{
-get_rics_d(
-  rics,
-  from_date = Sys.Date() - (365 * 10),
-  to_date = Sys.Date(),
-  interval = "daily",
-  sleep = 0
-)
+get_rics_d(rics, from_date = Sys.Date() - (365 * 10), to_date = Sys.Date())
 }
 \arguments{
-\item{rics}{A string representing the RIC (identifier) whose historical data is to be retrieved.}
+\item{rics}{A character string representing the RIC (identifier) for which historical data is to be retrieved.}
 
-\item{from_date}{A Date object or character string representing the start date for data retrieval. Defaults to 10 years before the current date.}
+\item{from_date}{A Date object or character string specifying the start date for data retrieval. Defaults to 10 years before the current date.}
 
-\item{to_date}{A Date object or character string representing the end date for data retrieval. Defaults to the current date.}
-
-\item{interval}{A string specifying the time interval for the data (e.g., "daily"). Defaults to "daily".}
+\item{to_date}{A Date object or character string specifying the end date for data retrieval. Defaults to the current date.}
 }
 \value{
-A \code{data.table} containing the historical data for the specified RIC. The columns included in the returned table are:
+A \code{data.table} containing the historical data for the specified RIC with the following columns:
 \itemize{
-\item \code{TIMESTAMP}: The date of the data point.
-\item \code{HIGH}: The highest price of the day.
-\item \code{LOW}: The lowest price of the day.
-\item \code{OPEN}: The opening price.
-\item \code{CLOSE}: The closing price.
-\item \code{VOLUME}: The trading volume.
-\item \code{ric_column}: The RIC identifier.
+\item \code{date} - The date of the observation (YYYY-MM-DD).
+\item \code{ric} - The RIC identifier.
+\item \code{value} - The closing price of the RIC.
+\item \code{volume} - The trading volume.
 }
 
-If no data is available, the function returns a \code{data.table} with \code{NA} values.
+If no data is available, the function returns an empty \code{data.table}.
 }
 \description{
-This function fetches historical market data for a given RIC (identifier) over a specified date range. It uses \code{reikonapi::get_series()} to download the data and formats the results into a \code{data.table}.
+Fetches historical daily market data for a given Reuters Instrument Code (RIC) over a specified date range.
+It uses \code{eikonapir::get_timeseries()} to retrieve the data and formats it into a \code{data.table}.
 }
 \details{
 This function:
 \itemize{
-\item Calls \code{reikonapi::get_series()} to fetch market data for the specified RIC.
-\item Checks if the returned data is valid; if not, it creates a placeholder \code{data.table} with \code{NA} values.
-\item Extracts and formats the necessary columns (\code{TIMESTAMP}, \code{HIGH}, \code{LOW}, \code{OPEN}, \code{CLOSE}, \code{VOLUME}, \code{ric_column}).
-\item Converts the \code{TIMESTAMP} column to a proper date format (\code{YYYY-MM-DD}).
-\item Prints the RIC being processed.
+\item Calls \code{eikonapir::get_timeseries()} to fetch market data for the specified RIC.
+\item Removes unnecessary columns (\code{HIGH}, \code{LOW}, \code{OPEN}, \code{COUNT}).
+\item Converts the \code{DATE} column to the \code{YYYY-MM-DD} format.
+\item Orders the dataset by \code{DATE}.
+\item Prints a message summarizing the data retrieval.
 }
 }
 \examples{
-# Example usage of get_rics function
-data <- get_rics("AAPL.O", start_date = "2020-01-01", end_date = "2023-01-01")
+\dontrun{
+data <- get_rics_d("AAPL.O", from_date = "2020-01-01", to_date = "2023-01-01")
+}
 
 }

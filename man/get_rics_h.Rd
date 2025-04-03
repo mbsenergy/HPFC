@@ -2,41 +2,45 @@
 % Please edit documentation in R/retrieve_data.R
 \name{get_rics_h}
 \alias{get_rics_h}
-\title{Retrieve Hourly Data for a List of RICS}
+\title{Retrieve Hourly Time Series Data for a Given RIC}
 \usage{
-get_rics_h(
-  rics,
-  from_date = Sys.Date() - (365 * 10),
-  to_date = Sys.Date(),
-  interval = "daily",
-  sleep = 0
-)
+get_rics_h(rics, from_date = Sys.Date() - (365 * 10), to_date = Sys.Date())
 }
 \arguments{
-\item{rics}{A string or vector of strings representing the RICs (identifiers) for which to retrieve data.}
+\item{rics}{Character string representing the base RIC (without the hour suffix).}
 
-\item{from_date}{A Date object or character string representing the start date of the data range (default is 7 years before the current date).}
+\item{from_date}{Character or Date, the start date of the time series (default: 10 years ago).}
 
-\item{to_date}{A Date object or character string representing the end date of the data range (default is the current date).}
+\item{to_date}{Character or Date, the end date of the time series (default: today).}
 
-\item{interval}{A string specifying the data interval (default is \code{'daily'}).}
+\item{interval}{Character, the data frequency (default: "daily").}
+
+\item{sleep}{Numeric, time (in seconds) to wait between API calls (default: 0).}
 }
 \value{
-A data.table containing time-series data for each RIC across the specified date range. The data includes \code{TIMESTAMP}, \code{CLOSE}, \code{ric_column}, and \code{hour}.
+A \code{data.table} with columns:
+\itemize{
+\item \code{date} - Date of the observation (YYYY-MM-DD).
+\item \code{hour} - Hour of the day (integer from 1 to 24).
+\item \code{ric} - The base RIC.
+\item \code{value} - The retrieved value for the RIC.
+\item \code{volume} - Trading volume or relevant metric.
+}
 }
 \description{
-This function retrieves hourly time-series data for a list of RICS from the Eikon API over a specified date range and interval. It aggregates data for 24 hours and returns it as a data table.
+This function retrieves 24-hour time series data for a given Reuters Instrument Code (RIC).
+It fetches data for each hour individually, processes it, and returns a structured data.table.
 }
 \details{
-This function:
-\itemize{
-\item Loops through 24 hours to collect data for each RIC.
-\item Downloads the data using the \code{reikonapi::get_series()} function.
-\item Adjusts the data format and handles missing or empty data.
+The function constructs RICs for each of the 24 hours by appending \code{01} to \code{24} to the base RIC.
+It then retrieves time series data using \code{eikonapir::get_timeseries()} and processes it into a unified table.
 }
+\note{
+If not all 24 hours are present in the dataset, a warning is issued.
 }
 \examples{
-# Example usage of get_rics_h function
-data <- get_rics_h(rics = "RIC_ABC", from_date = "2020-01-01", to_date = "2020-12-31")
+\dontrun{
+get_rics_h("HEEGRAUCH", from_date = "2020-01-01", to_date = "2023-01-01")
+}
 
 }
