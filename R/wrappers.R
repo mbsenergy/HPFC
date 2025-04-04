@@ -530,10 +530,15 @@ forecast_gas = function(input_forecast = LST_FOR) {
     spot_RIC = LST_FOR$ric_spot_gas
     fwd_RIC = LST_FOR$ric_fwd_gas
     
+    dt_gas = LST_FOR$saved_history_gas[, .(date, value, RIC)]
+    ric_gas = unique(dt_gas$RIC)
+    dt_gas = HPFC::break_detection_dd(dt_gas)
+    dt_gas_dd_filt = HPFC::filter_outlier_dd(dt_gas)
+    
     dt_gas_fwds = LST_FOR$dt_gas_fwds[, .(year, quarter, month, forward_cal_BL_gas, forward_quarter_BL_gas, forward_month_BL_gas)]
     dt_gas_fwds = dt_gas_fwds[, lapply(.SD, as.numeric)]
     
-    saved_history_gas = copy(LST_FOR$saved_history_gas)
+    saved_history_gas = copy(dt_gas_dd_filt)
     # saved_history_gas = saved_history_gas[, RIC := NULL]
     
     free_fwd_gas = HPFC::arbitrage_free_gas(dt_gas_fwds, DT_history = saved_history_gas, colnames(dt_gas_fwds))
@@ -608,12 +613,22 @@ forecast_pwr = function(input_forecast = LST_FOR, gas_forecast = ENV_FOR_GAS, sm
                                           forward_month_BL_pwr, forward_cal_PL_pwr, forward_quarter_PL_pwr, forward_month_PL_pwr)]
     dt_pwr_fwds = dt_pwr_fwds[, lapply(.SD, as.numeric)]
     
-    saved_history_pwr = copy(LST_FOR$saved_history_pwr)[, RIC := NULL]
-    saved_history_gas_bis = copy(LST_FOR$saved_history_gas_bis)
+    dt_pwr = LST_FOR$saved_history_pwr[, .(date, hour, value, RIC)]
+    dt_pwr_filt_dd = dt_pwr[, .(date, hour, value)]
+    dt_pwr_filt_dd = HPFC::break_detection_ddhh(dt_pwr_filt_dd)
+    dt_pwr_filt_dd = HPFC::filter_outlier_dd_pwr(dt_pwr_filt_dd)
+    saved_history_pwr = copy(dt_pwr_filt_dd)
+    
+    dt_gas = LST_FOR$saved_history_gas[, .(date, value, RIC)]
+    ric_gas = unique(dt_gas$RIC)
+    dt_gas = HPFC::break_detection_dd(dt_gas)
+    dt_gas_dd_filt = HPFC::filter_outlier_dd(dt_gas)
+    
+    saved_history_gas = copy(dt_gas)
     
     # Apply arbitrage-free transformations
     free_fwd_pwr = HPFC::arbitrage_free_power(dt_pwr_fwds, DT_history = saved_history_pwr, colnames(dt_pwr_fwds))
-    free_fwd_gas = HPFC::arbitrage_free_gas(dt_gas_fwds, DT_history = saved_history_gas_bis, colnames(dt_gas_fwds))
+    free_fwd_gas = HPFC::arbitrage_free_gas(dt_gas_fwds, DT_history = saved_history_gas, colnames(dt_gas_fwds))
     
     dt_arbfree_fwd_pwr = free_fwd_pwr[, .(year, month, BL_quotes, PL_quotes, RIC_s = spot_RIC, RIC_f = fwd_RIC)]
     

@@ -92,11 +92,6 @@ arbitrage_free_gas = function(DT, DT_history, colnames_fwd) {
   setnames(DTW, old = names(DT), new = c('year', 'quarter', 'month', 'forward_cal_BL_gas', 'forward_quarter_BL_gas', 'forward_month_BL_gas'))
   
   # Check historical data format
-  if (!('date' %in% colnames(DT_history)) | class(DT_history$date) != 'Date') {
-    stop("date column must be format Date")
-  } else if (!('value' %in% colnames(DT_history)) | class(DT_history$value) != 'numeric') {
-    stop("value column must be format numeric")
-  }
   
   # Process historical data
   DTS = copy(DT_history)
