@@ -9,100 +9,40 @@ vignette: >
 
 ## Setup
 
-```{r, functions}
+```{r}
 
-compute_sigma = function(DT) {
-  dt_sigma = DT[, .(value = mean(value, na.rm=TRUE)), by=.(date)]
-  setorder(dt_sigma, date)
-  dt_sigma[, value_t1 := value]
-  dt_sigma[, value_t0 := shift(value)]
-  dt_sigma[, ret := log(value_t1 / value_t0)]
-  dt_sigma = dt_sigma[!is.na(ret)]
-  sigma = sd(dt_sigma$ret)
-  return(sigma)
-}
-
-simulate_single_path = function(S0, sigma, Td, N = NULL) {
-  # Generate random shocks
-  shocks = rnorm(Td, mean=0, sd=sigma)
-  
-  # Compute random walk (cumulative sum of shocks)
-  path = c(S0, S0 + cumsum(shocks))  # Include initial price
-  
-  # Create a data.table with time index
-  DT = data.table(time_index=0:Td, price=path)
-  
-  if(!is.null(N)) {
-    setnames(DT, names(DT), c('time_index', paste0('sim_', N)))
-  }
-  
-  return(DT)
-}
-
-simulate_random_walk = function(S0, sigma, Td, N) {
-  # Run N simulations and merge by time_index
-  paths_list = lapply(1:N, function(i) simulate_single_path(S0, sigma, Td, N = i))
-  
-  # Merge all paths by time_index
-  merged_paths = Reduce(function(x, y) merge(x, y, by="time_index", all=TRUE), paths_list)
-  
-  return(merged_paths)
-}
-
-```
-
-```{r, setup}
-
-# SETUP -----------------------------------------------------------------------------
 box::use(
-    data.table[...],
-    magrittr[...],
-    highcharter[...],
-    fluxer[...]
+  data.table[...],
+  magrittr[...],
+  highcharter[...],
+  reactable[...],
+  HPFC[...]
 )
-```
 
-```{r, setup}
-# Load Data ----------------------------------------
+devtools::load_all()
+
 dt_spot_pwr = fread(file.path('run', 'Romania-PPC', '01_raw', 'history_pwr.csv'))
-dt_fwd_pwr = fread(file.path('base_fwd_curve.csv'))
+dt_spot_pwr = dt_spot_pwr[date >= '2023-01-01']
+dt_fwd_pwr = fread('base_fwd_curve.csv')
 
-# Parameters
-start_date = '2023-01-01'
-dt_spot_pwr = dt_spot_pwr[date >= start_date]
+sim_result = montecarlo_sim(
+  S0 = 100,
+  Td = 365,
+  N = 20,
+  dt_spot_pwr = dt_spot_pwr,
+  dt_fwd_pwr = dt_fwd_pwr
+)
 
-set.seed(42)
-S0 = 100
-sigma = exp(compute_sigma(DT = dt_spot_pwr)) # Daily volatility
-Td = 365       # Time horizon (days)
-N = 20      # Number of simulations
 
 ```
 
-
-
-```{r, simulation}
-simulated_prices = simulate_random_walk(S0, sigma, Td, N)
-
-# Convert to data.table for plotting
-dtw = as.data.table(melt(simulated_prices, id.vars="time_index", variable.name = 'sim', value.name = 'value'))
-
-dtw[, date := as.Date("2024-01-01") + (time_index)]
-dtw[, yymm := as.Date(paste0(format(date, "%Y-%m"), '-01'))]
-dts = dtw[, .(value = round(mean(value, na.rm=TRUE))), by= .(sim, yymm)]
-
-setorder(dts, sim, yymm)
-
-dts = rbind(
-    dt_fwd_pwr,
-    dts
-    )
-
+```{r}
+reactable(sim_result)
 ```
 
 
 ```{r}
-dts |>
+sim_result |>
   hchart(type = "line", hcaes(x = yymm, y = value, group = sim)) |>
   hc_title(text = "Monte Carlo Simulation of a Random Walk") |>
   hc_xAxis(title = list(text = "Time (Months)")) |>
@@ -110,6 +50,5 @@ dts |>
   hc_tooltip(shared = TRUE) |>
   hc_theme("gridlight") |>
   hc_colors(c("blue", "red"))
-
 ```
 

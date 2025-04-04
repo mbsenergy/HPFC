@@ -4,7 +4,7 @@
 \alias{load_inputs}
 \title{Load Input Data and Parameters for HPFC Model}
 \usage{
-load_inputs(params_path = "params.json")
+load_inputs(params)
 }
 \arguments{
 \item{params_path}{Character. Path to the JSON file containing simulation parameters.
