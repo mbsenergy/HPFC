@@ -34,15 +34,6 @@ load_inputs = function(params) {
             dir_data_other    = file.path('run', LST_PARAMS$sim_name, '03_misc')
         )
         
-        ENV_SPOT = readRDS(file.path(LST_DIRS$dir_data_raw, 'ENV_SPOT.rds'))
-        ENV_FWD = readRDS(file.path(LST_DIRS$dir_data_raw, 'ENV_FWD.rds'))
-        ENV_CODES = readRDS(file.path(LST_DIRS$dir_data_other, 'ENV_CODES.rds'))
-        
-        cat(crayon::green$bold("\n✔ Data retrieved from:"), LST_DIRS$dir_data_raw, "\n")
-        
-        return_list = list(LST_PARAMS, LST_DIRS, ENV_CODES, ENV_SPOT, ENV_FWD)
-        names(return_list) = c('LST_PARAMS', 'LST_DIRS', 'ENV_CODES', 'ENV_SPOT', 'ENV_FWD')        
-        
     }
     
     if(LST_PARAMS$archive != 'NO') {
@@ -84,7 +75,6 @@ load_inputs = function(params) {
     
     ENV_SPOT$history_pwr = ENV_SPOT$history_pwr_full[date <= LST_PARAMS$history_end]
     ENV_SPOT$spot_pwr_RIC = unique(HPFC::spot_PWR_products_full[countries %in% LST_PARAMS$selected_pwr_code]$spot_PWR_code)
-    
     
     if(LST_PARAMS$data_source != 'LOCAL') {
         ### Connection
@@ -136,6 +126,15 @@ load_inputs = function(params) {
         ENV_SPOT$history_pwr = ENV_SPOT$history_pwr_full[date <= LST_PARAMS$history_end]
         
     }
+    
+    if(LST_PARAMS$data_source == 'MANUAL') {
+        ENV_SPOT$history_gas = fread(file.path(LST_DIRS$dir_data_raw, 'history_gas.csv'))
+        cat(crayon::green$bold("\n✔ Manual Data retrieved from:"), paste(LST_DIRS$dir_data_raw, 'history_gas.csv'), "\n")
+        
+        ENV_SPOT$history_pwr = fread(file.path(LST_DIRS$dir_data_raw, 'history_pwr.csv'))
+        cat(crayon::green$bold("\n✔ Manual Data retrieved from:"), paste(LST_DIRS$dir_data_raw, 'history_pwr.csv'), "\n")
+        
+    } 
     
     
     # B. Forward Market Data
@@ -209,6 +208,11 @@ load_inputs = function(params) {
         }
         
     }
+    
+    if(LST_PARAMS$data_source == 'MANUAL') {
+        ENV_FWD$dt_fwds = fread(file.path(LST_DIRS$dir_data_raw, 'dt_fwds.csv'))
+        cat(crayon::green$bold("\n✔ Manual Data retrieved from:"), paste(LST_DIRS$dir_data_raw, 'dt_fwds.csv'), "\n")
+    } 
 
     ENV_FWD$dt_fwd_gas = HPFC::prep_fwd_curve(DT = ENV_FWD$dt_fwds,
                                               list_rics = HPFC::spot_GAS_products_full[products_GAS %in% unique(c(LST_PARAMS$selected_gas_code, LST_PARAMS$dependent_gas_code))]$products_GAS_code,
@@ -240,10 +244,7 @@ load_inputs = function(params) {
         
         saveRDS(ENV_FWD$dt_fwds, file.path(LST_DIRS_archive$dir_data_raw, 'dt_fwds.rds'))
         saveRDS(ENV_FWD$dt_fwd_gas, file.path(LST_DIRS_archive$dir_data_raw, 'dt_fwd_gas.rds'))
-        saveRDS(ENV_FWD$dt_fwd_pwr, file.path(LST_DIRS_archive$dir_data_raw, 'dt_fwd_gas.rds'))
-        
-        saveRDS(ENV_CODES$calendar_holidays, file.path(LST_DIRS_archive$dir_data_raw, 'calendar_holidays.rds'))
-        saveRDS(ENV_CODES$calendar_future, file.path(LST_DIRS_archive$dir_data_raw, 'calendar_future.rds'))
+        saveRDS(ENV_FWD$dt_fwd_pwr, file.path(LST_DIRS_archive$dir_data_raw, 'dt_fwd_pwr.rds'))
         
         ## CSVs
         fwrite(ENV_FWD$dt_fwds, file.path(LST_DIRS_archive$dir_data_raw, 'dt_fwds.csv'))
@@ -254,6 +255,23 @@ load_inputs = function(params) {
         names(return_list) = c('LST_PARAMS', 'LST_DIRS_archive', 'ENV_CODES', 'ENV_SPOT', 'ENV_FWD')
         
         cat(crayon::green$bold("\n✔ Archived inputs in:"), LST_DIRS_archive$dir_data_raw, "\n")
+        
+    }
+    
+    if(LST_PARAMS$sim_name != 'NO') {
+        
+        if(LST_PARAMS$data_source == 'LOCAL') {
+            
+            ENV_SPOT = readRDS(file.path(LST_DIRS$dir_data_raw, 'ENV_SPOT.rds'))
+            ENV_FWD = readRDS(file.path(LST_DIRS$dir_data_raw, 'ENV_FWD.rds'))
+            ENV_CODES = readRDS(file.path(LST_DIRS$dir_data_other, 'ENV_CODES.rds'))
+            
+            cat(crayon::green$bold("\n✔ Sim Data retrieved from:"), LST_DIRS$dir_data_raw, "\n")
+            
+        }
+        
+        return_list = list(LST_PARAMS, LST_DIRS, ENV_CODES, ENV_SPOT, ENV_FWD)
+        names(return_list) = c('LST_PARAMS', 'LST_DIRS', 'ENV_CODES', 'ENV_SPOT', 'ENV_FWD')        
         
     }
     

@@ -32,6 +32,21 @@ devtools::load_all()
 
 ```
 
+## Options
+
+#### `**forecast_source**`
+It will determine the price level source. It can be:
+- `FWD`: commonly used to forecasting
+- `DAM`: for backtesting purposes mainly.
+
+#### `**data_source**`
+- **Market**: it requires the Reuters API key
+- **Manual**: parameter `MANUAL` and it requires the correct .xlsx files in the directory `sim_name` directory `/01_raw`
+
+#### `**model_source**`
+- **TRAIN**: it will train with the selected `data_source` a new set of models. 
+- **LOCAL**: load the models from the `sim_name` directory `/02_output`.
+
 ## Load Inputs and Retrieve data
 
 ```{r, inputs, echo = TRUE}
@@ -45,13 +60,17 @@ list_inputs = load_inputs(params = LST_PARAMS)
 ### Prepare Gas
 
 ```{r, prep-gas, echo = TRUE}
-ENV_MODELS_GAS = prepare_gas(list_inputs = list_inputs)
+if(list_inputs$LST_PARAMS$model_source == 'TRAIN') {
+    ENV_MODELS_GAS = prepare_gas(list_inputs = list_inputs)
+}
 ```
 
 ### Prepare Power
 
 ```{r, prep-pwr, echo = TRUE}
-ENV_MODELS_PWR = prepare_pwr(list_inputs = list_inputs)
+if(list_inputs$LST_PARAMS$model_source == 'TRAIN') {
+    ENV_MODELS_PWR = prepare_pwr(list_inputs = list_inputs)
+}
 ```
 
 ## Train
@@ -59,34 +78,75 @@ ENV_MODELS_PWR = prepare_pwr(list_inputs = list_inputs)
 ### Train Gas - Long term
 
 ```{r, train-gas-lt, echo = TRUE}
-ENV_MODELS_GAS$dt_lt_param_gasdep = 
-  train_lt_gas(
-    gas_data = ENV_MODELS_GAS$dt_lt_param_gasdep,
-    ric_gas = unique(ENV_MODELS_GAS$dt_gas$RIC)
-  )
+if(list_inputs$LST_PARAMS$model_source == 'TRAIN') {
+
+    ENV_MODELS_GAS$dt_lt_param_gasdep = 
+      train_lt_gas(
+        gas_data = ENV_MODELS_GAS$dt_lt_param_gasdep,
+        ric_gas = unique(ENV_MODELS_GAS$dt_gas$RIC)
+      )
+    
+    if(list_inputs$LST_PARAMS$archive != 'NO') {
+        saveRDS(ENV_MODELS_GAS, file.path(list_inputs$LST_DIRS_archive$dir_data_output, 'ENV_MODELS_GAS.rds'))
+        saveRDS(ENV_MODELS_GAS$dt_lt_param_gasdep, file.path(list_inputs$LST_DIRS_archive$dir_data_output, 'lt_gas_model.rds'))
+        saveRDS(ENV_MODELS_GAS$dt_gas_dd_filt, file.path(list_inputs$LST_DIRS_archive$dir_data_output, 'saved_history_gas.rds'))
+    }
+    
+}
+
+if(list_inputs$LST_PARAMS$model_source == 'LOCAL') {
+    if ("LST_DIRS" %in% names(list_inputs)) {
+        ENV_MODELS_GAS = readRDS(file.path(list_inputs$LST_DIRS$dir_data_output, 'ENV_MODELS_GAS.rds'))
+    }
+    if ("LST_DIRS_archive" %in% names(list_inputs)) {
+        ENV_MODELS_GAS = readRDS(file.path(list_inputs$LST_DIRS_archive$dir_data_output, 'ENV_MODELS_GAS.rds'))
+    }    
+}
+
 ```
 
 ### Train Power - Long term
 
 ```{r, train-pwr-lt, echo = TRUE}
-ENV_MODELS_PWR$dt_lt_param_pwr = 
-  train_lt_pwr(
-    pwr_data = ENV_MODELS_PWR$dt_lt_param_pwr,
-    ric_pwr = unique(ENV_MODELS_PWR$dt_pwr$RIC),
-    pwr_holidays = ENV_MODELS_PWR$calendar_holidays_pwr,
-    gas_history = ENV_MODELS_PWR$gas_history
-  )
+if(list_inputs$LST_PARAMS$model_source == 'TRAIN') {
+    ENV_MODELS_PWR$dt_lt_param_pwr = 
+      train_lt_pwr(
+        pwr_data = ENV_MODELS_PWR$dt_lt_param_pwr,
+        ric_pwr = unique(ENV_MODELS_PWR$dt_pwr$RIC),
+        pwr_holidays = ENV_MODELS_PWR$calendar_holidays_pwr,
+        gas_history = ENV_MODELS_PWR$gas_history
+      )
+}
     
 ```
 
 ### Train Power - Short term
 
 ```{r, train-pwr-st, echo = TRUE}
-ENV_MODELS_PWR$lst_hr_param_pwr = 
-  train_st_pwr(
-    pwr_data = ENV_MODELS_PWR$dt_hr_param_pwr,
-    gas_history = ENV_MODELS_PWR$gas_history
-  )
+if(list_inputs$LST_PARAMS$model_source == 'TRAIN') {
+    ENV_MODELS_PWR$lst_hr_param_pwr = 
+      train_st_pwr(
+        pwr_data = ENV_MODELS_PWR$dt_hr_param_pwr,
+        gas_history = ENV_MODELS_PWR$gas_history
+      )
+    
+    if(list_inputs$LST_PARAMS$archive != 'NO') {
+        saveRDS(ENV_MODELS_PWR, file.path(list_inputs$LST_DIRS_archive$dir_data_output, 'ENV_MODELS_PWR.rds'))
+        saveRDS(ENV_MODELS_PWR$dt_lt_param_pwr, file.path(list_inputs$LST_DIRS_archive$dir_data_output, 'lt_pwr_model.rds'))
+        saveRDS(ENV_MODELS_PWR$dt_pwr_filt_dd, file.path(list_inputs$LST_DIRS_archive$dir_data_output, 'saved_history_gas.rds'))
+        saveRDS(ENV_MODELS_PWR$lst_hr_param_pwr, file.path(list_inputs$LST_DIRS_archive$dir_data_output, 'st_pwr_model.rds'))
+    }
+    
+}
+
+if(list_inputs$LST_PARAMS$model_source == 'LOCAL') {
+    if ("LST_DIRS" %in% names(list_inputs)) {
+        ENV_MODELS_PWR = readRDS(file.path(list_inputs$LST_DIRS$dir_data_output, 'ENV_MODELS_PWR.rds'))
+    }
+    if ("LST_DIRS_archive" %in% names(list_inputs)) {
+        ENV_MODELS_PWR = readRDS(file.path(list_inputs$LST_DIRS_archive$dir_data_output, 'ENV_MODELS_PWR.rds'))
+    }    
+}
     
 ```
 
@@ -118,12 +178,20 @@ LST_FOR = list(
 
 ```{r, pred-gas, echo = TRUE}
 ENV_FOR_GAS = forecast_gas(input_forecast = LST_FOR)
+
+if(list_inputs$LST_PARAMS$archive != 'NO') {
+    saveRDS(ENV_FOR_GAS, file.path(list_inputs$LST_DIRS_archive$dir_data_output, 'forecast_gas.rds'))
+}
 ```
 
 ### Predict Power 
 
 ```{r, pred-pwr, echo = TRUE}
 ENV_FOR_PWR = forecast_pwr(input_forecast = LST_FOR, gas_forecast = ENV_FOR_GAS)
+
+if(list_inputs$LST_PARAMS$archive != 'NO') {
+    saveRDS(ENV_FOR_PWR, file.path(list_inputs$LST_DIRS_archive$dir_data_output, 'forecast_pwr.rds'))
+}
 ```
 
 ## Visualization 

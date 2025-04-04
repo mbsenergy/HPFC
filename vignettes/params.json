@@ -8,7 +8,7 @@
   "forecast_start": "2024-01-01",         
   "forecast_end": "2024-12-31",           
   "model_source": "TRAIN",           
-  "data_source": "0df86b690b2c4ae2bf245680dbbfcc86bb041dc9",            
+  "data_source": "MANUAL",            
   "forecast_source": "FWD",        
   "sim_name": "Romania-PPC",               
   "archive": "NO"
