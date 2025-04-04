@@ -1,9 +1,9 @@
 ---
-title: "Montecarlo Price Level Simulation"
+title: "Hourly Shaped Montecarlo Simulation"
 author: "Alejandro Abraham"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Montecarlo Price Level Simulation}
+  %\VignetteIndexEntry{Hourly Shaped Montecarlo Simulation}
   %\VignetteEngine{knitr::rmarkdown}
 ---
 
@@ -18,8 +18,6 @@ box::use(
   reactable[...],
   HPFC[...]
 )
-
-devtools::load_all()
 
 dt_spot_pwr = fread(file.path('run', 'Romania-PPC', '01_raw', 'history_pwr.csv'))
 dt_spot_pwr = dt_spot_pwr[date >= '2023-01-01']
@@ -102,4 +100,116 @@ dt_pwr = ENV_FOR_PWR[, .(date, hour, forecast = final_forecast)]
 setcolorder(dt_pwr, c('date', 'hour',  'forecast'))
 setorder(dt_pwr, date, hour)
 ```
+
+```{r}
+apply_shape = function(dt_fwd_pwr,
+                       dt_spot_pwr,
+                       dt_fwd_gas,
+                       name = 'HPFC',
+                       sim_path = file.path('run', 'Romania-PPC'), 
+                       country = 'Romania', spot_pwr_code = 'OPCOMRTR', spot_gas_code = 'TTFDA', fwd_pwr_code = 'FH', fwd_gas_code = 'TFMB', 
+                       start_date = '2024-01-01', 
+                       end_date = '2024-12-31') {
+    
+    sim_path = sim_path
+    ENV_MODELS_GAS = readRDS(file.path(sim_path, '02_output', 'ENV_MODELS_GAS.rds'))
+    ENV_MODELS_PWR = readRDS(file.path(sim_path, '02_output', 'ENV_MODELS_PWR.rds'))
+    ENV_FWD = readRDS(file.path(sim_path, '01_raw', 'ENV_FWD.rds'))
+    ENV_SPOT = readRDS(file.path(sim_path, '01_raw', 'ENV_SPOT.rds'))
+    ENV_CODES = readRDS(file.path(sim_path, '03_misc', 'ENV_CODES.rds'))
+    
+    dt_fwd_prep_pwr = merge(dt_fwd_pwr, generate_monthrics_pwr(country, time_range = 2024), by.x = 'yymm', by.y ='date', all.x = TRUE) 
+    dt_fwd_prep_gas = merge(dt_fwd_gas, generate_monthrics_gas(fwd_gas_code, time_range = 2024), by.x = 'yymm', by.y ='date', all.x = TRUE) 
+    
+    dt_fwds = rbind(dt_fwd_prep_pwr, dt_fwd_prep_gas)
+    dt_fwds[, sim := NULL]
+    colnames(dt_fwds) = c('date', 'value', 'RIC')
+    
+    LST_FOR = list(
+        model_lt_gas = copy(ENV_MODELS_GAS$dt_lt_param_gasdep),
+        model_lt_pwr = copy(ENV_MODELS_PWR$dt_lt_param_pwr),
+        model_st_pwr = copy(ENV_MODELS_PWR$lst_hr_param_pwr),
+        dt_fwds = copy(dt_fwds),
+        saved_history_gas = copy(ENV_SPOT$history_gas),
+        saved_history_pwr = dt_spot_pwr,
+        ric_spot_gas = spot_gas_code,
+        ric_fwd_gas = fwd_gas_code,
+        ric_spot_pwr = spot_pwr_code,
+        ric_fwd_pwr = fwd_pwr_code,
+        calendar_forecast = ENV_CODES$calendar_future,
+        start_date = start_date,
+        end_date = end_date,
+        last_date = as.character(as.Date(start_date) - 1)
+    ) 
+    
+    ENV_FOR_GAS = forecast_gas(input_forecast = LST_FOR)
+    ENV_FOR_PWR = forecast_pwr(input_forecast = LST_FOR, gas_forecast = ENV_FOR_GAS)
+    
+    dt_pwr = ENV_FOR_PWR[, .(date, hour, forecast = final_forecast)]
+    setcolorder(dt_pwr, c('date', 'hour',  'forecast'))
+    setorder(dt_pwr, date, hour)
+    dt_pwr[, name := name]
+    
+    return(dt_pwr)
+
+}
+```
+
+```{r}
+DT_FWD = apply_shape(dt_fwd_pwr = dt_fwd_pwr,
+                    dt_spot_pwr,
+                    dt_fwd_gas,
+                    name = 'FWD',
+                       sim_path = file.path('run', 'Romania-PPC'), 
+                       country = 'Romania', spot_pwr_code = 'OPCOMRTR', spot_gas_code = 'TTFDA', fwd_pwr_code = 'FH', fwd_gas_code = 'TFMB', 
+                       start_date = '2024-01-01', 
+                       end_date = '2024-12-31')
+```
+
+
+```{r}
+# Get the unique simulations from the sim_result
+vec_sims = unique(sim_result$sim)
+
+# Apply the function to each unique simulation
+results = lapply(vec_sims, function(sim_id) {
+  # Filter the data for the current simulation
+  dt_fwd_pwr_filtered = sim_result[sim == sim_id]
+
+  # Call the apply_shape function with the necessary parameters
+  prova = apply_shape(
+    dt_fwd_pwr = dt_fwd_pwr_filtered,
+    dt_spot_pwr = dt_spot_pwr,
+    dt_fwd_gas = dt_fwd_gas,
+    name = sim_id,
+    sim_path = file.path('run', 'Romania-PPC'), 
+    country = 'Romania',
+    spot_pwr_code = 'OPCOMRTR',
+    spot_gas_code = 'TTFDA',
+    fwd_pwr_code = 'FH',
+    fwd_gas_code = 'TFMB',
+    start_date = '2024-01-01', 
+    end_date = '2024-12-31'
+  )
+  
+  print(as.character(sim_id))
+  
+  # Return the result for this simulation
+  return(prova)
+})
+
+DT_HPFC_MC = rbindlist(results)
+```
+
+```{r}
+DT_HPFC_MC[, .(value = mean(forecast, na.rm = TRUE)), by = .(yymm = date, sim = name)] |>
+  hchart(type = "line", hcaes(x = yymm, y = value, group = sim)) |>
+  hc_title(text = "Monte Carlo Simulation of a Random Walk") |>
+  hc_xAxis(title = list(text = "Time (Months)")) |>
+  hc_yAxis(title = list(text = "HPFC Price")) |>
+  hc_tooltip(shared = TRUE) |>
+  hc_theme("gridlight") 
+```
+
+
 
