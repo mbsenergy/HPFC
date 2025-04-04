@@ -24,16 +24,21 @@ box::use(
     magrittr[...],
     echarts4r[...],
     reactable[...],
-    HPFC[...],
+    # HPFC[...],
     eikonapir[...]
 )
+
+devtools::load_all()
 
 ```
 
 ## Load Inputs and Retrieve data
 
 ```{r, inputs, echo = TRUE}
-list_inputs = load_inputs(params_path = "params.json")
+
+LST_PARAMS = jsonlite::fromJSON(file.path('params.json'))
+
+list_inputs = load_inputs(params = LST_PARAMS)
 ```
 
 

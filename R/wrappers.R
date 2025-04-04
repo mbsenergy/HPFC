@@ -22,29 +22,40 @@
 #' @importFrom eikonapir set_proxy_port set_app_id
 #' 
 #' @export
-load_inputs = function(params_path = 'params.json') {
+load_inputs = function(params) {
     
-    LST_PARAMS <- jsonlite::fromJSON(file.path(params_path))
-
-    LST_DIRS = list(
-        dir_data_input_t  = file.path('run', 'LAST', 'data', '01_input'),
-        dir_data_input_f  = file.path('run', 'LAST', 'data', '01_input'),
-        dir_data_inter    = file.path('run', 'LAST', 'data', '01_input'),
-        dir_data_output   = file.path('run', 'LAST', 'data', '02_output'),
-        dir_data_output_models   = file.path('run', 'LAST', 'data', '02_output'),
-        dir_data_other    = file.path('run', 'LAST', 'data', 'xx_other')
-    )
+    LST_PARAMS = params
     
-    LST_DIRS_archive = list(
-        dir_data_input_t  = file.path('run', LST_PARAMS$sim_name, '01_input'),
-        dir_data_input_f  = file.path('run', LST_PARAMS$sim_name, '01_input'),
-        dir_data_inter    = file.path('run', LST_PARAMS$sim_name, '01_input'),
-        dir_data_output   = file.path('run', LST_PARAMS$sim_name, '02_output'),
-        dir_data_output_models   = file.path('run', LST_PARAMS$sim_name, '02_output'),
-        dir_data_other    = file.path('run', LST_PARAMS$sim_name, 'xx_other')
-    )
+    if(LST_PARAMS$sim_name != 'NO') {
+        
+        LST_DIRS = list(
+            dir_data_raw  = file.path('run', LST_PARAMS$sim_name, '01_raw'),
+            dir_data_output   = file.path('run', LST_PARAMS$sim_name, '02_output'),
+            dir_data_other    = file.path('run', LST_PARAMS$sim_name, '03_misc')
+        )
+        
+        ENV_SPOT = readRDS(file.path(LST_DIRS$dir_data_raw, 'ENV_SPOT.rds'))
+        ENV_FWD = readRDS(file.path(LST_DIRS$dir_data_raw, 'ENV_FWD.rds'))
+        ENV_CODES = readRDS(file.path(LST_DIRS$dir_data_other, 'ENV_CODES.rds'))
+        
+        cat(crayon::green$bold("\n✔ Data retrieved from:"), LST_DIRS$dir_data_raw, "\n")
+        
+        return_list = list(LST_PARAMS, LST_DIRS, ENV_CODES, ENV_SPOT, ENV_FWD)
+        names(return_list) = c('LST_PARAMS', 'LST_DIRS', 'ENV_CODES', 'ENV_SPOT', 'ENV_FWD')        
+        
+    }
     
-    lapply(LST_DIRS_archive, dir.create, recursive = TRUE, showWarnings = FALSE)
+    if(LST_PARAMS$archive != 'NO') {
+        
+        LST_DIRS_archive = list(
+            dir_data_raw  = file.path('run', LST_PARAMS$archive, '01_raw'),
+            dir_data_output   = file.path('run', LST_PARAMS$archive, '02_output'),
+            dir_data_other    = file.path('run', LST_PARAMS$archive, '03_misc')
+        )
+        
+        lapply(LST_DIRS_archive, dir.create, recursive = TRUE, showWarnings = FALSE)
+        
+    }
     
     ### CODES Parameters
     ENV_CODES = list()
@@ -216,8 +227,36 @@ load_inputs = function(params_path = 'params.json') {
     
     ## PREPARE AND RETURN
     
-    return_list = list(LST_PARAMS, LST_DIRS, LST_DIRS_archive, ENV_CODES, ENV_SPOT, ENV_FWD)
-    names(return_list) = c('LST_PARAMS', 'LST_DIRS', 'LST_DIRS_archive', 'ENV_CODES', 'ENV_SPOT', 'ENV_FWD')
+    if(LST_PARAMS$archive != 'NO') {
+        
+        ## Backup
+        saveRDS(ENV_SPOT, file.path(LST_DIRS_archive$dir_data_raw, 'ENV_SPOT.rds'))
+        saveRDS(ENV_FWD, file.path(LST_DIRS_archive$dir_data_raw, 'ENV_FWD.rds'))
+        saveRDS(ENV_CODES, file.path(LST_DIRS_archive$dir_data_other, 'ENV_CODES.rds'))
+        
+        ## Single files
+        saveRDS(ENV_SPOT$history_gas, file.path(LST_DIRS_archive$dir_data_raw, 'history_gas.rds'))
+        saveRDS(ENV_SPOT$history_pwr, file.path(LST_DIRS_archive$dir_data_raw, 'history_pwr.rds'))
+        
+        saveRDS(ENV_FWD$dt_fwds, file.path(LST_DIRS_archive$dir_data_raw, 'dt_fwds.rds'))
+        saveRDS(ENV_FWD$dt_fwd_gas, file.path(LST_DIRS_archive$dir_data_raw, 'dt_fwd_gas.rds'))
+        saveRDS(ENV_FWD$dt_fwd_pwr, file.path(LST_DIRS_archive$dir_data_raw, 'dt_fwd_gas.rds'))
+        
+        saveRDS(ENV_CODES$calendar_holidays, file.path(LST_DIRS_archive$dir_data_raw, 'calendar_holidays.rds'))
+        saveRDS(ENV_CODES$calendar_future, file.path(LST_DIRS_archive$dir_data_raw, 'calendar_future.rds'))
+        
+        ## CSVs
+        fwrite(ENV_FWD$dt_fwds, file.path(LST_DIRS_archive$dir_data_raw, 'dt_fwds.csv'))
+        fwrite(ENV_SPOT$history_gas, file.path(LST_DIRS_archive$dir_data_raw, 'history_gas.csv'))
+        fwrite(ENV_SPOT$history_pwr, file.path(LST_DIRS_archive$dir_data_raw, 'history_pwr.csv'))
+        
+        return_list = list(LST_PARAMS, LST_DIRS_archive, ENV_CODES, ENV_SPOT, ENV_FWD)
+        names(return_list) = c('LST_PARAMS', 'LST_DIRS_archive', 'ENV_CODES', 'ENV_SPOT', 'ENV_FWD')
+        
+        cat(crayon::green$bold("\n✔ Archived inputs in:"), LST_DIRS_archive$dir_data_raw, "\n")
+        
+    }
+    
     return(return_list)
 }
 
