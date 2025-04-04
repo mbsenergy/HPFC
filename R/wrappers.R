@@ -144,8 +144,6 @@ load_inputs = function(params) {
     ENV_FWD$fwd_pwr_RIC =  unique(HPFC::spot_PWR_products_full[countries %in% LST_PARAMS$selected_pwr_code]$products_PWR_code)
     
     ENV_FWD$time_range = as.numeric(data.table::year(as.Date(LST_PARAMS$forecast_start))):as.numeric(data.table::year(as.Date(LST_PARAMS$forecast_end)))
-    ENV_FWD$calendar = HPFC::calendar_holidays
-    ENV_FWD$calendar[, `:=` (year = as.character(data.table::year(date)), quarter = as.character(data.table::quarter(date)), month = as.character(data.table::month(date)))]
     
     DT_GAS = HPFC::dt_fwds_gas[substr(RIC, 1, 4) == HPFC::spot_GAS_products_full[products_GAS %in% unique(c(LST_PARAMS$selected_gas_code, LST_PARAMS$dependent_gas_code))]$products_GAS_code]
     if(LST_PARAMS$forecast_source == 'FWD') {
@@ -214,21 +212,6 @@ load_inputs = function(params) {
         cat(crayon::green$bold("\n✔ Manual Data retrieved from:"), paste(LST_DIRS$dir_data_raw, 'dt_fwds.csv'), "\n")
     } 
 
-    ENV_FWD$dt_fwd_gas = HPFC::prep_fwd_curve(DT = ENV_FWD$dt_fwds,
-                                              list_rics = HPFC::spot_GAS_products_full[products_GAS %in% unique(c(LST_PARAMS$selected_gas_code, LST_PARAMS$dependent_gas_code))]$products_GAS_code,
-                                              type = 'GAS',
-                                              start_date = LST_PARAMS$forecast_start,
-                                              end_date = LST_PARAMS$forecast_end, 
-                                              calendar_sim = ENV_FWD$calendar)
-
-    
-    ENV_FWD$dt_fwd_pwr = HPFC::prep_fwd_curve(DT = ENV_FWD$dt_fwds,
-                                              list_rics = unique(HPFC::spot_PWR_products_full[countries %in% LST_PARAMS$selected_pwr_code]$products_PWR_code),
-                                              type = 'PWR',
-                                              start_date = LST_PARAMS$forecast_start,
-                                              end_date = LST_PARAMS$forecast_end, 
-                                              calendar_sim = ENV_FWD$calendar)
-    
     ## PREPARE AND RETURN
     
     if(LST_PARAMS$archive != 'NO') {
@@ -243,8 +226,6 @@ load_inputs = function(params) {
         saveRDS(ENV_SPOT$history_pwr, file.path(LST_DIRS_archive$dir_data_raw, 'history_pwr.rds'))
         
         saveRDS(ENV_FWD$dt_fwds, file.path(LST_DIRS_archive$dir_data_raw, 'dt_fwds.rds'))
-        saveRDS(ENV_FWD$dt_fwd_gas, file.path(LST_DIRS_archive$dir_data_raw, 'dt_fwd_gas.rds'))
-        saveRDS(ENV_FWD$dt_fwd_pwr, file.path(LST_DIRS_archive$dir_data_raw, 'dt_fwd_pwr.rds'))
         
         ## CSVs
         fwrite(ENV_FWD$dt_fwds, file.path(LST_DIRS_archive$dir_data_raw, 'dt_fwds.csv'))
@@ -535,7 +516,18 @@ forecast_gas = function(input_forecast = LST_FOR) {
     dt_gas = HPFC::break_detection_dd(dt_gas)
     dt_gas_dd_filt = HPFC::filter_outlier_dd(dt_gas)
     
-    dt_gas_fwds = LST_FOR$dt_gas_fwds[, .(year, quarter, month, forward_cal_BL_gas, forward_quarter_BL_gas, forward_month_BL_gas)]
+    fwd_calendar = HPFC::calendar_holidays
+    fwd_calendar[, `:=` (year = as.character(data.table::year(date)), quarter = as.character(data.table::quarter(date)), month = as.character(data.table::month(date)))]
+    
+    dt_fwd_gas = HPFC::prep_fwd_curve(DT = LST_FOR$dt_fwds,
+                                              list_rics = fwd_RIC,
+                                              type = 'GAS',
+                                              start_date = LST_FOR$start_date,
+                                              end_date = LST_FOR$end_date, 
+                                              calendar_sim = fwd_calendar)
+    
+    
+    dt_gas_fwds = dt_fwd_gas[, .(year, quarter, month, forward_cal_BL_gas, forward_quarter_BL_gas, forward_month_BL_gas)]
     dt_gas_fwds = dt_gas_fwds[, lapply(.SD, as.numeric)]
     
     saved_history_gas = copy(dt_gas_dd_filt)
@@ -603,13 +595,32 @@ forecast_pwr = function(input_forecast = LST_FOR, gas_forecast = ENV_FOR_GAS, sm
     
     LST_FOR = input_forecast
     spot_RIC = LST_FOR$ric_spot_pwr
+    fwd_RIC_gas = LST_FOR$ric_fwd_gas
     fwd_RIC = LST_FOR$ric_fwd_pwr
     
+    fwd_calendar = HPFC::calendar_holidays
+    fwd_calendar[, `:=` (year = as.character(data.table::year(date)), quarter = as.character(data.table::quarter(date)), month = as.character(data.table::month(date)))]
+    
+    dt_fwd_gas = HPFC::prep_fwd_curve(DT = LST_FOR$dt_fwds,
+                                      list_rics = fwd_RIC_gas,
+                                      type = 'GAS',
+                                      start_date = LST_FOR$start_date,
+                                      end_date = LST_FOR$end_date, 
+                                      calendar_sim = fwd_calendar)
+    
     # Extract and convert forward market data
-    dt_gas_fwds = LST_FOR$dt_gas_fwds[, .(year, quarter, month, forward_cal_BL_gas, forward_quarter_BL_gas, forward_month_BL_gas)]
+    dt_gas_fwds = dt_fwd_gas[, .(year, quarter, month, forward_cal_BL_gas, forward_quarter_BL_gas, forward_month_BL_gas)]
     dt_gas_fwds = dt_gas_fwds[, lapply(.SD, as.numeric)]
     
-    dt_pwr_fwds = LST_FOR$dt_pwr_fwds[, .(year, quarter, month, forward_cal_BL_pwr, forward_quarter_BL_pwr, 
+    dt_fwd_pwr = HPFC::prep_fwd_curve(DT = LST_FOR$dt_fwds,
+                                      list_rics = fwd_RIC,
+                                      type = 'PWR',
+                                      start_date = LST_FOR$start_date,
+                                      end_date = LST_FOR$end_date, 
+                                      calendar_sim = fwd_calendar)
+    
+    
+    dt_pwr_fwds = dt_fwd_pwr[, .(year, quarter, month, forward_cal_BL_pwr, forward_quarter_BL_pwr, 
                                           forward_month_BL_pwr, forward_cal_PL_pwr, forward_quarter_PL_pwr, forward_month_PL_pwr)]
     dt_pwr_fwds = dt_pwr_fwds[, lapply(.SD, as.numeric)]
     

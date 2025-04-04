@@ -24,6 +24,7 @@ devtools::load_all()
 dt_spot_pwr = fread(file.path('run', 'Romania-PPC', '01_raw', 'history_pwr.csv'))
 dt_spot_pwr = dt_spot_pwr[date >= '2023-01-01']
 dt_fwd_pwr = fread('base_fwd_curve.csv')
+dt_fwd_gas = fread('base_fwd_curve_gas.csv')
 
 sim_result = montecarlo_sim(
   S0 = 100,
@@ -50,5 +51,55 @@ sim_result |>
   hc_tooltip(shared = TRUE) |>
   hc_theme("gridlight") |>
   hc_colors(c("blue", "red"))
+```
+
+## Hourly Shaping
+```{r}
+sim_path = file.path('run', 'Romania-PPC')
+ENV_MODELS_GAS = readRDS(file.path(sim_path, '02_output', 'ENV_MODELS_GAS.rds'))
+ENV_MODELS_PWR = readRDS(file.path(sim_path, '02_output', 'ENV_MODELS_PWR.rds'))
+ENV_FWD = readRDS(file.path(sim_path, '01_raw', 'ENV_FWD.rds'))
+ENV_FWD$dt_fwds
+ENV_SPOT = readRDS(file.path(sim_path, '01_raw', 'ENV_SPOT.rds'))
+ENV_CODES = readRDS(file.path(sim_path, '03_misc', 'ENV_CODES.rds'))
+
+dt_fwd_prep_pwr = merge(dt_fwd_pwr, generate_monthrics_pwr('Romania', time_range = 2024), by.x = 'yymm', by.y ='date', all.x = TRUE) 
+dt_fwd_prep_gas = merge(dt_fwd_gas, generate_monthrics_gas('TFMB', time_range = 2024), by.x = 'yymm', by.y ='date', all.x = TRUE) 
+
+dt_fwds = rbind(dt_fwd_prep_pwr, dt_fwd_prep_gas)
+dt_fwds[, sim := NULL]
+colnames(dt_fwds) = c('date', 'value', 'RIC')
+
+```
+
+```{r}
+LST_FOR = list(
+    model_lt_gas = copy(ENV_MODELS_GAS$dt_lt_param_gasdep),
+    model_lt_pwr = copy(ENV_MODELS_PWR$dt_lt_param_pwr),
+    model_st_pwr = copy(ENV_MODELS_PWR$lst_hr_param_pwr),
+    dt_fwds = copy(dt_fwds),
+    saved_history_gas = copy(ENV_SPOT$history_gas),
+    saved_history_pwr = dt_spot_pwr,
+    ric_spot_gas = 'TTFDA',
+    ric_fwd_gas = 'TFMB',
+    ric_spot_pwr = 'OPCOMRTR',
+    ric_fwd_pwr = 'FH',
+    calendar_forecast = ENV_CODES$calendar_future,
+    start_date = '2024-01-01',
+    end_date = '2024-12-31',
+    last_date = '2023-12-31'
+) 
+```
+
+```{r}
+ENV_FOR_GAS = forecast_gas(input_forecast = LST_FOR)
+ENV_FOR_PWR = forecast_pwr(input_forecast = LST_FOR, gas_forecast = ENV_FOR_GAS)
+
+```
+
+```{r}
+dt_pwr = ENV_FOR_PWR[, .(date, hour, forecast = final_forecast)]
+setcolorder(dt_pwr, c('date', 'hour',  'forecast'))
+setorder(dt_pwr, date, hour)
 ```
 

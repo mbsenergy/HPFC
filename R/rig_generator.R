@@ -139,3 +139,103 @@ generate_rics_pwr = function(selected_PWR_codes, time_range) {
     
     return(lst_rics_pwr)
 }
+
+#' Generate Monthly RICs for Gas Codes
+#'
+#' This function generates Reuters Instrument Codes (RICs) for monthly gas contracts
+#' based on the selected gas codes and time range. It excludes quarterly and yearly codes.
+#'
+#' @param selected_GAS_codes A character vector of selected gas base codes (e.g., "TFMB").
+#' @param time_range Numeric vector of years (e.g., 2024:2025).
+#'
+#' @return A character vector of monthly RICs.
+#' @export
+#' @import data.table
+#'
+#' @examples
+#' lst_monthly_rics <- generate_monthrics_gas(c("TFMB"), 2025)
+#' Generate Monthly RICs for Gas Codes
+#'
+#' This function generates Reuters Instrument Codes (RICs) for monthly gas contracts
+#' based on the selected gas codes and time range. It excludes quarterly and yearly codes.
+#'
+#' @param selected_GAS_codes A character vector of selected gas base codes (e.g., "TFMB").
+#' @param time_range Numeric vector of years (e.g., 2024:2025).
+#'
+#' @return A data.table with columns `RIC` and `date` (YYYY-MM-01).
+#' @export
+#' @import data.table
+#'
+#' @examples
+#' dt_monthly_rics <- generate_monthrics_gas(c("TFMB"), 2025)
+generate_monthrics_gas = function(selected_GAS_codes, time_range) {
+    timeframe_months = c("MF", "MG", "MH", "MJ", "MK", "MM", "MN", "MQ", "MU", "MV", "MX", "MZ")
+    reuters_months = HPFC::reuters_months
+    
+    dt_rics = expand.grid(selected_GAS_codes, timeframe_months, time_range) |> setDT()
+    setnames(dt_rics, c("code", "month_code", "year"))
+    
+    dt_rics[, month_num := match(substr(month_code, 2, 2), reuters_months$code)]
+    dt_rics[, date := as.Date(sprintf("%d-%02d-01", year, month_num))]
+    
+    dt_rics[, RIC := paste0(
+        code, month_code,
+        fcase(
+            year < year(Sys.Date()) |
+                (year == year(Sys.Date()) & month_num <= month(Sys.Date())),
+            paste0(substr(year, 4, 4), "^", substr(year, 3, 3)),
+            default = substr(year, 4, 4)
+        )
+    )]
+    
+    return(dt_rics[, .(RIC, date)])
+}
+
+
+#' Generate Monthly RICs for Power Codes
+#'
+#' This function generates Reuters Instrument Codes (RICs) for monthly power contracts
+#' based on the selected power codes and time range. It excludes quarterly and yearly codes.
+#'
+#' @param selected_PWR_codes A character vector of selected power base codes (e.g., "PWRB").
+#' @param time_range Numeric vector of years (e.g., 2024:2025).
+#'
+#' @return A data.table with columns `RIC` and `date` (YYYY-MM-01).
+#' @export
+#' @import data.table
+#'
+#' @examples
+#' dt_monthly_rics <- generate_monthrics_pwr(c("PWRB"), 2025)
+generate_monthrics_pwr = function(selected_PWR_codes, time_range) {
+    
+    pwr_codes = HPFC::spot_PWR_products_full[countries %in% selected_PWR_codes]$products_PWR_code
+    # Monthly timeframe codes only
+    timeframe_months = c("MF", "MG", "MH", "MJ", "MK", "MM", "MN", "MQ", "MU", "MV", "MX", "MZ")
+    
+    # Retrieve reference month codes
+    reuters_months = HPFC::reuters_months
+    
+    # Generate all combinations
+    dt_rics = expand.grid(pwr_codes, timeframe_months, time_range) |> setDT()
+    setnames(dt_rics, c("code", "month_code", "year"))
+    
+    # Add month number
+    dt_rics[, month_num := match(substr(month_code, 2, 2), reuters_months$code)]
+    
+    # Create the date column (YYYY-MM-01)
+    dt_rics[, date := as.Date(sprintf("%d-%02d-01", year, month_num))]
+    
+    # Generate RIC column
+    dt_rics[, RIC := paste0(
+        code, 'B', month_code,
+        fcase(
+            year < year(Sys.Date()) |
+                (year == year(Sys.Date()) & month_num <= month(Sys.Date())),
+            paste0(substr(year, 4, 4), "^", substr(year, 3, 3)),
+            default = substr(year, 4, 4)
+        )
+    )]
+    
+    # Return data.table with RIC and date columns
+    return(dt_rics[, .(RIC, date)])
+}
