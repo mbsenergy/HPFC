@@ -7,8 +7,10 @@ library(bslib)        # for bslib theme and components
 library(echarts4r)     # for interactive charts
 library(reactable)     # for interactive tables
 library(shinycssloaders) # for loading spinner
+library(magrittr)
 library(react)
-library(HPFC)
+# library(HPFC)
+devtools::load_all()
 
 
 hpfc_theme =
@@ -252,21 +254,26 @@ ui = page_navbar(
                  # Main Panel for the training
                         navset_card_pill(
                             full_screen = TRUE,
-                            height = '845px',
-                            nav_panel('Power', class = 'p-4',
-                                fluidRow(
+                            nav_panel('Power',
+                                layout_sidebar(
+                                    sidebar = sidebar(reactableOutput('forecast_params_table_recap_pwr'), position = 'right', open = FALSE, width = '350px'),
+                                    fluidRow(
                                     echarts4rOutput(outputId = 'pwr_history_plot', height = '400px') %>% withSpinner(color = "#d08770"),
                                     hr(), br(),
                                     reactableOutput(outputId = 'pwr_history_table') %>% withSpinner(color = "#d08770")
+                                    )
                                 )
                             ),
                             
-                            nav_panel('Gas', class = 'p-4',
-                                fluidRow(
+                            nav_panel('Gas',
+                              layout_sidebar(
+                                  sidebar = sidebar(reactableOutput('forecast_params_table_recap_gas'), position = 'right', open = FALSE, width = '350px'),
+                                  fluidRow(
                                     echarts4rOutput(outputId = 'gas_history_plot', height = '400px') %>% withSpinner(color = "#d08770"),
                                     hr(), br(),
                                     reactableOutput(outputId = 'gas_history_table') %>% withSpinner(color = "#d08770")
                                 )
+                              )
                             )
                         )
         )
@@ -349,6 +356,22 @@ ui = page_navbar(
 # SERVER  ------------------------------------------------------------------------------------------------- 
 server = function(input, output, session) {
     
+    # Reactive input for select source in training period
+    output$reactive_select_source_file <- renderUI({
+        req(input$in_source)
+        if(input$in_source == "Excel") {
+            fileInput("file", "Upload Excel File", accept = c(".xlsx"))
+        }
+    })
+    
+    # Reactive input for select source in forecast period
+    output$reactive_select_source_file_forecast <- renderUI({
+        req(input$in_source_forecast)
+        if(input$in_source_forecast == "Excel") {
+            fileInput("file_forecast", "Upload Excel File", accept = c(".xlsx"))
+        }
+    })
+    
     # Reactive input recap data -----------------
     recap_data = reactive({
         data.frame(
@@ -376,6 +399,9 @@ server = function(input, output, session) {
     
     ## Inputs -----------------------
     params_input_pwr = reactiveVal(NULL)
+    list_inputs_field = reactiveVal(NULL)
+    
+    ### Prepare inputs params
     observe({
         params_list = list(
             model_type = 'PWR',
@@ -393,41 +419,200 @@ server = function(input, output, session) {
             archive = 'NO'
         )
         
-        print(params_list)
         params_input_pwr(params_list)
+        
     })
     
+    ### Exceute load_inputs
     observeEvent(input$act_indicator_train, {
-        print('-------------START TRAINING -------------------')
+        
+        print('')
+        print('==================== ++++++++++++++ ====================')
+        print('==================== START TRAINING ====================')
+        print('==================== ++++++++++++++ ====================')
+        print('')
+        print('------------- LOAD INPUTS START -------------')
+        
         LST_PARAMS = react$params_input_pwr
         list_inputs = HPFC::load_inputs(params = LST_PARAMS)
-        print(LST_PARAMS)
+        
+        list_inputs_field(list_inputs)
+        
+        print('------------- LOAD INPUTS END ---------------')
+        
+        })
+    
+    
+    
+    
+    ## Prepare Curves -----------------------
+    prepare_gas_field = reactiveVal(NULL)
+    prepare_pwr_field = reactiveVal(NULL)
+    
+    observe({
+        
+        req(react$list_inputs_field)
+        
+        print('==================== ++++++++++++++ ====================')
+        print('------------- PREPARE START -------------')
+        
+        list_inputs = react$list_inputs_field
+        ENV_MODELS_GAS = prepare_gas(list_inputs = list_inputs)
+        ENV_MODELS_PWR = prepare_pwr(list_inputs = list_inputs)
+        
+        prepare_gas_field(ENV_MODELS_GAS)
+        prepare_pwr_field(ENV_MODELS_PWR)
+        
+        print('------------- PREPARE END ---------------')
+        
     })
     
     
-    # Reactive input for select source in training period
-    output$reactive_select_source_file <- renderUI({
-        req(input$in_source)
-        if(input$in_source == "Excel") {
-            fileInput("file", "Upload Excel File", accept = c(".xlsx"))
-        }
+    ## Train Models -----------------------
+    models_gas_field = reactiveVal(NULL)
+    models_pwr_field = reactiveVal(NULL)
+    
+    observe({
+        
+        req(react$prepare_gas_field)
+        req(react$prepare_pwr_field)
+        
+        print('==================== ++++++++++++++ ====================')
+        print('------------- TRAIN START -------------')
+        
+        ENV_MODELS_GAS = react$prepare_gas_field
+        ENV_MODELS_PWR = react$prepare_pwr_field
+        
+        ENV_MODELS_GAS$dt_lt_param_gasdep = 
+            train_lt_gas(
+                gas_data = ENV_MODELS_GAS$dt_lt_param_gasdep,
+                ric_gas = unique(ENV_MODELS_GAS$dt_gas$RIC)
+            )
+        
+        ENV_MODELS_PWR$dt_lt_param_pwr = 
+            train_lt_pwr(
+                pwr_data = ENV_MODELS_PWR$dt_lt_param_pwr,
+                ric_pwr = unique(ENV_MODELS_PWR$dt_pwr$RIC),
+                pwr_holidays = ENV_MODELS_PWR$calendar_holidays_pwr,
+                gas_history = ENV_MODELS_PWR$gas_history
+            )
+        
+        ENV_MODELS_PWR$lst_hr_param_pwr = 
+            train_st_pwr(
+                pwr_data = ENV_MODELS_PWR$dt_hr_param_pwr,
+                gas_history = ENV_MODELS_PWR$gas_history
+            )
+        
+        models_gas_field(ENV_MODELS_GAS)
+        models_pwr_field(ENV_MODELS_PWR)
+        
+        print('------------- TRAIN END ---------------')
+        
     })
     
-    # Reactive input for select source in forecast period
-    output$reactive_select_source_file_forecast <- renderUI({
-        req(input$in_source_forecast)
-        if(input$in_source_forecast == "Excel") {
-            fileInput("file_forecast", "Upload Excel File", accept = c(".xlsx"))
-        }
+    
+    ## Forecast Parameters -----------------------
+    forecast_params_field_pwr = reactiveVal(NULL)
+    forecast_params_table_pwr = reactiveVal(NULL)
+    
+    observe({
+        
+        req(react$models_gas_field)
+        req(react$models_pwr_field)
+        
+        print('==================== ++++++++++++++ ====================')
+        print('------------- FORECAST PARAMS PREP START -------------')
+        
+        ENV_MODELS_GAS = react$models_gas_field
+        ENV_MODELS_PWR = react$models_pwr_field
+        list_inputs = react$list_inputs_field
+        LST_PARAMS = react$params_input_pwr
+        
+        LST_FOR = list(
+            model_lt_gas = copy(ENV_MODELS_GAS$dt_lt_param_gasdep),
+            model_lt_pwr = copy(ENV_MODELS_PWR$dt_lt_param_pwr),
+            model_st_pwr = copy(ENV_MODELS_PWR$lst_hr_param_pwr),
+            dt_fwds = copy(list_inputs$ENV_FWD$dt_fwds),
+            saved_history_gas = copy(list_inputs$ENV_SPOT$history_gas),
+            saved_history_pwr = copy(list_inputs$ENV_SPOT$history_pwr),
+            ric_spot_gas = list_inputs$ENV_SPOT$spot_gas_RIC,
+            ric_fwd_gas = unique(LST_PARAMS$dependent_gas_code),
+            ric_spot_pwr = list_inputs$ENV_SPOT$spot_pwr_RIC,
+            ric_fwd_pwr = unique(LST_PARAMS$selected_pwr_code),
+            calendar_forecast = list_inputs$ENV_CODES$calendar_future,
+            start_date = LST_PARAMS$forecast_start,
+            end_date = LST_PARAMS$forecast_end,
+            last_date = list_inputs$ENV_CODES$last_date
+        ) 
+        
+        dt_recap =
+            data.table(
+                params = names(LST_FOR),
+                value = sapply(LST_FOR, function(x) {
+                    if (is.data.table(x)) {
+                        sprintf("data.table [%d x %d]", nrow(x), ncol(x))
+                    } else if (is.list(x)) {
+                        sprintf("list [%d elements]", length(x))
+                    } else if (is.character(x) || is.numeric(x) || is.logical(x)) {
+                        paste0(x, collapse = ", ")
+                    } else {
+                        paste0(x, collapse = ", ")
+                    }
+                })
+            )        
+        
+        print('------------- FORECAST PARAMS PREP END -----------------')
+        
+        forecast_params_field_pwr(LST_FOR)
+        forecast_params_table_pwr(dt_recap)
+        
+        print('')
+        print('==================== ++++++++++++++ ====================')
+        print('==================== END TRAINING   ====================')
+        print('==================== ++++++++++++++ ====================')
+        print('')
     })
+    
+
+    
+    # VISUALIZE ------------------------------------------
+    
+    ## RECAP FORECAST PARAMS
+    output$forecast_params_table_recap_pwr = renderReactable({
+        req(react$forecast_params_table_pwr)
+        reactable(react$forecast_params_table_pwr,
+                  defaultPageSize = 14)
+    })
+    
+    #PLACEHOLDER GAS
+    output$forecast_params_table_recap_pwr = renderReactable({
+        req(react$forecast_params_table_pwr)
+        reactable(react$forecast_params_table_pwr,
+                  defaultPageSize = 14)
+    })
+    
     
     # Outputs for the selected history period (for training)
     output$pwr_history_plot <- renderEcharts4r({
-        e_charts(seq.Date(Sys.Date()-30, Sys.Date(), by="days")) %>%
-            e_line(rnorm(30)) %>%
-            e_title("Power Price History") %>%
-            e_x_axis(name = "Date") %>%
-            e_y_axis(name = "Price")
+        
+        req(react$list_inputs_field)
+        
+        list_inputs = react$list_inputs_field
+        DT = copy(list_inputs$ENV_SPOT$history_pwr)
+        DT[, datetime := as.POSIXct(paste(date, sprintf("%02d:00:00", hour)), format = "%Y-%m-%d %H:%M:%S", tz = "CET")]
+        rics = unique(DT$RIC) 
+        setorder(DT, datetime, RIC)
+        
+        DT %>%
+            e_charts(datetime) %>%
+            e_line(value, name = rics, symbol = 'none') %>%
+            e_title(text = paste("Hourly Prices for", rics)) %>%
+            e_x_axis(name = "Datetime") %>%
+            e_y_axis(name = "Price") %>%
+            e_tooltip(trigger = "axis") %>%
+            e_datazoom(type = "slider") %>%
+            e_theme("westeros") 
+
     })
     
     output$gas_history_plot <- renderEcharts4r({
