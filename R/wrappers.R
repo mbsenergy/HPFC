@@ -256,6 +256,13 @@ load_inputs = function(params) {
         
     }
     
+    if(LST_PARAMS$sim_name == 'NO' & LST_PARAMS$archive == 'NO') {
+        return_list = list(LST_PARAMS, LST_DIRS, ENV_CODES, ENV_SPOT, ENV_FWD)
+        names(return_list) = c('LST_PARAMS', 'LST_DIRS', 'ENV_CODES', 'ENV_SPOT', 'ENV_FWD')   
+        
+        cat(crayon::green$bold("\n✔ Prepared inputs in for training."), "\n")
+    }
+    
     return(return_list)
 }
 

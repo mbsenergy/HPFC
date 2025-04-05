@@ -7,11 +7,14 @@ library(bslib)        # for bslib theme and components
 library(echarts4r)     # for interactive charts
 library(reactable)     # for interactive tables
 library(shinycssloaders) # for loading spinner
+library(react)
+library(HPFC)
+
 
 hpfc_theme =
     bs_theme(
-        bootswatch = 'zephyr',
         version = 5,
+        bootswatch = 'zephyr',
         primary = '#287bb5',
         secondary = '#dee2e6',
         success = '#2fb380',
@@ -28,18 +31,19 @@ hpfc_theme =
 
 ## Training ===========================================================================================
 
-vec_pwr_products = HPFC::spot_PWR_products_full$products_PWR_code
+vec_pwr_products =        HPFC::spot_PWR_products_full$countries
 names(vec_pwr_products) = HPFC::spot_PWR_products_full$countries
-vec_gas_products = HPFC::spot_GAS_products_full$products_GAS_code
+vec_gas_products =        HPFC::spot_GAS_products_full$products_GAS
 names(vec_gas_products) = HPFC::spot_GAS_products_full$products_GAS
+
 
 ### TRAINING PERIOD --------------------------------------------------------
 select_history_period =
     dateRangeInput(
         inputId = "in_select_history",
         label = span("Select history Interval:", style = 'font-weight: bold;'),
-        start  = "2017-01-01",
-        end    = Sys.Date(),
+        start  = "2016-01-01",
+        end    = "2024-12-31",
         min    = "2016-01-01",
         max    = Sys.Date(),
         format = "yyyy/mm/dd",
@@ -52,21 +56,21 @@ select_history_period =
 select_PWR_product =
     selectInput(
         inputId = "in_select_PWR_indicator",
-        label = h5("Power Products :"),
-        multiple = TRUE,
+        label = span("Power:", style = 'font-weight: bold;'),
+        multiple = FALSE,
         width = '100%',
         choices = vec_pwr_products,
-        selected = vec_pwr_products
+        selected = 'Greece'
     )
 
 select_GAS_product =
     selectInput(
         inputId = "in_select_GAS_indicator",
-        label = h5("Gas Products"),
-        multiple = TRUE,
+        label = span("Gas:", style = 'font-weight: bold;'),
+        multiple = FALSE,
         width = '100%',
         choices = vec_gas_products,
-        selected = vec_gas_products
+        selected = 'TTF'
     )
 
 #### BUTTON TO EXECUTE TRAINING --------------------------------
@@ -84,9 +88,8 @@ select_source =
     radioButtons(
         inputId = "in_source",
         label = span("Select data source:", style = 'font-weight: bold;'),
-        choices = c("Reuters",
-                    "Excel"),
-        selected = "Reuters",
+        choices = c("Reuters" = "0df86b690b2c4ae2bf245680dbbfcc86bb041dc9",
+                    "Excel" = 'LOCAL'),
         inline = FALSE
     )
 
@@ -118,10 +121,10 @@ select_horizon_period =
     dateRangeInput(
         inputId = "in_select_horizon",
         label = span("Select forecast horizon Interval:", style = 'font-weight: bold;'),
-        start  = Sys.Date()+1,
-        end    = as.Date(paste0(year(Sys.Date()), "-12-31")), #"2024-12-31",
-        min    = Sys.Date()-7,
-        max    = as.Date(paste0(year(Sys.Date())+6, "-12-31")),
+        start  = '2024-01-01',
+        end    = '2024-12-31', 
+        min    = '2017-01-01',
+        max    = '2030-12-31',
         format = "yyyy/mm/dd",
         separator = " - ",
         width = '100%'
@@ -132,22 +135,22 @@ select_horizon_period =
 select_PWR_product_train =
     selectInput(
         inputId = "in_select_PWR_indicator_train",
-        label = h5("Power Products :"),
-        multiple = TRUE,
+        label = span("Power", style = 'font-weight: bold;'),
+        multiple = FALSE,
         width = '100%',
         choices = vec_pwr_products,
-        selected = vec_pwr_products
+        selected = 'Greece'
     )
 
 
 select_GAS_product_train =
     selectInput(
         inputId = "in_select_GAS_indicator_train",
-        label = h5("Gas Products"),
-        multiple = TRUE,
+        label = span("Gas:", style = 'font-weight: bold;'),
+        multiple = FALSE,
         width = '100%',
         choices = vec_gas_products,
-        selected = vec_gas_products
+        selected = 'TTF'
     )
 
 
@@ -167,9 +170,8 @@ select_source_forecast =
     radioButtons(
         inputId = "in_source_forecast",
         label = span("Select data source:", style = 'font-weight: bold;'),
-        choices = c("Reuters",
-                    "Excel"),
-        selected = "Reuters",
+        choices = c("Reuters" = "0df86b690b2c4ae2bf245680dbbfcc86bb041dc9",
+                    "Excel" = 'LOCAL'),
         inline = FALSE
     )
 
@@ -218,7 +220,7 @@ plot_forecast_selector_pwr =
 
 # UI ------------------------------------------------------------------------------------------------- 
 
-ui = navbarPage(
+ui = page_navbar(
     
     # Use bslib for custom themes
     theme = hpfc_theme,
@@ -226,13 +228,14 @@ ui = navbarPage(
     # Title Panel of the app
     title = "HPFC App",
     
+    bg = '#287bb5',
+    
     # Tabs in the NavbarPage (Train and Forecast)
-    tabPanel("Train",
-             fluidRow(
-                 # Sidebar Panel for training
-                 column(width = 3,
-                        card(class = 'p-3',
-                             h3('Price Forward Curve: Train'),
+    nav_panel(title = 'TRAIN',
+        layout_sidebar(
+                   sidebar = sidebar(
+                       width = 400, padding = '40',
+                       title = 'Training',
                              select_history_period,
                              select_PWR_product_train,
                              select_GAS_product_train,
@@ -244,15 +247,13 @@ ui = navbarPage(
                              hr(),
                              fluidRow(spot_pwr_download, spot_gas_download),
                              br()
-                        )
-                 ),
+                        ),
                  
                  # Main Panel for the training
-                 column(width = 9, align = 'center',
-                        navs_pill_card(
+                        navset_card_pill(
                             full_screen = TRUE,
                             height = '845px',
-                            nav('Power', class = 'p-4',
+                            nav_panel('Power', class = 'p-4',
                                 fluidRow(
                                     echarts4rOutput(outputId = 'pwr_history_plot', height = '400px') %>% withSpinner(color = "#d08770"),
                                     hr(), br(),
@@ -260,7 +261,7 @@ ui = navbarPage(
                                 )
                             ),
                             
-                            nav('Gas', class = 'p-4',
+                            nav_panel('Gas', class = 'p-4',
                                 fluidRow(
                                     echarts4rOutput(outputId = 'gas_history_plot', height = '400px') %>% withSpinner(color = "#d08770"),
                                     hr(), br(),
@@ -268,16 +269,14 @@ ui = navbarPage(
                                 )
                             )
                         )
-                 )
-             )
+        )
     ),
     
-    tabPanel("Forecast",
-             fluidRow(
-                 # Sidebar Panel for forecasting
-                 column(width = 3,
-                        card(class = 'p-3',
-                             h3('Price Forward Curve: Forecast'),
+    nav_panel(title = 'FORECAST',
+        layout_sidebar(
+                   sidebar = sidebar(
+                       width = 400, padding = '40',
+                       title = 'Forecasting',
                              select_horizon_period,
                              select_PWR_product,
                              select_GAS_product,
@@ -289,15 +288,13 @@ ui = navbarPage(
                              hr(),
                              fluidRow(fwd_gas_download, fwd_pwr_download),
                              br()
-                        )
-                 ),
+                        ),
                  
                  # Main Panel for the forecast
-                 column(width = 9, align = 'left',
-                        navs_pill_card(
+                        navset_card_pill(
                             full_screen = TRUE,
                             height = '845px',
-                            nav('Power', class = 'p-1',
+                            nav_panel('Power', class = 'p-1',
                                 fluidRow(
                                     h5('Historical Power prices'),
                                     echarts4rOutput(outputId = 'pwr_historysaved_plot', height = '300px') %>% withSpinner(color = "#d08770")
@@ -313,7 +310,7 @@ ui = navbarPage(
                                 )
                             ),
                             
-                            nav('Gas', class = 'p-1',
+                            nav_panel('Gas', class = 'p-1',
                                 fluidRow(
                                     h5('Historical Gas prices'),
                                     echarts4rOutput(outputId = 'gas_historysaved_plot', height = '300px') %>% withSpinner(color = "#d08770")
@@ -329,13 +326,21 @@ ui = navbarPage(
                                 )
                             )
                         )
+        )
+             ),
+    
+    nav_panel(title = "BACKTEST",
+             fluidRow('PLACEHOLDER')
+             ),
+    
+    nav_panel(title = "RECAP",
+             fluidRow(
+                 column(12,
+                        h3("Input Recap"),
+                        reactableOutput("input_recap_table")
                  )
              )
-    ),
-    
-    tabPanel("Backtest",
-             fluidRow('PLACEHOLDER')
-             )
+    )
 )
 
 
@@ -343,6 +348,62 @@ ui = navbarPage(
 
 # SERVER  ------------------------------------------------------------------------------------------------- 
 server = function(input, output, session) {
+    
+    # Reactive input recap data -----------------
+    recap_data = reactive({
+        data.frame(
+            Input = c("History Period", "Power Products (Training)", "Gas Products (Training)", "Data Source (Training)",
+                      "Forecast Horizon Period",  "Power Products (Forecast)", "Gas Products (Forecast)", "Data Source (Forecast)"),
+            Value = c(paste(input$in_select_history[1], "to", input$in_select_history[2]),
+                      paste(input$in_select_PWR_indicator_train, collapse = ", "),
+                      paste(input$in_select_GAS_indicator_train, collapse = ", "),
+                      input$in_source,
+                      paste(input$in_select_horizon[1], "to", input$in_select_horizon[2]),
+                      paste(input$in_select_PWR_indicator, collapse = ", "),
+                      paste(input$in_select_GAS_indicator, collapse = ", "),
+                      input$in_source_forecast)
+        )
+    })
+    
+    # Render the recap table
+    output$input_recap_table = renderReactable({
+        reactable(recap_data(), columns = list(
+            Value = colDef(width = 200)
+        ))
+    })
+    
+    # TRAIN - PWR ------------------------------------------
+    
+    ## Inputs -----------------------
+    params_input_pwr = reactiveVal(NULL)
+    observe({
+        params_list = list(
+            model_type = 'PWR',
+            selected_pwr_code = input$in_select_PWR_indicator_train,
+            selected_gas_code = 'TTF',
+            dependent_gas_code = 'TTF',
+            history_start = input$in_select_history[1],
+            history_end = input$in_select_history[2],
+            forecast_start = input$in_select_horizon[1],
+            forecast_end = input$in_select_horizon[2],
+            model_source = 'TRAIN',
+            data_source = input$in_source, #0df86b690b2c4ae2bf245680dbbfcc86bb041dc9
+            forecast_source = 'FWD',
+            sim_name = 'NO',
+            archive = 'NO'
+        )
+        
+        print(params_list)
+        params_input_pwr(params_list)
+    })
+    
+    observeEvent(input$act_indicator_train, {
+        print('-------------START TRAINING -------------------')
+        LST_PARAMS = react$params_input_pwr
+        list_inputs = HPFC::load_inputs(params = LST_PARAMS)
+        print(LST_PARAMS)
+    })
+    
     
     # Reactive input for select source in training period
     output$reactive_select_source_file <- renderUI({
