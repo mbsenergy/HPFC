@@ -76,14 +76,28 @@ select_GAS_product =
     )
 
 #### BUTTON TO EXECUTE TRAINING --------------------------------
-product_train =
-    actionButton(
-        inputId = 'act_indicator_train',
-        label = 'Train model',
+product_train_pwr =
+    input_task_button(
+        id = 'act_indicator_train_pwr',
+        label = 'Train Power model',
+        label_busy = "Training...",
         icon = shiny::icon('backward'),
         width = '100%',
-        class = "btn-danger"
+        type = "danger"
     )
+
+
+product_train_gas =
+    input_task_button(
+        id = 'act_indicator_train_gas',
+        label = 'Train Gas model',
+        label_busy = "Training...",
+        icon = shiny::icon('backward'),
+        width = '100%',
+        type = "warning"
+    )
+
+
 
 #### DATA SOURCE --------------------------------
 select_source =
@@ -157,13 +171,24 @@ select_GAS_product_train =
 
 
 #### BUTTON TO EXECUTE FORECAST --------------------------------
-product_forecast =
-    actionButton(
-        inputId = 'act_indicator_forecast',
-        label = 'Forecast',
+product_forecast_pwr =
+    input_task_button(
+        id = 'act_indicator_forecast_pwr',
+        label = 'Forecast Power',
+        label_busy = "Forecasting...",
         icon = shiny::icon('eye'),
         width = '100%',
-        class = "btn-warning"
+        type = "danger"
+    )
+
+product_forecast_gas =
+    input_task_button(
+        id = 'act_indicator_forecast_gas',
+        label = 'Forecast Gas',
+        label_busy = "Forecasting...",
+        icon = shiny::icon('eye'),
+        width = '100%',
+        type = "warning"
     )
 
 
@@ -242,7 +267,8 @@ ui = page_navbar(
                              select_PWR_product_train,
                              select_GAS_product_train,
                              br(),
-                             product_train,
+                             product_train_pwr,
+                             product_train_gas,
                              br(),
                              select_source,
                              uiOutput("reactive_select_source_file"),
@@ -288,12 +314,13 @@ ui = page_navbar(
                              select_PWR_product,
                              select_GAS_product,
                              br(),
-                             product_forecast,
+                             product_forecast_pwr,
+                             product_forecast_gas,
                              br(),
                              select_source_forecast,
                              uiOutput("reactive_select_source_file_forecast"),
                              hr(),
-                             fluidRow(fwd_gas_download, fwd_pwr_download),
+                             fluidRow(fwd_pwr_download, fwd_gas_download),
                              br()
                         ),
                  
@@ -302,17 +329,13 @@ ui = page_navbar(
                      full_screen = TRUE,
                      nav_panel('Power',
                                    fluidRow(
-                                       echarts4rOutput(outputId = 'pwr_forecast_plot', height = '400px') %>% withSpinner(color = "#d08770"),
-                                       hr(), br(),
-                                       reactableOutput(outputId = 'pwr_forecast_table') %>% withSpinner(color = "#d08770")
+                                       echarts4rOutput(outputId = 'pwr_forecast_plot', height = '400px') %>% withSpinner(color = "#d08770")
                                    )
                      ),
                      
                      nav_panel('Gas',
                                    fluidRow(
-                                       echarts4rOutput(outputId = 'gas_forecast_plot', height = '400px') %>% withSpinner(color = "#d08770"),
-                                       hr(), br(),
-                                       reactableOutput(outputId = 'pwr_forecast_table') %>% withSpinner(color = "#d08770")
+                                       echarts4rOutput(outputId = 'gas_forecast_plot', height = '400px') %>% withSpinner(color = "#d08770")
                                    )
                      )
                  )
@@ -323,10 +346,10 @@ ui = page_navbar(
              fluidRow('PLACEHOLDER')
              ),
     
-    nav_panel(title = "RECAP",
+    nav_panel(title = "MONTECARLO",
              fluidRow(
                  column(12,
-                        h3("Input Recap"),
+                        h3("MONTECARLO"),
                         reactableOutput("input_recap_table")
                  )
              )
@@ -408,7 +431,7 @@ server = function(input, output, session) {
     })
     
     ### Exceute load_inputs
-    observeEvent(input$act_indicator_train, {
+    observeEvent(input$act_indicator_train_pwr, {
         
         print('')
         print('==================== ++++++++++++++ ====================')
@@ -606,7 +629,7 @@ server = function(input, output, session) {
     })
     
     ### Exceute load_inputs
-    observeEvent(input$act_indicator_train, {
+    observeEvent(input$act_indicator_train_gas, {
         
         print('')
         print('==================== ++++++++++++++ ====================')
@@ -632,12 +655,12 @@ server = function(input, output, session) {
     
     observe({
         
-        req(react$list_inputs_field_pwr)
+        req(react$list_inputs_field_gas)
         
         print('==================== ++++++++++++++ ====================')
         print('------------- PREPARE START -------------')
         
-        list_inputs = react$list_inputs_field_pwr
+        list_inputs = react$list_inputs_field_gas
         ENV_MODELS_GAS = prepare_gas(list_inputs = list_inputs)
         
         prepare_gas_field_gas(ENV_MODELS_GAS)
@@ -728,7 +751,7 @@ server = function(input, output, session) {
     })
     
     
-    ## Download Power model -----------------------
+    ## Download models -----------------------
     object_with_train_data_pwr = reactiveVal(NULL)
     
     observe({
@@ -768,7 +791,7 @@ server = function(input, output, session) {
     
     object_with_forecast_data_pwr = reactiveVal(NULL) 
     
-    observeEvent(input$act_indicator_forecast, {
+    observeEvent(input$act_indicator_forecast_pwr, {
         
         req(react$forecast_params_field_pwr)
         print('')
@@ -778,13 +801,11 @@ server = function(input, output, session) {
         print('')
         print('------------- FORECAST START -------------')
         
-        print(react$forecast_params_field_pwr$dt_fwds)
-        
         ENV_FOR_GAS = forecast_gas(input_forecast = react$forecast_params_field_pwr)
         ENV_FOR_PWR = forecast_pwr(input_forecast = react$forecast_params_field_pwr, gas_forecast = ENV_FOR_GAS)
         
         dt_pwr_for = ENV_FOR_PWR[, .(date, hour, forecast = final_forecast, RIC, season, peak, value_gas, value_bl = spot_forward_month_BL)]
-        dt_pwr_obs = HPFC::dt_spot_pwr[year(date) %in% unique(year(dt_pwr_for$date)) & RIC == unique(dt_pwr_for$RIC)][, .(date, hour, spot = value, RIC)]
+        dt_pwr_obs = react$forecast_params_field_pwr$saved_history_pwr[year(date) %in% unique(year(dt_pwr_for$date)) & RIC == unique(dt_pwr_for$RIC)][, .(date, hour, spot = value, RIC)]
         dt_pwr = merge(dt_pwr_for, dt_pwr_obs, by = c('date', 'hour', 'RIC'), all = TRUE)
         
         setcolorder(dt_pwr, c('date', 'hour', 'season', 'peak', 'RIC', 'spot', 'forecast', 'value_bl', 'value_gas'))
@@ -800,6 +821,62 @@ server = function(input, output, session) {
         print('')
         
     })
+    
+    
+    # FORECAST - GAS ------------------------------------------
+    
+    object_with_forecast_data_gas = reactiveVal(NULL) 
+    
+    observeEvent(input$act_indicator_forecast_gas, {
+        
+        req(react$forecast_params_field_gas)
+        print('')
+        print('==================== ++++++++++++++ ====================')
+        print('==================== START FORECASTING GAS ====================')
+        print('==================== ++++++++++++++ ====================')
+        print('')
+        print('------------- FORECAST START -------------')
+        
+        ENV_FOR_GAS = forecast_gas(input_forecast = react$forecast_params_field_gas)
+        
+        dt_gas_for = ENV_FOR_GAS[, .(date, forecast = L_e_u_adj, RIC, value_gas = spot_forward_month_BL)]
+        dt_gas_obs = react$forecast_params_field_gas$saved_history_gas[year(date) %in% unique(year(dt_gas_for$date)) & RIC == unique(dt_gas_for$RIC)][, .(date, spot = value, RIC)]
+        dt_gas = merge(dt_gas_for, dt_gas_obs, by = c('date', 'RIC'), all = TRUE)
+        
+        setcolorder(dt_gas, c('date', 'RIC', 'spot', 'forecast', 'value_gas'))
+        setorder(dt_gas, date)
+        
+        object_with_forecast_data_gas(dt_gas)
+        
+        print('------------- FORECAST END -------------')        
+        print('')
+        print('==================== ++++++++++++++ ====================')
+        print('==================== END FORECASTING GAS ====================')
+        print('==================== ++++++++++++++ ====================')
+        print('')
+        
+    })    
+    
+    
+    ## Download forecasts -----------------------
+    
+    output$act_forecast_pwr_download = downloadHandler(
+        filename = function() {
+            paste0("forecast_pwr_data_", Sys.Date(), ".rds")
+        },
+        content = function(file) {
+            saveRDS(react$object_with_forecast_data_pwr, file)
+        }
+    )   
+    
+    output$act_forecast_gas_download = downloadHandler(
+        filename = function() {
+            paste0("forecast_gas_data_", Sys.Date(), ".rds")
+        },
+        content = function(file) {
+            saveRDS(react$object_with_forecast_data_gas, file)
+        }
+    )   
     
 
     
@@ -852,7 +929,8 @@ server = function(input, output, session) {
         DT = copy(list_inputs$ENV_SPOT$history_pwr)
         DT[, datetime := as.POSIXct(paste(date, sprintf("%02d:00:00", hour)), format = "%Y-%m-%d %H:%M:%S", tz = "CET")]
         setorder(DT, datetime, RIC)
-        reactable(DT)
+        reactable(DT,
+                  filterable = TRUE)
     })
     
     
@@ -884,7 +962,8 @@ server = function(input, output, session) {
         list_inputs = react$list_inputs_field_gas
         DT = copy(list_inputs$ENV_SPOT$history_gas)
         setorder(DT, date, RIC)
-        reactable(DT)
+        reactable(DT,
+                  filterable = TRUE)
     })
     
     
@@ -914,30 +993,25 @@ server = function(input, output, session) {
     })
     
     output$gas_forecast_plot <- renderEcharts4r({
-        e_charts(seq.Date(Sys.Date(), Sys.Date()+30, by="days")) %>%
-            e_line(rnorm(30)) %>%
-            e_title("Gas Price Forecast") %>%
-            e_x_axis(name = "Date") %>%
-            e_y_axis(name = "Price")
-    })
-    
-    
-    output$pwr_forecast_table <- renderReactable({
-        
-        req(react$object_with_forecast_data_pwr)
-        
-        dt_pwr_lg = melt(react$object_with_forecast_data_pwr, id.vars = c('date', 'hour', 'season', 'peak', 'RIC'), variable.name = 'type', value.name = 'value')
-        dt_pwr_lg[, datetime := as.POSIXct(paste(date, sprintf("%02d:00:00", hour)), format = "%Y-%m-%d %H:%M:%S", tz = "CET")]
-        rics = unique(dt_pwr_lg$RIC) 
-        setorder(dt_pwr_lg, datetime, RIC)
-        reactable(dt_pwr_lg)
-    })
-    
-    output$gas_forecast_table <- renderReactable({
         
         req(react$object_with_forecast_data_gas)
-        reactable(react$object_with_forecast_data_gas)
+        
+        dt_gas_lg = melt(react$object_with_forecast_data_gas, id.vars = c('date', 'RIC'), variable.name = 'type', value.name = 'value')
+        rics = unique(dt_gas_lg$RIC) 
+        setorder(dt_gas_lg, date, RIC)
+        
+        dt_gas_lg %>% 
+            group_by(type) %>% 
+            e_charts(date) %>% 
+            e_line(value, smooth = TRUE, symbol='none') %>% 
+            e_title(text = paste("Daily Forecast Prices for", rics)) %>%
+            e_tooltip(trigger = "axis") %>% 
+            e_toolbox_feature(feature = "saveAsImage", title = "Save as image") %>% 
+            e_datazoom(start = 0) %>% 
+            e_theme('westeros')
     })
+    
+    
     
     ## END
 }
