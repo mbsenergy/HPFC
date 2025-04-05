@@ -298,42 +298,25 @@ ui = page_navbar(
                         ),
                  
                  # Main Panel for the forecast
-                        navset_card_pill(
-                            full_screen = TRUE,
-                            height = '845px',
-                            nav_panel('Power', class = 'p-1',
-                                fluidRow(
-                                    h5('Historical Power prices'),
-                                    echarts4rOutput(outputId = 'pwr_historysaved_plot', height = '300px') %>% withSpinner(color = "#d08770")
-                                ),
-                                hr(), br(),
-                                fluidRow(
-                                    column(width = 4, h5('Forecast Power prices')),
-                                    column(width = 4, plot_forecast_selector_pwr),
-                                    column(width = 4, p(''))
-                                ),
-                                fluidRow(
-                                    echarts4rOutput(outputId = 'pwr_forecast_plot', height = '300px') %>% withSpinner(color = "#d08770")
-                                )
-                            ),
-                            
-                            nav_panel('Gas', class = 'p-1',
-                                fluidRow(
-                                    h5('Historical Gas prices'),
-                                    echarts4rOutput(outputId = 'gas_historysaved_plot', height = '300px') %>% withSpinner(color = "#d08770")
-                                ),
-                                hr(), br(),
-                                fluidRow(
-                                    column(width = 4, h5('Forecast Gas prices')),
-                                    column(width = 4, plot_forecast_selector_gas),
-                                    column(width = 4, p(''))
-                                ),
-                                fluidRow(
-                                    echarts4rOutput(outputId = 'gas_forecast_plot', height = '300px') %>% withSpinner(color = "#d08770")
-                                )
-                            )
-                        )
-        )
+                 navset_card_pill(
+                     full_screen = TRUE,
+                     nav_panel('Power',
+                                   fluidRow(
+                                       echarts4rOutput(outputId = 'pwr_forecast_plot', height = '400px') %>% withSpinner(color = "#d08770"),
+                                       hr(), br(),
+                                       reactableOutput(outputId = 'pwr_forecast_table') %>% withSpinner(color = "#d08770")
+                                   )
+                     ),
+                     
+                     nav_panel('Gas',
+                                   fluidRow(
+                                       echarts4rOutput(outputId = 'gas_forecast_plot', height = '400px') %>% withSpinner(color = "#d08770"),
+                                       hr(), br(),
+                                       reactableOutput(outputId = 'pwr_forecast_table') %>% withSpinner(color = "#d08770")
+                                   )
+                     )
+                 )
+                )
              ),
     
     nav_panel(title = "BACKTEST",
@@ -537,9 +520,9 @@ server = function(input, output, session) {
             saved_history_gas = copy(list_inputs$ENV_SPOT$history_gas),
             saved_history_pwr = copy(list_inputs$ENV_SPOT$history_pwr),
             ric_spot_gas = list_inputs$ENV_SPOT$spot_gas_RIC,
-            ric_fwd_gas = unique(LST_PARAMS$dependent_gas_code),
+            ric_fwd_gas = HPFC::spot_GAS_products_full[products_GAS %in% unique(LST_PARAMS$dependent_gas_code)]$products_GAS_code,
             ric_spot_pwr = list_inputs$ENV_SPOT$spot_pwr_RIC,
-            ric_fwd_pwr = unique(LST_PARAMS$selected_pwr_code),
+            ric_fwd_pwr = HPFC::spot_PWR_products_full[countries %in% unique(LST_PARAMS$selected_pwr_code)]$products_PWR_code,
             calendar_forecast = list_inputs$ENV_CODES$calendar_future,
             start_date = LST_PARAMS$forecast_start,
             end_date = LST_PARAMS$forecast_end,
@@ -709,7 +692,7 @@ server = function(input, output, session) {
             dt_fwds = copy(list_inputs$ENV_FWD$dt_fwds),
             saved_history_gas = copy(list_inputs$ENV_SPOT$history_gas),
             ric_spot_gas = list_inputs$ENV_SPOT$spot_gas_RIC,
-            ric_fwd_gas = unique(LST_PARAMS$dependent_gas_code),
+            ric_fwd_gas = HPFC::spot_GAS_products_full[products_GAS %in% unique(LST_PARAMS$selected_gas_code)]$products_GAS_code,
             calendar_forecast = list_inputs$ENV_CODES$calendar_future,
             start_date = LST_PARAMS$forecast_start,
             end_date = LST_PARAMS$forecast_end,
@@ -780,7 +763,43 @@ server = function(input, output, session) {
     )    
     
     
+
+    # FORECAST - PWR ------------------------------------------
     
+    object_with_forecast_data_pwr = reactiveVal(NULL) 
+    
+    observeEvent(input$act_indicator_forecast, {
+        
+        req(react$forecast_params_field_pwr)
+        print('')
+        print('==================== ++++++++++++++ ====================')
+        print('==================== START FORECASTING PWR ====================')
+        print('==================== ++++++++++++++ ====================')
+        print('')
+        print('------------- FORECAST START -------------')
+        
+        print(react$forecast_params_field_pwr$dt_fwds)
+        
+        ENV_FOR_GAS = forecast_gas(input_forecast = react$forecast_params_field_pwr)
+        ENV_FOR_PWR = forecast_pwr(input_forecast = react$forecast_params_field_pwr, gas_forecast = ENV_FOR_GAS)
+        
+        dt_pwr_for = ENV_FOR_PWR[, .(date, hour, forecast = final_forecast, RIC, season, peak, value_gas, value_bl = spot_forward_month_BL)]
+        dt_pwr_obs = HPFC::dt_spot_pwr[year(date) %in% unique(year(dt_pwr_for$date)) & RIC == unique(dt_pwr_for$RIC)][, .(date, hour, spot = value, RIC)]
+        dt_pwr = merge(dt_pwr_for, dt_pwr_obs, by = c('date', 'hour', 'RIC'), all = TRUE)
+        
+        setcolorder(dt_pwr, c('date', 'hour', 'season', 'peak', 'RIC', 'spot', 'forecast', 'value_bl', 'value_gas'))
+        setorder(dt_pwr, date, hour)
+        
+        object_with_forecast_data_pwr(dt_pwr)
+        
+        print('------------- FORECAST END -------------')        
+        print('')
+        print('==================== ++++++++++++++ ====================')
+        print('==================== END FORECASTING PWR ====================')
+        print('==================== ++++++++++++++ ====================')
+        print('')
+        
+    })
     
 
     
@@ -816,7 +835,7 @@ server = function(input, output, session) {
         DT %>%
             e_charts(datetime) %>%
             e_line(value, name = rics, symbol = 'none') %>%
-            e_title(text = paste("Hourly Prices for", rics)) %>%
+            e_title(text = paste("Hourly Spot Prices for", rics)) %>%
             e_x_axis(name = "Datetime") %>%
             e_y_axis(name = "Price") %>%
             e_tooltip(trigger = "axis") %>%
@@ -849,7 +868,7 @@ server = function(input, output, session) {
         DT %>%
             e_charts(date) %>%
             e_line(value, name = rics, symbol = 'none') %>%
-            e_title(text = paste("Hourly Prices for", rics)) %>%
+            e_title(text = paste("Daily Spot Prices for", rics)) %>%
             e_x_axis(name = "Date") %>%
             e_y_axis(name = "Price") %>%
             e_tooltip(trigger = "axis") %>%
@@ -874,11 +893,24 @@ server = function(input, output, session) {
     
     # Forecast plots for Power and Gas using echarts4r
     output$pwr_forecast_plot <- renderEcharts4r({
-        e_charts(seq.Date(Sys.Date(), Sys.Date()+30, by="days")) %>%
-            e_line(rnorm(30)) %>%
-            e_title("Power Price Forecast") %>%
-            e_x_axis(name = "Date") %>%
-            e_y_axis(name = "Price")
+
+        req(react$object_with_forecast_data_pwr)
+        
+        dt_pwr_lg = melt(react$object_with_forecast_data_pwr, id.vars = c('date', 'hour', 'season', 'peak', 'RIC'), variable.name = 'type', value.name = 'value')
+        dt_pwr_lg[, datetime := as.POSIXct(paste(date, sprintf("%02d:00:00", hour)), format = "%Y-%m-%d %H:%M:%S", tz = "CET")]
+        rics = unique(dt_pwr_lg$RIC) 
+        setorder(dt_pwr_lg, datetime, RIC)
+        
+        dt_pwr_lg %>% 
+            group_by(type) %>% 
+            e_charts(datetime) %>% 
+            e_line(value, smooth = TRUE, symbol='none') %>% 
+            e_title(text = paste("Hourly Forecast Prices for", rics)) %>%
+            e_tooltip(trigger = "axis") %>% 
+            e_toolbox_feature(feature = "saveAsImage", title = "Save as image") %>% 
+            e_datazoom(start = 0) %>% 
+            e_theme('westeros')
+        
     })
     
     output$gas_forecast_plot <- renderEcharts4r({
@@ -889,21 +921,22 @@ server = function(input, output, session) {
             e_y_axis(name = "Price")
     })
     
-    # Saved History Plots using echarts4r
-    output$pwr_historysaved_plot <- renderEcharts4r({
-        e_charts(seq.Date(Sys.Date()-60, Sys.Date(), by="days")) %>%
-            e_line(rnorm(60)) %>%
-            e_title("Saved Power Price History") %>%
-            e_x_axis(name = "Date") %>%
-            e_y_axis(name = "Price")
+    
+    output$pwr_forecast_table <- renderReactable({
+        
+        req(react$object_with_forecast_data_pwr)
+        
+        dt_pwr_lg = melt(react$object_with_forecast_data_pwr, id.vars = c('date', 'hour', 'season', 'peak', 'RIC'), variable.name = 'type', value.name = 'value')
+        dt_pwr_lg[, datetime := as.POSIXct(paste(date, sprintf("%02d:00:00", hour)), format = "%Y-%m-%d %H:%M:%S", tz = "CET")]
+        rics = unique(dt_pwr_lg$RIC) 
+        setorder(dt_pwr_lg, datetime, RIC)
+        reactable(dt_pwr_lg)
     })
     
-    output$gas_historysaved_plot <- renderEcharts4r({
-        e_charts(seq.Date(Sys.Date()-60, Sys.Date(), by="days")) %>%
-            e_line(rnorm(60)) %>%
-            e_title("Saved Gas Price History") %>%
-            e_x_axis(name = "Date") %>%
-            e_y_axis(name = "Price")
+    output$gas_forecast_table <- renderReactable({
+        
+        req(react$object_with_forecast_data_gas)
+        reactable(react$object_with_forecast_data_gas)
     })
     
     ## END
