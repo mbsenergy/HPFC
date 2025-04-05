@@ -96,18 +96,18 @@ select_source =
     )
 
 ### BUTTONS EXECUTE DOWNLOAD -----------------------
-spot_pwr_download =
+train_pwr_download =
     downloadButton(
-        outputId = 'act_spot_pwr_download',
+        outputId = 'act_train_pwr_download',
         label = 'Power Download',
         icon = shiny::icon('download'),
         style = "width:50%;",
         class = "btn-secondary"
     )
 
-spot_gas_download =
+train_gas_download =
     downloadButton(
-        outputId = 'act_spot_gas_download',
+        outputId = 'act_train_gas_download',
         label = 'Gas Download',
         icon = shiny::icon('download'),
         style = "width:50%;",
@@ -247,7 +247,7 @@ ui = page_navbar(
                              select_source,
                              uiOutput("reactive_select_source_file"),
                              hr(),
-                             fluidRow(spot_pwr_download, spot_gas_download),
+                             fluidRow(train_pwr_download, train_gas_download),
                              br()
                         ),
                  
@@ -256,7 +256,7 @@ ui = page_navbar(
                             full_screen = TRUE,
                             nav_panel('Power',
                                 layout_sidebar(
-                                    sidebar = sidebar(reactableOutput('forecast_params_table_recap_pwr'), position = 'right', open = FALSE, width = '350px'),
+                                    sidebar = sidebar(reactableOutput('forecast_params_table_recap_pwr'), position = 'right', open = FALSE, width = '450px'),
                                     fluidRow(
                                     echarts4rOutput(outputId = 'pwr_history_plot', height = '400px') %>% withSpinner(color = "#d08770"),
                                     hr(), br(),
@@ -267,7 +267,7 @@ ui = page_navbar(
                             
                             nav_panel('Gas',
                               layout_sidebar(
-                                  sidebar = sidebar(reactableOutput('forecast_params_table_recap_gas'), position = 'right', open = FALSE, width = '350px'),
+                                  sidebar = sidebar(reactableOutput('forecast_params_table_recap_gas'), position = 'right', open = FALSE, width = '450px'),
                                   fluidRow(
                                     echarts4rOutput(outputId = 'gas_history_plot', height = '400px') %>% withSpinner(color = "#d08770"),
                                     hr(), br(),
@@ -572,6 +572,24 @@ server = function(input, output, session) {
         print('==================== ++++++++++++++ ====================')
         print('')
     })
+    
+    
+    ## Download Power model -----------------------
+    object_with_train_data_pwr = reactiveVal(NULL)
+    
+    observe({
+        req(react$models_pwr_field)
+        object_with_train_data_pwr(react$models_pwr_field)
+    })
+    
+    output$act_train_pwr_download = downloadHandler(
+        filename = function() {
+            paste0("train_power_data_", Sys.Date(), ".rds")
+        },
+        content = function(file) {
+            saveRDS(react$object_with_train_data_pwr, file)
+        }
+    )
     
 
     
