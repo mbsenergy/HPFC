@@ -395,11 +395,12 @@ server = function(input, output, session) {
         ))
     })
     
+    
     # TRAIN - PWR ------------------------------------------
     
     ## Inputs -----------------------
     params_input_pwr = reactiveVal(NULL)
-    list_inputs_field = reactiveVal(NULL)
+    list_inputs_field_pwr = reactiveVal(NULL)
     
     ### Prepare inputs params
     observe({
@@ -428,7 +429,7 @@ server = function(input, output, session) {
         
         print('')
         print('==================== ++++++++++++++ ====================')
-        print('==================== START TRAINING ====================')
+        print('==================== START TRAINING PWR ====================')
         print('==================== ++++++++++++++ ====================')
         print('')
         print('------------- LOAD INPUTS START -------------')
@@ -436,7 +437,7 @@ server = function(input, output, session) {
         LST_PARAMS = react$params_input_pwr
         list_inputs = HPFC::load_inputs(params = LST_PARAMS)
         
-        list_inputs_field(list_inputs)
+        list_inputs_field_pwr(list_inputs)
         
         print('------------- LOAD INPUTS END ---------------')
         
@@ -446,21 +447,21 @@ server = function(input, output, session) {
     
     
     ## Prepare Curves -----------------------
-    prepare_gas_field = reactiveVal(NULL)
+    prepare_gas_field_pwr = reactiveVal(NULL)
     prepare_pwr_field = reactiveVal(NULL)
     
     observe({
         
-        req(react$list_inputs_field)
+        req(react$list_inputs_field_pwr)
         
         print('==================== ++++++++++++++ ====================')
         print('------------- PREPARE START -------------')
         
-        list_inputs = react$list_inputs_field
+        list_inputs = react$list_inputs_field_pwr
         ENV_MODELS_GAS = prepare_gas(list_inputs = list_inputs)
         ENV_MODELS_PWR = prepare_pwr(list_inputs = list_inputs)
         
-        prepare_gas_field(ENV_MODELS_GAS)
+        prepare_gas_field_pwr(ENV_MODELS_GAS)
         prepare_pwr_field(ENV_MODELS_PWR)
         
         print('------------- PREPARE END ---------------')
@@ -469,18 +470,18 @@ server = function(input, output, session) {
     
     
     ## Train Models -----------------------
-    models_gas_field = reactiveVal(NULL)
+    models_gas_field_pwr = reactiveVal(NULL)
     models_pwr_field = reactiveVal(NULL)
     
     observe({
         
-        req(react$prepare_gas_field)
+        req(react$prepare_gas_field_pwr)
         req(react$prepare_pwr_field)
         
         print('==================== ++++++++++++++ ====================')
         print('------------- TRAIN START -------------')
         
-        ENV_MODELS_GAS = react$prepare_gas_field
+        ENV_MODELS_GAS = react$prepare_gas_field_pwr
         ENV_MODELS_PWR = react$prepare_pwr_field
         
         ENV_MODELS_GAS$dt_lt_param_gasdep = 
@@ -503,7 +504,7 @@ server = function(input, output, session) {
                 gas_history = ENV_MODELS_PWR$gas_history
             )
         
-        models_gas_field(ENV_MODELS_GAS)
+        models_gas_field_pwr(ENV_MODELS_GAS)
         models_pwr_field(ENV_MODELS_PWR)
         
         print('------------- TRAIN END ---------------')
@@ -517,15 +518,15 @@ server = function(input, output, session) {
     
     observe({
         
-        req(react$models_gas_field)
+        req(react$models_gas_field_pwr)
         req(react$models_pwr_field)
         
         print('==================== ++++++++++++++ ====================')
         print('------------- FORECAST PARAMS PREP START -------------')
         
-        ENV_MODELS_GAS = react$models_gas_field
+        ENV_MODELS_GAS = react$models_gas_field_pwr
         ENV_MODELS_PWR = react$models_pwr_field
-        list_inputs = react$list_inputs_field
+        list_inputs = react$list_inputs_field_pwr
         LST_PARAMS = react$params_input_pwr
         
         LST_FOR = list(
@@ -568,7 +569,7 @@ server = function(input, output, session) {
         
         print('')
         print('==================== ++++++++++++++ ====================')
-        print('==================== END TRAINING   ====================')
+        print('==================== END TRAINING PWR  ====================')
         print('==================== ++++++++++++++ ====================')
         print('')
     })
@@ -591,9 +592,201 @@ server = function(input, output, session) {
         }
     )
     
+    
+    
+    # TRAIN - GAS ------------------------------------------
+    
+    ## Inputs -----------------------
+    params_input_gas = reactiveVal(NULL)
+    list_inputs_field_gas = reactiveVal(NULL)
+    
+    ### Prepare inputs params
+    observe({
+        params_list = list(
+            model_type = 'PWR',
+            selected_pwr_code = input$in_select_PWR_indicator_train,
+            selected_gas_code = 'TTF',
+            dependent_gas_code = 'TTF',
+            history_start = input$in_select_history[1],
+            history_end = input$in_select_history[2],
+            forecast_start = input$in_select_horizon[1],
+            forecast_end = input$in_select_horizon[2],
+            model_source = 'TRAIN',
+            data_source = input$in_source, #0df86b690b2c4ae2bf245680dbbfcc86bb041dc9
+            forecast_source = 'FWD',
+            sim_name = 'NO',
+            archive = 'NO'
+        )
+        
+        params_input_gas(params_list)
+        
+    })
+    
+    ### Exceute load_inputs
+    observeEvent(input$act_indicator_train, {
+        
+        print('')
+        print('==================== ++++++++++++++ ====================')
+        print('==================== START TRAINING GAS ====================')
+        print('==================== ++++++++++++++ ====================')
+        print('')
+        print('------------- LOAD INPUTS START -------------')
+        
+        LST_PARAMS = react$params_input_gas
+        list_inputs = HPFC::load_inputs(params = LST_PARAMS)
+        
+        list_inputs_field_gas(list_inputs)
+        
+        print('------------- LOAD INPUTS END ---------------')
+        
+    })
+    
+    
+    
+    
+    ## Prepare Curves -----------------------
+    prepare_gas_field_gas = reactiveVal(NULL)
+    
+    observe({
+        
+        req(react$list_inputs_field_pwr)
+        
+        print('==================== ++++++++++++++ ====================')
+        print('------------- PREPARE START -------------')
+        
+        list_inputs = react$list_inputs_field_pwr
+        ENV_MODELS_GAS = prepare_gas(list_inputs = list_inputs)
+        
+        prepare_gas_field_gas(ENV_MODELS_GAS)
+        
+        print('------------- PREPARE END ---------------')
+        
+    })
+    
+    
+    ## Train Models -----------------------
+    models_gas_field_gas = reactiveVal(NULL)
+    
+    observe({
+        
+        req(react$prepare_gas_field_gas)
+        
+        print('==================== ++++++++++++++ ====================')
+        print('------------- TRAIN START -------------')
+        
+        ENV_MODELS_GAS = react$prepare_gas_field_gas
+        
+        ENV_MODELS_GAS$dt_lt_param_gasdep = 
+            train_lt_gas(
+                gas_data = ENV_MODELS_GAS$dt_lt_param_gasdep,
+                ric_gas = unique(ENV_MODELS_GAS$dt_gas$RIC)
+            )
+        
+        models_gas_field_gas(ENV_MODELS_GAS)
+        
+        print('------------- TRAIN END ---------------')
+        
+    })
+    
+    
+    ## Forecast Parameters -----------------------
+    forecast_params_field_gas = reactiveVal(NULL)
+    forecast_params_table_gas = reactiveVal(NULL)
+    
+    observe({
+        
+        req(react$models_gas_field_gas)
+        
+        print('==================== ++++++++++++++ ====================')
+        print('------------- FORECAST PARAMS PREP START -------------')
+        
+        ENV_MODELS_GAS = react$models_gas_field_gas
+        list_inputs = react$list_inputs_field_gas
+        LST_PARAMS = react$params_input_gas
+        
+        LST_FOR = list(
+            model_lt_gas = copy(ENV_MODELS_GAS$dt_lt_param_gasdep),
+            dt_fwds = copy(list_inputs$ENV_FWD$dt_fwds),
+            saved_history_gas = copy(list_inputs$ENV_SPOT$history_gas),
+            ric_spot_gas = list_inputs$ENV_SPOT$spot_gas_RIC,
+            ric_fwd_gas = unique(LST_PARAMS$dependent_gas_code),
+            calendar_forecast = list_inputs$ENV_CODES$calendar_future,
+            start_date = LST_PARAMS$forecast_start,
+            end_date = LST_PARAMS$forecast_end,
+            last_date = list_inputs$ENV_CODES$last_date
+        ) 
+        
+        dt_recap =
+            data.table(
+                params = names(LST_FOR),
+                value = sapply(LST_FOR, function(x) {
+                    if (is.data.table(x)) {
+                        sprintf("data.table [%d x %d]", nrow(x), ncol(x))
+                    } else if (is.list(x)) {
+                        sprintf("list [%d elements]", length(x))
+                    } else if (is.character(x) || is.numeric(x) || is.logical(x)) {
+                        paste0(x, collapse = ", ")
+                    } else {
+                        paste0(x, collapse = ", ")
+                    }
+                })
+            )        
+        
+        print('------------- FORECAST PARAMS PREP END -----------------')
+        
+        forecast_params_field_gas(LST_FOR)
+        forecast_params_table_gas(dt_recap)
+        
+        print('')
+        print('==================== ++++++++++++++ ====================')
+        print('==================== END TRAINING GAS  ====================')
+        print('==================== ++++++++++++++ ====================')
+        print('')
+    })
+    
+    
+    ## Download Power model -----------------------
+    object_with_train_data_pwr = reactiveVal(NULL)
+    
+    observe({
+        req(react$models_pwr_field)
+        object_with_train_data_pwr(react$models_pwr_field)
+    })
+    
+    output$act_train_pwr_download = downloadHandler(
+        filename = function() {
+            paste0("train_power_data_", Sys.Date(), ".rds")
+        },
+        content = function(file) {
+            saveRDS(react$object_with_train_data_pwr, file)
+        }
+    )
+    
+    
+    object_with_train_data_gas = reactiveVal(NULL)
+    
+    observe({
+        req(react$models_gas_field_gas)
+        object_with_train_data_gas(react$models_gas_field_gas)
+    })
+    
+    output$act_train_gas_download = downloadHandler(
+        filename = function() {
+            paste0("train_gas_data_", Sys.Date(), ".rds")
+        },
+        content = function(file) {
+            saveRDS(react$object_with_train_data_gas, file)
+        }
+    )    
+    
+    
+    
+    
 
     
     # VISUALIZE ------------------------------------------
+    
+    ## TRAIN ------------------------------------
     
     ## RECAP FORECAST PARAMS
     output$forecast_params_table_recap_pwr = renderReactable({
@@ -602,10 +795,9 @@ server = function(input, output, session) {
                   defaultPageSize = 14)
     })
     
-    #PLACEHOLDER GAS
-    output$forecast_params_table_recap_pwr = renderReactable({
-        req(react$forecast_params_table_pwr)
-        reactable(react$forecast_params_table_pwr,
+    output$forecast_params_table_recap_gas = renderReactable({
+        req(react$forecast_params_table_gas)
+        reactable(react$forecast_params_table_gas,
                   defaultPageSize = 14)
     })
     
@@ -613,9 +805,9 @@ server = function(input, output, session) {
     # Outputs for the selected history period (for training)
     output$pwr_history_plot <- renderEcharts4r({
         
-        req(react$list_inputs_field)
+        req(react$list_inputs_field_pwr)
         
-        list_inputs = react$list_inputs_field
+        list_inputs = react$list_inputs_field_pwr
         DT = copy(list_inputs$ENV_SPOT$history_pwr)
         DT[, datetime := as.POSIXct(paste(date, sprintf("%02d:00:00", hour)), format = "%Y-%m-%d %H:%M:%S", tz = "CET")]
         rics = unique(DT$RIC) 
@@ -633,22 +825,52 @@ server = function(input, output, session) {
 
     })
     
-    output$gas_history_plot <- renderEcharts4r({
-        e_charts(seq.Date(Sys.Date()-30, Sys.Date(), by="days")) %>%
-            e_line(rnorm(30)) %>%
-            e_title("Gas Price History") %>%
-            e_x_axis(name = "Date") %>%
-            e_y_axis(name = "Price")
+    output$pwr_history_table <- renderReactable({
+        
+        req(react$list_inputs_field_pwr)
+        
+        list_inputs = react$list_inputs_field_pwr
+        DT = copy(list_inputs$ENV_SPOT$history_pwr)
+        DT[, datetime := as.POSIXct(paste(date, sprintf("%02d:00:00", hour)), format = "%Y-%m-%d %H:%M:%S", tz = "CET")]
+        setorder(DT, datetime, RIC)
+        reactable(DT)
     })
     
-    # Sample Reactable tables (for demonstration)
-    output$pwr_history_table <- renderReactable({
-        reactable(data.frame(Date = seq.Date(Sys.Date()-30, Sys.Date(), by="days"), Power_Price = rnorm(30)))
+    
+    output$gas_history_plot <- renderEcharts4r({
+        
+        req(react$list_inputs_field_gas)
+        
+        list_inputs = react$list_inputs_field_gas
+        DT = copy(list_inputs$ENV_SPOT$history_gas)
+        rics = unique(DT$RIC) 
+        setorder(DT, date, RIC)
+        
+        DT %>%
+            e_charts(date) %>%
+            e_line(value, name = rics, symbol = 'none') %>%
+            e_title(text = paste("Hourly Prices for", rics)) %>%
+            e_x_axis(name = "Date") %>%
+            e_y_axis(name = "Price") %>%
+            e_tooltip(trigger = "axis") %>%
+            e_datazoom(type = "slider") %>%
+            e_theme("westeros") 
+        
     })
     
     output$gas_history_table <- renderReactable({
-        reactable(data.frame(Date = seq.Date(Sys.Date()-30, Sys.Date(), by="days"), Gas_Price = rnorm(30)))
+        
+        req(react$list_inputs_field_gas)
+        
+        list_inputs = react$list_inputs_field_gas
+        DT = copy(list_inputs$ENV_SPOT$history_gas)
+        setorder(DT, date, RIC)
+        reactable(DT)
     })
+    
+    
+    
+    ## FORECAST ------------------------------------
     
     # Forecast plots for Power and Gas using echarts4r
     output$pwr_forecast_plot <- renderEcharts4r({
@@ -683,6 +905,8 @@ server = function(input, output, session) {
             e_x_axis(name = "Date") %>%
             e_y_axis(name = "Price")
     })
+    
+    ## END
 }
 
 
