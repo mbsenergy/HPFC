@@ -5,8 +5,8 @@
 \title{Prepare Forward Curves for Forecasting}
 \usage{
 prepare_fwd(
-  fwd_pwr_code,
-  fwd_gas_code,
+  fwd_pwr_code = NULL,
+  fwd_gas_code = NULL,
   start_date,
   end_date,
   model_type = "PWR",

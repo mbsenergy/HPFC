@@ -31,7 +31,7 @@ mbs_theme =
 
 #bs_theme_preview(nordquant_theme)
 
-bs_theme_update(warpe_theme, `enable-rounded` = FALSE)
+bs_theme_update(mbs_theme, `enable-rounded` = FALSE)
 
 # INPUTS ------------------------------------------------------------------------------------------------- 
 
@@ -85,7 +85,7 @@ product_train_pwr =
         id = 'act_indicator_train_pwr',
         label = 'Train Power model',
         label_busy = "Training...",
-        icon = shiny::icon('backward'),
+        icon = shiny::icon('run'),
         width = '100%',
         type = "danger"
     )
@@ -96,7 +96,7 @@ product_train_gas =
         id = 'act_indicator_train_gas',
         label = 'Train Gas model',
         label_busy = "Training...",
-        icon = shiny::icon('backward'),
+        icon = shiny::icon('run'),
         width = '100%',
         type = "warning"
     )
@@ -139,6 +139,25 @@ select_horizon_period =
         width = '100%'
     )
 
+select_PWR_product_for =
+    selectInput(
+        inputId = "in_select_PWR_indicator_for",
+        label = span("Power:", style = 'font-weight: bold;'),
+        multiple = FALSE,
+        width = '100%',
+        choices = vec_pwr_products,
+        selected = 'Greece'
+    )
+
+select_GAS_product_for =
+    selectInput(
+        inputId = "in_select_GAS_indicator_for",
+        label = span("Gas:", style = 'font-weight: bold;'),
+        multiple = FALSE,
+        width = '100%',
+        choices = vec_gas_products,
+        selected = 'TTF'
+    )
 
 #### BUTTON TO EXECUTE FORECAST --------------------------------
 product_forecast_pwr =
@@ -291,6 +310,9 @@ ui = page_navbar(
                                     width = 400, padding = '40',
                                     title = 'Forecasting',
                                     select_horizon_period,
+                                    select_PWR_product_for,
+                                    select_GAS_product_for,
+                                    hr(),
                                     product_forecast_pwr,
                                     product_forecast_gas,
                                     hr(),
@@ -458,69 +480,6 @@ server = function(input, output, session) {
     })
     
     
-    ## Forecast Parameters -----------------------
-    forecast_params_field_pwr = reactiveVal(NULL)
-    forecast_params_table_pwr = reactiveVal(NULL)
-    
-    observe({
-        
-        req(react$models_gas_field_pwr)
-        req(react$models_pwr_field)
-        
-        print('==================== ++++++++++++++ ====================')
-        print('------------- FORECAST PARAMS PREP START -------------')
-        
-        ENV_MODELS_GAS = react$models_gas_field_pwr
-        ENV_MODELS_PWR = react$models_pwr_field
-        list_inputs = react$list_inputs_field_pwr
-        LST_PARAMS = react$params_input_pwr
-        
-        LST_FOR = list(
-            model_lt_gas = copy(ENV_MODELS_GAS$dt_lt_param_gasdep),
-            model_lt_pwr = copy(ENV_MODELS_PWR$dt_lt_param_pwr),
-            model_st_pwr = copy(ENV_MODELS_PWR$lst_hr_param_pwr),
-            dt_fwds = copy(list_inputs$ENV_FWD$dt_fwds),
-            saved_history_gas = copy(list_inputs$ENV_SPOT$history_gas),
-            saved_history_pwr = copy(list_inputs$ENV_SPOT$history_pwr),
-            ric_spot_gas = list_inputs$ENV_SPOT$spot_gas_RIC,
-            ric_fwd_gas = HPFC::spot_GAS_products_full[products_GAS %in% unique(LST_PARAMS$dependent_gas_code)]$products_GAS_code,
-            ric_spot_pwr = list_inputs$ENV_SPOT$spot_pwr_RIC,
-            ric_fwd_pwr = HPFC::spot_PWR_products_full[countries %in% unique(LST_PARAMS$selected_pwr_code)]$products_PWR_code,
-            calendar_forecast = list_inputs$ENV_CODES$calendar_future,
-            start_date = LST_PARAMS$forecast_start,
-            end_date = LST_PARAMS$forecast_end,
-            last_date = list_inputs$ENV_CODES$last_date
-        ) 
-        
-        dt_recap =
-            data.table(
-                params = names(LST_FOR),
-                value = sapply(LST_FOR, function(x) {
-                    if (is.data.table(x)) {
-                        sprintf("data.table [%d x %d]", nrow(x), ncol(x))
-                    } else if (is.list(x)) {
-                        sprintf("list [%d elements]", length(x))
-                    } else if (is.character(x) || is.numeric(x) || is.logical(x)) {
-                        paste0(x, collapse = ", ")
-                    } else {
-                        paste0(x, collapse = ", ")
-                    }
-                })
-            )        
-        
-        print('------------- FORECAST PARAMS PREP END -----------------')
-        
-        forecast_params_field_pwr(LST_FOR)
-        forecast_params_table_pwr(dt_recap)
-        
-        print('')
-        print('==================== ++++++++++++++ ====================')
-        print('==================== END TRAINING PWR  ====================')
-        print('==================== ++++++++++++++ ====================')
-        print('')
-    })
-    
-    
     # TRAIN - GAS ------------------------------------------
     
     ## Inputs -----------------------
@@ -616,62 +575,6 @@ server = function(input, output, session) {
     })
     
     
-    ## Forecast Parameters -----------------------
-    forecast_params_field_gas = reactiveVal(NULL)
-    forecast_params_table_gas = reactiveVal(NULL)
-    
-    observe({
-        
-        req(react$models_gas_field_gas)
-        
-        print('==================== ++++++++++++++ ====================')
-        print('------------- FORECAST PARAMS PREP START -------------')
-        
-        ENV_MODELS_GAS = react$models_gas_field_gas
-        list_inputs = react$list_inputs_field_gas
-        LST_PARAMS = react$params_input_gas
-        
-        LST_FOR = list(
-            model_lt_gas = copy(ENV_MODELS_GAS$dt_lt_param_gasdep),
-            dt_fwds = copy(list_inputs$ENV_FWD$dt_fwds),
-            saved_history_gas = copy(list_inputs$ENV_SPOT$history_gas),
-            ric_spot_gas = list_inputs$ENV_SPOT$spot_gas_RIC,
-            ric_fwd_gas = HPFC::spot_GAS_products_full[products_GAS %in% unique(LST_PARAMS$selected_gas_code)]$products_GAS_code,
-            calendar_forecast = list_inputs$ENV_CODES$calendar_future,
-            start_date = LST_PARAMS$forecast_start,
-            end_date = LST_PARAMS$forecast_end,
-            last_date = list_inputs$ENV_CODES$last_date
-        ) 
-        
-        dt_recap =
-            data.table(
-                params = names(LST_FOR),
-                value = sapply(LST_FOR, function(x) {
-                    if (is.data.table(x)) {
-                        sprintf("data.table [%d x %d]", nrow(x), ncol(x))
-                    } else if (is.list(x)) {
-                        sprintf("list [%d elements]", length(x))
-                    } else if (is.character(x) || is.numeric(x) || is.logical(x)) {
-                        paste0(x, collapse = ", ")
-                    } else {
-                        paste0(x, collapse = ", ")
-                    }
-                })
-            )        
-        
-        print('------------- FORECAST PARAMS PREP END -----------------')
-        
-        forecast_params_field_gas(LST_FOR)
-        forecast_params_table_gas(dt_recap)
-        
-        print('')
-        print('==================== ++++++++++++++ ====================')
-        print('==================== END TRAINING GAS  ====================')
-        print('==================== ++++++++++++++ ====================')
-        print('')
-    })
-    
-    
     ## Download models -----------------------
     object_with_train_data_pwr = reactiveVal(NULL)
     
@@ -712,7 +615,168 @@ server = function(input, output, session) {
     
     object_with_forecast_data_pwr = reactiveVal(NULL) 
     
+    # PREPARE FWD ---------------------------------------------------
+    
+    fwd_pwr_field = reactiveVal(NULL)
+    fwd_gas_field = reactiveVal(NULL)
+    
     observeEvent(input$act_indicator_forecast_pwr, {
+        
+        list_inputs_fwd = prepare_fwd(
+            fwd_pwr_code = input$in_select_PWR_indicator_for,
+            fwd_gas_code = 'TTF',
+            start_date = input$in_select_horizon[1],
+            end_date = input$in_select_horizon[2],
+            model_type = 'PWR',
+            forecast_source = 'FWD',
+            archive = 'NO',
+            manual_pwr = NULL,
+            manual_gas = NULL
+        )
+        
+        fwd_pwr_field(list_inputs_fwd)
+        
+    })
+    
+    observeEvent(input$act_indicator_forecast_gas, {
+        
+        list_inputs_fwd = prepare_fwd(
+            fwd_gas_code = input$in_select_GAS_indicator_for,
+            start_date = input$in_select_horizon[1],
+            end_date = input$in_select_horizon[2],
+            model_type = 'GAS',
+            forecast_source = 'FWD',
+            archive = 'NO',
+            manual_pwr = NULL,
+            manual_gas = NULL
+        )
+        
+        fwd_gas_field(list_inputs_fwd)
+        
+    })    
+    
+    ## Forecast Parameters -----------------------
+    forecast_params_field_pwr = reactiveVal(NULL)
+    forecast_params_table_pwr = reactiveVal(NULL)
+    
+    observeEvent(input$act_indicator_forecast_pwr, {
+        
+        req(react$models_gas_field_pwr)
+        req(react$models_pwr_field)
+        req(react$fwd_pwr_field)
+        
+        print('==================== ++++++++++++++ ====================')
+        print('------------- FORECAST PARAMS PREP START -------------')
+        
+        ENV_MODELS_GAS = react$models_gas_field_pwr
+        ENV_MODELS_PWR = react$models_pwr_field
+        list_inputs = react$list_inputs_field_pwr
+        LST_PARAMS = react$params_input_pwr
+        FWD = react$fwd_pwr_field$ENV_FWD
+        
+        LST_FOR = list(
+            model_lt_gas = copy(ENV_MODELS_GAS$dt_lt_param_gasdep),
+            model_lt_pwr = copy(ENV_MODELS_PWR$dt_lt_param_pwr),
+            model_st_pwr = copy(ENV_MODELS_PWR$lst_hr_param_pwr),
+            dt_fwds = copy(FWD$dt_fwds),
+            saved_history_gas = copy(list_inputs$ENV_SPOT$history_gas),
+            saved_history_pwr = copy(list_inputs$ENV_SPOT$history_pwr),
+            ric_spot_gas = list_inputs$ENV_SPOT$spot_gas_RIC,
+            ric_fwd_gas = HPFC::spot_GAS_products_full[products_GAS %in% unique(LST_PARAMS$dependent_gas_code)]$products_GAS_code,
+            ric_spot_pwr = list_inputs$ENV_SPOT$spot_pwr_RIC,
+            ric_fwd_pwr = HPFC::spot_PWR_products_full[countries %in% unique(LST_PARAMS$selected_pwr_code)]$products_PWR_code,
+            calendar_forecast = FWD$calendar_future,
+            start_date = LST_PARAMS$forecast_start,
+            end_date = LST_PARAMS$forecast_end,
+            last_date = FWD$last_date
+        ) 
+        
+        dt_recap =
+            data.table(
+                params = names(LST_FOR),
+                value = sapply(LST_FOR, function(x) {
+                    if (is.data.table(x)) {
+                        sprintf("data.table [%d x %d]", nrow(x), ncol(x))
+                    } else if (is.list(x)) {
+                        sprintf("list [%d elements]", length(x))
+                    } else if (is.character(x) || is.numeric(x) || is.logical(x)) {
+                        paste0(x, collapse = ", ")
+                    } else {
+                        paste0(x, collapse = ", ")
+                    }
+                })
+            )        
+        
+        print('------------- FORECAST PARAMS PREP END -----------------')
+        
+        forecast_params_field_pwr(LST_FOR)
+        forecast_params_table_pwr(dt_recap)
+        
+        print('')
+        print('==================== ++++++++++++++ ====================')
+        print('==================== END TRAINING PWR  ====================')
+        print('==================== ++++++++++++++ ====================')
+        print('')
+    })
+    
+    ## Forecast Parameters -----------------------
+    forecast_params_field_gas = reactiveVal(NULL)
+    forecast_params_table_gas = reactiveVal(NULL)
+    
+    observeEvent(input$act_indicator_forecast_gas, {
+        
+        req(react$models_gas_field_gas)
+        req(react$fwd_gas_field)
+        
+        print('==================== ++++++++++++++ ====================')
+        print('------------- FORECAST PARAMS PREP START -------------')
+        
+        ENV_MODELS_GAS = react$models_gas_field_gas
+        list_inputs = react$list_inputs_field_gas
+        LST_PARAMS = react$params_input_gas
+        FWD = react$fwd_gas_field$ENV_FWD
+        
+        LST_FOR = list(
+            model_lt_gas = copy(ENV_MODELS_GAS$dt_lt_param_gasdep),
+            dt_fwds = copy(FWD$dt_fwds),
+            saved_history_gas = copy(list_inputs$ENV_SPOT$history_gas),
+            ric_spot_gas = list_inputs$ENV_SPOT$spot_gas_RIC,
+            ric_fwd_gas = HPFC::spot_GAS_products_full[products_GAS %in% unique(LST_PARAMS$selected_gas_code)]$products_GAS_code,
+            calendar_forecast = FWD$calendar_future,
+            start_date = LST_PARAMS$forecast_start,
+            end_date = LST_PARAMS$forecast_end,
+            last_date = FWD$last_date
+        ) 
+        
+        dt_recap =
+            data.table(
+                params = names(LST_FOR),
+                value = sapply(LST_FOR, function(x) {
+                    if (is.data.table(x)) {
+                        sprintf("data.table [%d x %d]", nrow(x), ncol(x))
+                    } else if (is.list(x)) {
+                        sprintf("list [%d elements]", length(x))
+                    } else if (is.character(x) || is.numeric(x) || is.logical(x)) {
+                        paste0(x, collapse = ", ")
+                    } else {
+                        paste0(x, collapse = ", ")
+                    }
+                })
+            )        
+        
+        print('------------- FORECAST PARAMS PREP END -----------------')
+        
+        forecast_params_field_gas(LST_FOR)
+        forecast_params_table_gas(dt_recap)
+        
+        print('')
+        print('==================== ++++++++++++++ ====================')
+        print('==================== END TRAINING GAS  ====================')
+        print('==================== ++++++++++++++ ====================')
+        print('')
+    })
+    
+    observe({
         
         req(react$forecast_params_field_pwr)
         print('')

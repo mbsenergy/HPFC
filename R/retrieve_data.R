@@ -67,7 +67,7 @@ retrieve_spot = function(ric, from_date, to_date, type = 'PWR') {
         history_pwr_all_s[, value := data.table::nafill(value, 'nocb'), by = 'RIC']
         
         history_pwr_all_s[, hour := as.numeric(hour)]
-        history_pwr_all_s[, RIC := substr(RIC, 1, nchar(RIC) - 2)]
+        history_pwr_all_s[, RIC := RIC]
         
         print_retrieval_done(message = 'Spot Power retrieval finished.')
         

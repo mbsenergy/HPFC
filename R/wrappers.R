@@ -78,12 +78,12 @@ load_inputs = function(params) {
     if(LST_PARAMS$data_source != 'LOCAL') {
         
         ## GAS
-        if(as.character(LST_PARAMS$forecast_end) >= '2025-01-01') {
+        if(as.character(LST_PARAMS$history_end) >= '2025-01-01') {
             
             DT_NEW = HPFC::retrieve_spot(
                 ric = ENV_SPOT$spot_gas_RIC,
                 from_date = as.character('2025-01-01'),
-                to_date = as.character(LST_PARAMS$forecast_end),
+                to_date = as.character(LST_PARAMS$history_end),
                 type = 'GAS')
             
             ENV_SPOT$history_gas_full = 
@@ -97,12 +97,12 @@ load_inputs = function(params) {
         ENV_SPOT$history_gas = ENV_SPOT$history_gas_full[date <= LST_PARAMS$history_end]
         
         ## PWR
-        if(as.character(LST_PARAMS$forecast_end) >= '2025-01-01') {
+        if(as.character(LST_PARAMS$history_end) >= '2025-01-01') {
             
             DT_NEW = HPFC::retrieve_spot(
                 ric = ENV_SPOT$spot_pwr_RIC,
                 from_date = '2025-01-01',
-                to_date = LST_PARAMS$forecast_end,
+                to_date = LST_PARAMS$history_end,
                 type = 'PWR')
             
             ENV_SPOT$history_pwr_full = 
@@ -132,7 +132,7 @@ load_inputs = function(params) {
         ENV_FWD$dt_fwds = fread(file.path(LST_DIRS$dir_data_raw, 'dt_fwds.csv'))
         cat(crayon::green$bold("\n✔ Manual Data retrieved from:"), paste(LST_DIRS$dir_data_raw, 'dt_fwds.csv'), "\n")
     } 
-
+    
     ## PREPARE AND RETURN
     
     if(LST_PARAMS$archive != 'NO') {
@@ -217,7 +217,7 @@ load_inputs = function(params) {
 #' @import data.table
 #' @importFrom crayon green bold
 #' @export
-prepare_fwd = function(fwd_pwr_code, fwd_gas_code, start_date, end_date, model_type = 'PWR', forecast_source = 'FWD', archive, manual_pwr = NULL, manual_gas = NULL) {
+prepare_fwd = function(fwd_pwr_code = NULL, fwd_gas_code = NULL, start_date, end_date, model_type = 'PWR', forecast_source = 'FWD', archive, manual_pwr = NULL, manual_gas = NULL) {
     
     ENV_FWD = list()
     
@@ -255,10 +255,12 @@ prepare_fwd = function(fwd_pwr_code, fwd_gas_code, start_date, end_date, model_t
         ENV_FWD$time_range = as.numeric(data.table::year(as.Date(forecast_start))):as.numeric(data.table::year(as.Date(forecast_end)))
         
         DT_GAS = HPFC::dt_fwds_gas[substr(RIC, 1, 4) == ENV_FWD$fwd_gas_RIC]
-        if(forecast_source == 'FWD') {
-            DT_PWR = HPFC::dt_fwds_pwr_fwddam[spot_PWR_code == HPFC::spot_PWR_products_full[countries %in% selected_pwr_code]$spot_PWR_code, .(date, RIC, value = FWD)]
-        } else {
-            DT_PWR = HPFC::dt_fwds_pwr_fwddam[spot_PWR_code == HPFC::spot_PWR_products_full[countries %in% selected_pwr_code]$spot_PWR_code, .(date, RIC, value = DAM)]
+        if(model_type == 'PWR') {
+            if(forecast_source == 'FWD') {
+                DT_PWR = HPFC::dt_fwds_pwr_fwddam[spot_PWR_code == HPFC::spot_PWR_products_full[countries %in% selected_pwr_code]$spot_PWR_code, .(date, RIC, value = FWD)]
+            } else {
+                DT_PWR = HPFC::dt_fwds_pwr_fwddam[spot_PWR_code == HPFC::spot_PWR_products_full[countries %in% selected_pwr_code]$spot_PWR_code, .(date, RIC, value = DAM)]
+            }
         }
         
         ## Generate RICS
@@ -274,10 +276,14 @@ prepare_fwd = function(fwd_pwr_code, fwd_gas_code, start_date, end_date, model_t
         }
         
         ## RETRIEVE
-        ENV_FWD$dt_fwds = 
-            rbind(DT_GAS,
-                  DT_PWR
-            )  
+        if(model_type == 'PWR') {
+            ENV_FWD$dt_fwds = 
+                rbind(DT_GAS,
+                      DT_PWR
+                )  
+        } else {
+            ENV_FWD$dt_fwds = DT_GAS
+        }
         
         ENV_FWD$dt_fwds = ENV_FWD$dt_fwds[ENV_FWD$dt_fwds[, .I[date == max(date)], by = RIC]$V1]
         
@@ -302,13 +308,18 @@ prepare_fwd = function(fwd_pwr_code, fwd_gas_code, start_date, end_date, model_t
     }
     
     if(isTRUE(is_manual)) {
-        dt_fwd_pwr = manual_pwr
         dt_fwd_gas = manual_gas
-        
-        dt_fwd_prep_pwr = merge(dt_fwd_pwr, generate_monthrics_pwr('Romania', time_range = 2024), by.x = 'yymm', by.y ='date', all.x = TRUE) 
         dt_fwd_prep_gas = merge(dt_fwd_gas, generate_monthrics_gas('TFMB', time_range = 2024), by.x = 'yymm', by.y ='date', all.x = TRUE) 
         
-        dt_fwds = rbind(dt_fwd_prep_pwr, dt_fwd_prep_gas)
+        if(model_type == 'PWR') {
+            dt_fwd_pwr = manual_pwr
+            dt_fwd_prep_pwr = merge(dt_fwd_pwr, generate_monthrics_pwr('Romania', time_range = 2024), by.x = 'yymm', by.y ='date', all.x = TRUE) 
+            dt_fwds = rbind(dt_fwd_prep_pwr, dt_fwd_prep_gas)
+            
+        } else {
+            dt_fwds = dt_fwd_prep_gas
+        }
+        
         dt_fwds[, sim := NULL]
         colnames(dt_fwds) = c('date', 'value', 'RIC')
         
@@ -316,7 +327,7 @@ prepare_fwd = function(fwd_pwr_code, fwd_gas_code, start_date, end_date, model_t
         
     }
     
-    if(LST_PARAMS$archive != 'NO') {
+    if(archive != 'NO') {
         saveRDS(ENV_FWD, file.path(archive, 'ENV_FWD.rds'))
         saveRDS(ENV_FWD$dt_fwds, file.path(archive, 'dt_fwds.rds'))
         fwrite(ENV_FWD$dt_fwds, file.path(archive, 'dt_fwds.csv'))
@@ -362,7 +373,7 @@ prepare_gas = function(list_inputs = list_inputs) {
     LST_PARAMS = list_inputs$LST_PARAMS
     ENV_SPOT = list_inputs$ENV_SPOT
     ENV_CODES = list_inputs$ENV_CODES
-
+    
     ENV_MODELS_GAS$dt_gas = ENV_SPOT$history_gas[
         date >= LST_PARAMS$history_start & date <= LST_PARAMS$history_end, 
         .(date, value, RIC)
@@ -462,12 +473,12 @@ prepare_pwr = function(list_inputs = list_inputs) {
     
     ENV_MODELS_PWR$dt_hr_param_pwr = copy(ENV_MODELS_PWR$dt_pwr_filt_ddhh)
     ENV_MODELS_PWR$dt_hr_param_pwr[, RIC := NULL]
-
+    
     ENV_MODELS_PWR$gas_history = ENV_SPOT$history_gas[date >= LST_PARAMS$history_start & date <= LST_PARAMS$history_end, .(date, value, RIC)]
     ENV_MODELS_PWR$gas_history = ENV_MODELS_PWR$gas_history[RIC == HPFC::spot_GAS_products_full[products_GAS %in% unique(c(LST_PARAMS$selected_gas_code, LST_PARAMS$dependent_gas_code))]$spot_GAS_code, .(date, value)] 
     
     ENV_MODELS_PWR$calendar_holidays_pwr = copy(ENV_CODES$calendar_holidays)
-
+    
     return(ENV_MODELS_PWR)
 }
 
@@ -520,7 +531,7 @@ train_lt_pwr = function(pwr_data, ric_pwr, gas_history, pwr_holidays) {
     ### Gas Dependent
     pwr_data = gas_history[, .(date, value_gas = value)][pwr_data, on = 'date'] 
     pwr_data = pwr_holidays[pwr_data, on = 'date']         
-
+    
     pwr_data = train_lt_model_pwr(pwr_data)
     pwr_data[, RIC := as.character(ric_pwr)]
     
@@ -543,7 +554,7 @@ train_lt_pwr = function(pwr_data, ric_pwr, gas_history, pwr_holidays) {
 #' @import HPFC
 #' @export
 train_st_pwr = function(pwr_data, gas_history) {
-
+    
     print(paste('PWR ST TRAIN'))
     
     dt_pwr_filt_ddhh_wreg = regressors_st_model_pwr(pwr_data)
@@ -592,11 +603,11 @@ forecast_gas = function(input_forecast = LST_FOR) {
     fwd_calendar[, `:=` (year = as.character(data.table::year(date)), quarter = as.character(data.table::quarter(date)), month = as.character(data.table::month(date)))]
     
     dt_fwd_gas = HPFC::prep_fwd_curve(DT = LST_FOR$dt_fwds,
-                                              list_rics = fwd_RIC,
-                                              type = 'GAS',
-                                              start_date = LST_FOR$start_date,
-                                              end_date = LST_FOR$end_date, 
-                                              calendar_sim = fwd_calendar)
+                                      list_rics = fwd_RIC,
+                                      type = 'GAS',
+                                      start_date = LST_FOR$start_date,
+                                      end_date = LST_FOR$end_date, 
+                                      calendar_sim = fwd_calendar)
     
     
     dt_gas_fwds = dt_fwd_gas[, .(year, quarter, month, forward_cal_BL_gas, forward_quarter_BL_gas, forward_month_BL_gas)]
@@ -693,7 +704,7 @@ forecast_pwr = function(input_forecast = LST_FOR, gas_forecast = ENV_FOR_GAS, sm
     
     
     dt_pwr_fwds = dt_fwd_pwr[, .(year, quarter, month, forward_cal_BL_pwr, forward_quarter_BL_pwr, 
-                                          forward_month_BL_pwr, forward_cal_PL_pwr, forward_quarter_PL_pwr, forward_month_PL_pwr)]
+                                 forward_month_BL_pwr, forward_cal_PL_pwr, forward_quarter_PL_pwr, forward_month_PL_pwr)]
     dt_pwr_fwds = dt_pwr_fwds[, lapply(.SD, as.numeric)]
     
     dt_pwr = LST_FOR$saved_history_pwr[, .(date, hour, value, RIC)]
