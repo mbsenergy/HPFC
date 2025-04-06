@@ -207,6 +207,18 @@ select_source_forecast =
     )
 
 
+### RUN SOURCE -------------------------------------
+select_source_run =
+    radioButtons(
+        inputId = "in_source_run",
+        label = "Select data source:",
+        choices = c("New",
+                    "Last",
+                    "Sim"),
+        selected = "New",
+        inline = TRUE
+    )
+
 
 ### BUTTONS EXECUTE DOWNLOAD -----------------------
 fwd_pwr_download =
@@ -339,6 +351,9 @@ ui = page_navbar(
                   sidebar = sidebar(bg = 'white',
                                     width = 400, padding = '40',
                                     title = 'Forecasting',
+                                    select_source_run,
+                                    uiOutput("select_source_run"),
+                                    hr(),
                                     select_horizon_period,
                                     select_PWR_product_for,
                                     select_GAS_product_for,
@@ -378,6 +393,23 @@ ui = page_navbar(
 
 # SERVER  ------------------------------------------------------------------------------------------------- 
 server = function(input, output, session) {
+    
+    ## FORECAST SOURCE -----------------------
+    
+    observe({
+        if (input$in_source_run == 'Sim') {
+            output$select_source_run = renderUI({
+                textInput(
+                    inputId = "sim_name",
+                    label = "Simualtion Name",
+                    placeholder = c("Insert saved simulation name here..."),
+                )
+            })
+            
+        } else {
+            output$select_source_run = renderUI(NULL)
+        }
+    })
     
     ## MANUAL DATA ------------------------------------------------------
     ### SPOTS
