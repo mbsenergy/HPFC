@@ -564,7 +564,6 @@ server = function(input, output, session) {
             
         }
         
-        list_inputs_field_pwr(list_inputs)
         
         ## ARCHIVE
         last_path = file.path('HPFC', 'last', 'history', input$in_select_PWR_indicator)
@@ -574,6 +573,8 @@ server = function(input, output, session) {
         
         saveRDS(list_inputs$ENV_SPOT$history_gas, file.path(last_path, paste0('history_gas.rds')))
         saveRDS(list_inputs$ENV_SPOT$history_pwr, file.path(last_path, paste0('history_pwr.rds')))
+        
+        list_inputs_field_pwr(list_inputs)
         
         print('------------- LOAD INPUTS END ---------------')
         
@@ -716,6 +717,14 @@ server = function(input, output, session) {
             
         }
         
+        ## ARCHIVE
+        last_path = file.path('HPFC', 'last', 'history', input$in_select_GAS_indicator)
+        if (!dir.exists(last_path)) {
+            dir.create(last_path, recursive = TRUE)
+        }
+        
+        saveRDS(list_inputs$ENV_SPOT$history_gas, file.path(last_path, paste0('history_gas.rds')))
+        
         list_inputs_field_gas(list_inputs)
         
         print('------------- LOAD INPUTS END ---------------')
@@ -762,6 +771,17 @@ server = function(input, output, session) {
                 gas_data = ENV_MODELS_GAS$dt_lt_param_gasdep,
                 ric_gas = unique(ENV_MODELS_GAS$dt_gas$RIC)
             )
+        
+        
+        ## ARCHIVE -------------------------------------
+        
+        ### LAST
+        last_path = file.path('HPFC', 'last', 'models', input$in_select_GAS_indicator)
+        if (!dir.exists(last_path)) {
+            dir.create(last_path, recursive = TRUE)
+        }
+        
+        saveRDS(ENV_MODELS_GAS$dt_lt_param_gasdep, file.path(last_path, paste0('model_gas_lt.rds')))
         
         models_gas_field_gas(ENV_MODELS_GAS)
         
@@ -840,7 +860,8 @@ server = function(input, output, session) {
                 forecast_source = 'FWD',
                 archive = 'NO',
                 manual_pwr = NULL,
-                manual_gas = NULL
+                manual_gas = NULL,
+                reuters_key = PLEASE_INSERT_REUTERS_KEY
             )            
             
         }
@@ -873,7 +894,8 @@ server = function(input, output, session) {
                 forecast_source = 'FWD',
                 archive = 'NO',
                 manual_pwr = NULL,
-                manual_gas = NULL
+                manual_gas = NULL,
+                reuters_key = PLEASE_INSERT_REUTERS_KEY
             )
             
         }
@@ -908,8 +930,8 @@ server = function(input, output, session) {
         }
         
         if (input$in_source_run == 'Last') {
-            last_path_models = file.path('HPFC', 'last', 'models', input$in_select_PWR_indicator)
-            last_path_history = file.path('HPFC', 'last', 'history', input$in_select_PWR_indicator)
+            last_path_models = file.path('HPFC', 'last', 'models', input$in_select_PWR_indicator_for)
+            last_path_history = file.path('HPFC', 'last', 'history', input$in_select_PWR_indicator_for)
             
             ENV_MODELS_GAS = list()
             ENV_MODELS_PWR = list()
@@ -922,8 +944,8 @@ server = function(input, output, session) {
         }
         
         if (input$in_source_run == 'Sim') {
-            last_path_models = file.path('HPFC', 'last', 'models', input$in_select_PWR_indicator)
-            last_path_history = file.path('HPFC', 'last', 'history', input$in_select_PWR_indicator)
+            last_path_models = file.path('HPFC', 'last', 'models', input$in_select_PWR_indicator_for)
+            last_path_history = file.path('HPFC', 'last', 'history', input$in_select_PWR_indicator_for)
             
             ENV_MODELS_GAS = list()
             ENV_MODELS_PWR = list()
@@ -944,8 +966,8 @@ server = function(input, output, session) {
             saved_history_pwr = copy(list_inputs$history_pwr),
             ric_spot_gas = HPFC::spot_GAS_products_full[products_GAS %in% unique('TTF')]$spot_GAS_code,
             ric_fwd_gas = HPFC::spot_GAS_products_full[products_GAS %in% unique('TTF')]$products_GAS_code,
-            ric_spot_pwr = HPFC::spot_PWR_products_full[countries %in% unique(input$in_select_PWR_indicator)]$spot_PWR_code,
-            ric_fwd_pwr = HPFC::spot_PWR_products_full[countries %in% unique(input$in_select_PWR_indicator)]$products_PWR_code,
+            ric_spot_pwr = HPFC::spot_PWR_products_full[countries %in% unique(input$in_select_PWR_indicator_for)]$spot_PWR_code,
+            ric_fwd_pwr = HPFC::spot_PWR_products_full[countries %in% unique(input$in_select_PWR_indicator_for)]$products_PWR_code,
             calendar_forecast = FWD$calendar_future,
             start_date = input$in_select_horizon[1],
             end_date = input$in_select_horizon[2],
@@ -986,26 +1008,43 @@ server = function(input, output, session) {
     
     observeEvent(input$act_indicator_forecast_gas, {
         
-        req(react$models_gas_field_gas)
         req(react$fwd_gas_field)
         
         print('==================== ++++++++++++++ ====================')
         print('------------- FORECAST PARAMS PREP START -------------')
         
-        ENV_MODELS_GAS = react$models_gas_field_gas
-        list_inputs = react$list_inputs_field_gas
-        LST_PARAMS = react$params_input_gas
         FWD = react$fwd_gas_field$ENV_FWD
+        
+        if (input$in_source_run == 'New') {
+            
+            req(react$models_gas_field_pwr)
+            req(react$models_pwr_field)
+            req(react$fwd_pwr_field)
+            
+            ENV_MODELS_GAS = react$models_gas_field_gas
+            list_inputs = react$list_inputs_field_gas
+            LST_PARAMS = react$params_input_gas
+        }
+        
+        if (input$in_source_run == 'Last') {
+            last_path_models = file.path('HPFC', 'last', 'models', input$in_select_GAS_indicator_for)
+            last_path_history = file.path('HPFC', 'last', 'history', input$in_select_GAS_indicator_for)
+            
+            ENV_MODELS_GAS = list()
+            list_inputs = list()
+            ENV_MODELS_GAS$dt_lt_param_gasdep = readRDS(file.path(last_path_models, 'model_gas_lt.rds'))
+            list_inputs$history_gas = readRDS(file.path(last_path_history, 'history_gas.rds'))
+        }
         
         LST_FOR = list(
             model_lt_gas = copy(ENV_MODELS_GAS$dt_lt_param_gasdep),
             dt_fwds = copy(FWD$dt_fwds),
-            saved_history_gas = copy(list_inputs$ENV_SPOT$history_gas),
-            ric_spot_gas = list_inputs$ENV_SPOT$spot_gas_RIC,
-            ric_fwd_gas = HPFC::spot_GAS_products_full[products_GAS %in% unique(LST_PARAMS$selected_gas_code)]$products_GAS_code,
+            saved_history_gas = copy(list_inputs$history_gas),
+            ric_spot_gas = HPFC::spot_GAS_products_full[products_GAS %in% input$in_select_GAS_indicator_for]$spot_GAS_code,
+            ric_fwd_gas = HPFC::spot_GAS_products_full[products_GAS %in% input$in_select_GAS_indicator_for]$products_GAS_code,
             calendar_forecast = FWD$calendar_future,
-            start_date = LST_PARAMS$forecast_start,
-            end_date = LST_PARAMS$forecast_end,
+            start_date = input$in_select_horizon[1],
+            end_date = input$in_select_horizon[2],
             last_date = FWD$last_date
         ) 
         

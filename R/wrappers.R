@@ -225,7 +225,7 @@ load_inputs = function(params, manual_data = NULL, reuters_key = NULL) {
 #' @import data.table
 #' @importFrom crayon green bold
 #' @export
-prepare_fwd = function(fwd_pwr_code = NULL, fwd_gas_code = NULL, start_date, end_date, model_type = 'PWR', forecast_source = 'FWD', archive, manual_pwr = NULL, manual_gas = NULL) {
+prepare_fwd = function(fwd_pwr_code = NULL, fwd_gas_code = NULL, start_date, end_date, model_type = 'PWR', forecast_source = 'FWD', archive, manual_pwr = NULL, manual_gas = NULL, reuters_key = NULL) {
     
     ENV_FWD = list()
     
@@ -234,7 +234,7 @@ prepare_fwd = function(fwd_pwr_code = NULL, fwd_gas_code = NULL, start_date, end
     
     if(model_type == 'GAS') {
         selected_gas_code = fwd_gas_code
-        ENV_FWD$fwd_gas_RIC = unique(HPFC::spot_GAS_products_full[products_GAS %in% c(selected_gas_code)]$products_GAS_code)
+        ENV_FWD$fwd_gas_RIC = unique(HPFC::spot_GAS_products_full[products_GAS %in% c(selected_gas_code)]$products_GAS_code) ; selected_pwr_code = 'Greece'
         
     } else {
         selected_gas_code = fwd_gas_code
@@ -299,6 +299,11 @@ prepare_fwd = function(fwd_pwr_code = NULL, fwd_gas_code = NULL, start_date, end
         ENV_FWD$dt_fwds = ENV_FWD$dt_fwds[ENV_FWD$dt_fwds[, .I[date == max(date)], by = RIC]$V1]
         
         if(max(ENV_FWD$time_range) > 2024) {
+            
+            ### Connection
+            eikonapir::set_proxy_port(9000L)
+            PLEASE_INSERT_REUTERS_KEY = reuters_key[[1]]
+            eikonapir::set_app_id(as.character(PLEASE_INSERT_REUTERS_KEY))
             
             DT_NEW = HPFC::retrieve_fwd(ric = ENV_FWD$lst_rics, from_date = '2025-01-01', to_date = forecast_end)
             
