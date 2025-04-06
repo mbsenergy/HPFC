@@ -245,7 +245,10 @@ prepare_fwd = function(fwd_pwr_code = NULL, fwd_gas_code = NULL, start_date, end
     
     ENV_FWD$last_date = as.Date(forecast_start) - 1
     
-    calendar_future = copy(calendar_holidays)
+    ### CODES Parameters
+    calendar_holidays = as.data.table(HPFC::new_calendar_holidays)
+    setnames(calendar_holidays, paste0("holiday_", selected_pwr_code), 'holiday', skip_absent = TRUE)
+    calendar_future = calendar_holidays[, .(date, holiday)]
     calendar_future[,`:=` (year = as.character(data.table::year(date)), 
                            quarter = as.character(data.table::quarter(date)),
                            month = as.character(data.table::month(date)))

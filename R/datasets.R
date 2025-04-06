@@ -60,3 +60,18 @@
 #' }
 #' @source Generated manually
 "dt_fwds_pwr_fwddam"
+
+
+#' New Calendar of Public Holidays
+#'
+#' Updated version of `calendar_holidays` with additional countries or extended date range.
+#'
+#' @format A data.table with columns:
+#' \describe{
+#'   \item{date}{Date}
+#'   \item{holiday_GR}{Greece}
+#'   \item{holiday_HU}{Hungary}
+#'   ...
+#' }
+#' @usage data(new_calendar_holidays)
+"new_calendar_holidays"
