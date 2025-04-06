@@ -981,8 +981,8 @@ server = function(input, output, session) {
         }
         
         if (input$in_source_run == 'Sim') {
-            last_path_models = file.path('HPFC', 'last', 'models', input$in_select_PWR_indicator_for)
-            last_path_history = file.path('HPFC', 'last', 'history', input$in_select_PWR_indicator_for)
+            last_path_models = file.path('HPFC', 'archive', 'models', input$in_select_PWR_indicator_for, input$sim_name)
+            last_path_history = file.path('HPFC', 'archive', 'history', input$in_select_PWR_indicator_for, input$sim_name)
             
             ENV_MODELS_GAS = list()
             ENV_MODELS_PWR = list()
@@ -1066,6 +1066,16 @@ server = function(input, output, session) {
         if (input$in_source_run == 'Last') {
             last_path_models = file.path('HPFC', 'last', 'models', input$in_select_GAS_indicator_for)
             last_path_history = file.path('HPFC', 'last', 'history', input$in_select_GAS_indicator_for)
+            
+            ENV_MODELS_GAS = list()
+            list_inputs = list()
+            ENV_MODELS_GAS$dt_lt_param_gasdep = readRDS(file.path(last_path_models, 'model_gas_lt.rds'))
+            list_inputs$history_gas = readRDS(file.path(last_path_history, 'history_gas.rds'))
+        }
+        
+        if (input$in_source_run == 'Sim') {
+            last_path_models = file.path('HPFC', 'archive', 'models', input$in_select_GAS_indicator_for, input$sim_name)
+            last_path_history = file.path('HPFC', 'archive', 'history', input$in_select_GAS_indicator_for, input$sim_name)
             
             ENV_MODELS_GAS = list()
             list_inputs = list()
