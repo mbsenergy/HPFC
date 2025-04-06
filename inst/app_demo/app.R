@@ -11,6 +11,7 @@ library(magrittr)
 library(react)
 # library(HPFC)
 devtools::load_all()
+options(shiny.maxRequestSize = 50*1024^2)  # 50 MB
 
 mbs_theme =
     bs_theme(
@@ -102,6 +103,18 @@ product_train_gas =
     )
 
 
+### DATA SOURCE -------------------------------------
+select_source_train =
+    radioButtons(
+        inputId = "in_source_train",
+        label = "Select data source:",
+        choices = c("Reuters",
+                    "Excel"),
+        selected = "Reuters",
+        inline = FALSE
+    )
+
+
 ### BUTTONS EXECUTE DOWNLOAD -----------------------
 train_pwr_download =
     downloadButton(
@@ -179,6 +192,18 @@ product_forecast_gas =
         width = '100%',
         type = "warning"
     )
+
+### DATA SOURCE -------------------------------------
+select_source_forecast =
+    radioButtons(
+        inputId = "in_source_forecast",
+        label = "Select data source:",
+        choices = c("Reuters",
+                    "Excel"),
+        selected = "Reuters",
+        inline = FALSE
+    )
+
 
 
 ### BUTTONS EXECUTE DOWNLOAD -----------------------
@@ -270,6 +295,9 @@ ui = page_navbar(
                                     product_train_pwr,
                                     product_train_gas,
                                     hr(),
+                                    select_source_train,
+                                    uiOutput("select_source_file_train"),
+                                    hr(),
                                     fluidRow(train_pwr_download, train_gas_download),
                                     br()
                   ),
@@ -316,6 +344,9 @@ ui = page_navbar(
                                     product_forecast_pwr,
                                     product_forecast_gas,
                                     hr(),
+                                    select_source_forecast,
+                                    uiOutput("select_source_file_forecast"),
+                                    hr(),
                                     fluidRow(fwd_pwr_download, fwd_gas_download),
                                     br()
                   ),
@@ -344,6 +375,63 @@ ui = page_navbar(
 
 # SERVER  ------------------------------------------------------------------------------------------------- 
 server = function(input, output, session) {
+    
+    ## MANUAL DATA ------------------------------------------------------
+    ### SPOTS
+    observe({
+        if (input$in_source_train == 'Excel') {
+            output$select_source_file_train = renderUI({
+                fileInput(
+                    inputId = "in_train_excel",
+                    label = "Excel file with spot data",
+                    accept = c(".xlsx", ".xls"),
+                    multiple = FALSE
+                )
+            })
+            
+        } else {
+            output$select_source_file_train = renderUI(NULL)
+        }
+    })
+    
+    dt_spot_manual = reactiveVal(NULL)
+    observe({
+        req(input$in_train_excel)
+        file_path = input$in_train_excel$datapath
+        df = openxlsx::read.xlsx(file_path)
+        dt = data.table::as.data.table(df)
+        print(dt)
+        dt_spot_manual(dt)
+    })
+    
+    
+    ### FWD
+    observe({
+        if (input$in_source_forecast == 'Excel') {
+            output$select_source_file_forecast = renderUI({
+                fileInput(
+                    inputId = "in_forecast_excel",
+                    label = "Excel file with forecast data",
+                    accept = c(".xlsx", ".xls"),
+                    multiple = FALSE
+                )
+            })
+            
+        } else {
+            output$select_source_file_forecast = renderUI(NULL)
+        }
+    })
+    
+    dt_forecast_manual = reactiveVal(NULL)
+    observe({
+        req(input$in_forecast_excel)
+        file_path = input$in_forecast_excel$datapath
+        df = openxlsx::read.xlsx(file_path)
+        dt = data.table::as.data.table(df)
+        print(dt)
+        dt_forecast_manual(dt)
+    })
+    
     
     # Reactive input recap data -----------------
     recap_data = reactive({
