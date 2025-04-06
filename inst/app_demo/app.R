@@ -574,6 +574,17 @@ server = function(input, output, session) {
         saveRDS(list_inputs$ENV_SPOT$history_gas, file.path(last_path, paste0('history_gas.rds')))
         saveRDS(list_inputs$ENV_SPOT$history_pwr, file.path(last_path, paste0('history_pwr.rds')))
         
+        if(nchar(input$in_new_sim_name) > 0) {
+            print('ok')
+            last_path = file.path('HPFC', 'archive', 'history', input$in_select_PWR_indicator, input$in_new_sim_name)
+            if (!dir.exists(last_path)) {
+                dir.create(last_path, recursive = TRUE)
+            }
+            
+            saveRDS(list_inputs$ENV_SPOT$history_gas, file.path(last_path, paste0('history_gas.rds')))
+            saveRDS(list_inputs$ENV_SPOT$history_pwr, file.path(last_path, paste0('history_pwr.rds')))
+        }
+        
         list_inputs_field_pwr(list_inputs)
         
         print('------------- LOAD INPUTS END ---------------')
@@ -653,10 +664,17 @@ server = function(input, output, session) {
         saveRDS(ENV_MODELS_PWR$dt_lt_param_pwr, file.path(last_path, paste0('model_pwr_lt.rds')))
         saveRDS(ENV_MODELS_PWR$lst_hr_param_pwr, file.path(last_path, paste0('model_pwr_st.rds')))
         
-        # if(!is.null(input$in_new_sim_name)) {
-        #     saveRDS(file.path())
-        # }
-        
+        if(nchar(input$in_new_sim_name) > 0) {
+            print('ok')
+            last_path = file.path('HPFC', 'archive', 'models', input$in_select_PWR_indicator, input$in_new_sim_name)
+            if (!dir.exists(last_path)) {
+                dir.create(last_path, recursive = TRUE)
+            }
+            
+            saveRDS(ENV_MODELS_GAS$dt_lt_param_gasdep, file.path(last_path, paste0('model_gas_lt.rds')))
+            saveRDS(ENV_MODELS_PWR$dt_lt_param_pwr, file.path(last_path, paste0('model_pwr_lt.rds')))
+            saveRDS(ENV_MODELS_PWR$lst_hr_param_pwr, file.path(last_path, paste0('model_pwr_st.rds')))
+        }
         
         models_gas_field_pwr(ENV_MODELS_GAS)
         models_pwr_field(ENV_MODELS_PWR)
@@ -725,6 +743,15 @@ server = function(input, output, session) {
         
         saveRDS(list_inputs$ENV_SPOT$history_gas, file.path(last_path, paste0('history_gas.rds')))
         
+        if(nchar(input$in_new_sim_name) > 0) {
+            last_path = file.path('HPFC', 'archive', 'history', input$in_select_GAS_indicator, input$in_new_sim_name)
+            if (!dir.exists(last_path)) {
+                dir.create(last_path, recursive = TRUE)
+            }
+            
+            saveRDS(list_inputs$ENV_SPOT$history_gas, file.path(last_path, paste0('history_gas.rds')))
+        }
+        
         list_inputs_field_gas(list_inputs)
         
         print('------------- LOAD INPUTS END ---------------')
@@ -782,6 +809,16 @@ server = function(input, output, session) {
         }
         
         saveRDS(ENV_MODELS_GAS$dt_lt_param_gasdep, file.path(last_path, paste0('model_gas_lt.rds')))
+        
+        if(nchar(input$in_new_sim_name) > 0) {
+            print('ok')
+            last_path = file.path('HPFC', 'archive', 'models', input$in_select_GAS_indicator, input$in_new_sim_name)
+            if (!dir.exists(last_path)) {
+                dir.create(last_path, recursive = TRUE)
+            }
+            
+            saveRDS(ENV_MODELS_GAS$dt_lt_param_gasdep, file.path(last_path, paste0('model_gas_lt.rds')))
+        }
         
         models_gas_field_gas(ENV_MODELS_GAS)
         
