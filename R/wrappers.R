@@ -66,13 +66,13 @@ load_inputs = function(params, manual_data = NULL, reuters_key = NULL) {
             ENV_SPOT$history_gas = ENV_SPOT$history_gas_full[date <= LST_PARAMS$history_end]
             ENV_SPOT$spot_gas_RIC = unique(HPFC::spot_GAS_products_full[products_GAS %in% c(LST_PARAMS$selected_gas_code, LST_PARAMS$dependent_gas_code)]$spot_GAS_code)
             
-            cat(crayon::green$bold("\n✔ Manual Data retrieved from:"), paste(LST_DIRS$dir_data_raw, 'history_gas.csv'), "\n")
+            cat(crayon::green$bold("\n✔ Manual Data Gas retrieved. \n"))
             
             ENV_SPOT$history_pwr_full = manual_data[RIC == HPFC::spot_PWR_products_full[countries %in% LST_PARAMS$selected_pwr_code]$spot_PWR_code]
             ENV_SPOT$history_pwr = ENV_SPOT$history_pwr_full[date <= LST_PARAMS$history_end]
             ENV_SPOT$spot_pwr_RIC = unique(HPFC::spot_PWR_products_full[countries %in% LST_PARAMS$selected_pwr_code]$spot_PWR_code)
             
-            cat(crayon::green$bold("\n✔ Manual Data retrieved from:"), paste(LST_DIRS$dir_data_raw, 'history_pwr.csv'), "\n")
+            cat(crayon::green$bold("\n✔ Manual Data Power retrieved. \n"))
         } else {
             stop('Missing manual data!')
         }
@@ -229,38 +229,38 @@ prepare_fwd = function(fwd_pwr_code = NULL, fwd_gas_code = NULL, start_date, end
     
     ENV_FWD = list()
     
-    is_manual = !is.null(manual_pwr) & !is.null(manual_gas)
+    forecast_start = start_date
+    forecast_end = end_date
+    
+    if(model_type == 'GAS') {
+        selected_gas_code = fwd_gas_code
+        ENV_FWD$fwd_gas_RIC = unique(HPFC::spot_GAS_products_full[products_GAS %in% c(selected_gas_code)]$products_GAS_code)
+        
+    } else {
+        selected_gas_code = fwd_gas_code
+        selected_pwr_code = fwd_pwr_code
+        ENV_FWD$fwd_gas_RIC = unique(HPFC::spot_GAS_products_full[products_GAS %in% c(selected_gas_code)]$products_GAS_code)
+        ENV_FWD$fwd_pwr_RIC =  unique(HPFC::spot_PWR_products_full[countries %in% selected_pwr_code]$products_PWR_code)
+    }
+    
+    ENV_FWD$last_date = as.Date(forecast_start) - 1
+    
+    calendar_future = copy(calendar_holidays)
+    calendar_future[,`:=` (year = as.character(data.table::year(date)), 
+                           quarter = as.character(data.table::quarter(date)),
+                           month = as.character(data.table::month(date)))
+    ]
+    
+    ENV_FWD$calendar_future = calendar_future[date >= forecast_start & date <= forecast_end]
+    
+    
+    # B. Forward Market Data
+    
+    ENV_FWD$time_range = as.numeric(data.table::year(as.Date(forecast_start))):as.numeric(data.table::year(as.Date(forecast_end)))
+    
+    is_manual = !is.null(manual_pwr) | !is.null(manual_gas)
     
     if(isFALSE(is_manual)) {
-        
-        forecast_start = start_date
-        forecast_end = end_date
-        
-        if(model_type == 'GAS') {
-            selected_gas_code = fwd_gas_code
-            ENV_FWD$fwd_gas_RIC = unique(HPFC::spot_GAS_products_full[products_GAS %in% c(selected_gas_code)]$products_GAS_code)
-            
-        } else {
-            selected_gas_code = fwd_gas_code
-            selected_pwr_code = fwd_pwr_code
-            ENV_FWD$fwd_gas_RIC = unique(HPFC::spot_GAS_products_full[products_GAS %in% c(selected_gas_code)]$products_GAS_code)
-            ENV_FWD$fwd_pwr_RIC =  unique(HPFC::spot_PWR_products_full[countries %in% selected_pwr_code]$products_PWR_code)
-        }
-        
-        ENV_FWD$last_date = as.Date(forecast_start) - 1
-        
-        calendar_future = copy(calendar_holidays)
-        calendar_future[,`:=` (year = as.character(data.table::year(date)), 
-                               quarter = as.character(data.table::quarter(date)),
-                               month = as.character(data.table::month(date)))
-        ]
-        
-        ENV_FWD$calendar_future = calendar_future[date >= forecast_start & date <= forecast_end]
-        
-        
-        # B. Forward Market Data
-        
-        ENV_FWD$time_range = as.numeric(data.table::year(as.Date(forecast_start))):as.numeric(data.table::year(as.Date(forecast_end)))
         
         DT_GAS = HPFC::dt_fwds_gas[substr(RIC, 1, 4) == ENV_FWD$fwd_gas_RIC]
         if(model_type == 'PWR') {
@@ -317,11 +317,11 @@ prepare_fwd = function(fwd_pwr_code = NULL, fwd_gas_code = NULL, start_date, end
     
     if(isTRUE(is_manual)) {
         dt_fwd_gas = manual_gas
-        dt_fwd_prep_gas = merge(dt_fwd_gas, generate_monthrics_gas('TFMB', time_range = 2024), by.x = 'yymm', by.y ='date', all.x = TRUE) 
+        dt_fwd_prep_gas = merge(dt_fwd_gas, generate_monthrics_gas(unique(HPFC::spot_GAS_products_full[products_GAS %in% c(selected_gas_code)]$products_GAS_code), time_range = 2024), by.x = 'yymm', by.y ='date', all.x = TRUE) 
         
         if(model_type == 'PWR') {
             dt_fwd_pwr = manual_pwr
-            dt_fwd_prep_pwr = merge(dt_fwd_pwr, generate_monthrics_pwr('Romania', time_range = 2024), by.x = 'yymm', by.y ='date', all.x = TRUE) 
+            dt_fwd_prep_pwr = merge(dt_fwd_pwr, generate_monthrics_pwr(unique(HPFC::spot_PWR_products_full[countries %in% selected_pwr_code]$countries), time_range = 2024), by.x = 'yymm', by.y ='date', all.x = TRUE) 
             dt_fwds = rbind(dt_fwd_prep_pwr, dt_fwd_prep_gas)
             
         } else {

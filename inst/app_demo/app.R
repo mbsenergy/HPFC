@@ -88,7 +88,7 @@ product_train_pwr =
         id = 'act_indicator_train_pwr',
         label = 'Train Power model',
         label_busy = "Training...",
-        icon = shiny::icon('run'),
+        icon = shiny::icon('person-running'),
         width = '100%',
         type = "danger"
     )
@@ -99,7 +99,7 @@ product_train_gas =
         id = 'act_indicator_train_gas',
         label = 'Train Gas model',
         label_busy = "Training...",
-        icon = shiny::icon('run'),
+        icon = shiny::icon('person-running'),
         width = '100%',
         type = "warning"
     )
@@ -347,7 +347,8 @@ ui = page_navbar(
                                     product_forecast_gas,
                                     hr(),
                                     select_source_forecast,
-                                    uiOutput("select_source_file_forecast"),
+                                    uiOutput("select_source_file_forecast_pwr"),
+                                    uiOutput("select_source_file_forecast_gas"),
                                     hr(),
                                     fluidRow(fwd_pwr_download, fwd_gas_download),
                                     br()
@@ -400,7 +401,7 @@ server = function(input, output, session) {
     observe({
         req(input$in_train_excel)
         file_path = input$in_train_excel$datapath
-        df = openxlsx::read.xlsx(file_path)
+        df = openxlsx::read.xlsx(file_path, detectDates = TRUE)
         dt = data.table::as.data.table(df)
         dt_spot_manual(dt)
     })
@@ -409,27 +410,46 @@ server = function(input, output, session) {
     ### FWD
     observe({
         if (input$in_source_forecast == 'Excel') {
-            output$select_source_file_forecast = renderUI({
+            output$select_source_file_forecast_pwr = renderUI({
                 fileInput(
-                    inputId = "in_forecast_excel",
-                    label = "Excel file with forecast data",
+                    inputId = "in_forecast_excel_pwr",
+                    label = "Excel with Power forecast data",
+                    accept = c(".xlsx", ".xls"),
+                    multiple = FALSE
+                )
+            })
+            
+            output$select_source_file_forecast_gas = renderUI({
+                fileInput(
+                    inputId = "in_forecast_excel_gas",
+                    label = "Excel with Gas forecast data",
                     accept = c(".xlsx", ".xls"),
                     multiple = FALSE
                 )
             })
             
         } else {
-            output$select_source_file_forecast = renderUI(NULL)
+            output$select_source_file_forecast_pwr = renderUI(NULL)
+            output$select_source_file_forecast_gas = renderUI(NULL)
         }
     })
     
-    dt_forecast_manual = reactiveVal(NULL)
+    dt_forecast_manual_pwr = reactiveVal(NULL)
     observe({
-        req(input$in_forecast_excel)
-        file_path = input$in_forecast_excel$datapath
-        df = openxlsx::read.xlsx(file_path)
+        req(input$in_forecast_excel_pwr)
+        file_path = input$in_forecast_excel_pwr$datapath
+        df = openxlsx::read.xlsx(file_path, detectDates = TRUE)
         dt = data.table::as.data.table(df)
-        dt_forecast_manual(dt)
+        dt_forecast_manual_pwr(dt)
+    })
+    
+    dt_forecast_manual_gas = reactiveVal(NULL)
+    observe({
+        req(input$in_forecast_excel_gas)
+        file_path = input$in_forecast_excel_gas$datapath
+        df = openxlsx::read.xlsx(file_path, detectDates = TRUE)
+        dt = data.table::as.data.table(df)
+        dt_forecast_manual_gas(dt)
     })
     
     
@@ -492,12 +512,16 @@ server = function(input, output, session) {
         
         LST_PARAMS = react$params_input_pwr
         
-        if(LST_PARAMS$data_source == 'Excel') {
+        if(input$in_source_train == 'Excel') {
+            
             req(react$dt_spot_manual)
             list_inputs = HPFC::load_inputs(params = LST_PARAMS, manual_data = react$dt_spot_manual, reuters_key = NULL)
+            
+        } else {
+            
+            list_inputs = HPFC::load_inputs(params = LST_PARAMS, manual_data = NULL, reuters_key = PLEASE_INSERT_REUTERS_KEY)
+            
         }
-        
-        list_inputs = HPFC::load_inputs(params = LST_PARAMS, manual_data = NULL, reuters_key = PLEASE_INSERT_REUTERS_KEY)
         
         list_inputs_field_pwr(list_inputs)
         
@@ -592,7 +616,7 @@ server = function(input, output, session) {
             forecast_start = input$in_select_horizon[1],
             forecast_end = input$in_select_horizon[2],
             model_source = 'TRAIN',
-            data_source = '0df86b690b2c4ae2bf245680dbbfcc86bb041dc9',
+            data_source = input$in_source_train,
             forecast_source = 'FWD',
             sim_name = 'NO',
             archive = 'NO'
@@ -614,12 +638,17 @@ server = function(input, output, session) {
         
         LST_PARAMS = react$params_input_gas
         
-        if(LST_PARAMS$data_source == 'Excel') {
+        if(input$in_source_train == 'Excel') {
+            
             req(react$dt_spot_manual)
             list_inputs = HPFC::load_inputs(params = LST_PARAMS, manual_data = react$dt_spot_manual, reuters_key = NULL)
+            
+        } else {
+            
+            list_inputs = HPFC::load_inputs(params = LST_PARAMS, manual_data = NULL, reuters_key = PLEASE_INSERT_REUTERS_KEY)        
+            
         }
         
-        list_inputs = HPFC::load_inputs(params = LST_PARAMS, manual_data = NULL, reuters_key = PLEASE_INSERT_REUTERS_KEY)        
         list_inputs_field_gas(list_inputs)
         
         print('------------- LOAD INPUTS END ---------------')
@@ -721,17 +750,35 @@ server = function(input, output, session) {
     
     observeEvent(input$act_indicator_forecast_pwr, {
         
-        list_inputs_fwd = prepare_fwd(
-            fwd_pwr_code = input$in_select_PWR_indicator_for,
-            fwd_gas_code = 'TTF',
-            start_date = input$in_select_horizon[1],
-            end_date = input$in_select_horizon[2],
-            model_type = 'PWR',
-            forecast_source = 'FWD',
-            archive = 'NO',
-            manual_pwr = NULL,
-            manual_gas = NULL
-        )
+        if(input$in_source_forecast == 'Excel') {
+            print('EXCEL')
+            list_inputs_fwd = prepare_fwd(
+                fwd_pwr_code = input$in_select_PWR_indicator_for,
+                fwd_gas_code = 'TTF',
+                start_date = input$in_select_horizon[1],
+                end_date = input$in_select_horizon[2],
+                model_type = 'PWR',
+                forecast_source = 'FWD',
+                archive = 'NO',
+                manual_pwr = NULL,
+                manual_gas = NULL
+            )
+        
+        } else {
+            print('MANUAL')
+            list_inputs_fwd = prepare_fwd(
+                fwd_pwr_code = input$in_select_PWR_indicator_for,
+                fwd_gas_code = 'TTF',
+                start_date = input$in_select_horizon[1],
+                end_date = input$in_select_horizon[2],
+                model_type = 'PWR',
+                forecast_source = 'FWD',
+                archive = 'NO',
+                manual_pwr = react$dt_forecast_manual_pwr,
+                manual_gas = react$dt_forecast_manual_gas
+            )            
+            
+        }
         
         fwd_pwr_field(list_inputs_fwd)
         
@@ -739,16 +786,34 @@ server = function(input, output, session) {
     
     observeEvent(input$act_indicator_forecast_gas, {
         
-        list_inputs_fwd = prepare_fwd(
-            fwd_gas_code = input$in_select_GAS_indicator_for,
-            start_date = input$in_select_horizon[1],
-            end_date = input$in_select_horizon[2],
-            model_type = 'GAS',
-            forecast_source = 'FWD',
-            archive = 'NO',
-            manual_pwr = NULL,
-            manual_gas = NULL
-        )
+        if(input$in_source_forecast == 'Excel') {
+            print('EXCEL')
+            req(react$dt_forecast_manual_gas)
+            list_inputs_fwd = prepare_fwd(
+                fwd_gas_code = input$in_select_GAS_indicator_for,
+                start_date = input$in_select_horizon[1],
+                end_date = input$in_select_horizon[2],
+                model_type = 'GAS',
+                forecast_source = 'FWD',
+                archive = 'NO',
+                manual_pwr = NULL,
+                manual_gas = react$dt_forecast_manual_gas
+            )
+        
+        } else {
+            print('MANUAL')
+            list_inputs_fwd = prepare_fwd(
+                fwd_gas_code = input$in_select_GAS_indicator_for,
+                start_date = input$in_select_horizon[1],
+                end_date = input$in_select_horizon[2],
+                model_type = 'GAS',
+                forecast_source = 'FWD',
+                archive = 'NO',
+                manual_pwr = NULL,
+                manual_gas = NULL
+            )
+            
+        }
         
         fwd_gas_field(list_inputs_fwd)
         
