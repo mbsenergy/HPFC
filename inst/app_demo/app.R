@@ -3,15 +3,17 @@
 
 library(shiny)
 library(shinyjs)
-library(bslib)        # for bslib theme and components
-library(echarts4r)     # for interactive charts
-library(reactable)     # for interactive tables
-library(shinycssloaders) # for loading spinner
+library(bslib)        
+library(echarts4r)     
+library(reactable)     
+library(shinycssloaders) 
 library(magrittr)
+library(openxlsx)
 library(react)
 # library(HPFC)
 devtools::load_all()
 options(shiny.maxRequestSize = 50*1024^2)  # 50 MB
+PLEASE_INSERT_REUTERS_KEY = read.xlsx("PLEASE INSERT REUTERS KEY.xlsx", sheet = 1, colNames = FALSE)[2,1]
 
 mbs_theme =
     bs_theme(
@@ -400,7 +402,6 @@ server = function(input, output, session) {
         file_path = input$in_train_excel$datapath
         df = openxlsx::read.xlsx(file_path)
         dt = data.table::as.data.table(df)
-        print(dt)
         dt_spot_manual(dt)
     })
     
@@ -428,7 +429,6 @@ server = function(input, output, session) {
         file_path = input$in_forecast_excel$datapath
         df = openxlsx::read.xlsx(file_path)
         dt = data.table::as.data.table(df)
-        print(dt)
         dt_forecast_manual(dt)
     })
     
@@ -470,7 +470,7 @@ server = function(input, output, session) {
             forecast_start = input$in_select_horizon[1],
             forecast_end = input$in_select_horizon[2],
             model_source = 'TRAIN',
-            data_source = '0df86b690b2c4ae2bf245680dbbfcc86bb041dc9',
+            data_source = input$in_source_train,
             forecast_source = 'FWD',
             sim_name = 'NO',
             archive = 'NO'
@@ -491,7 +491,13 @@ server = function(input, output, session) {
         print('------------- LOAD INPUTS START -------------')
         
         LST_PARAMS = react$params_input_pwr
-        list_inputs = HPFC::load_inputs(params = LST_PARAMS)
+        
+        if(LST_PARAMS$data_source == 'Excel') {
+            req(react$dt_spot_manual)
+            list_inputs = HPFC::load_inputs(params = LST_PARAMS, manual_data = react$dt_spot_manual, reuters_key = NULL)
+        }
+        
+        list_inputs = HPFC::load_inputs(params = LST_PARAMS, manual_data = NULL, reuters_key = PLEASE_INSERT_REUTERS_KEY)
         
         list_inputs_field_pwr(list_inputs)
         
@@ -607,8 +613,13 @@ server = function(input, output, session) {
         print('------------- LOAD INPUTS START -------------')
         
         LST_PARAMS = react$params_input_gas
-        list_inputs = HPFC::load_inputs(params = LST_PARAMS)
         
+        if(LST_PARAMS$data_source == 'Excel') {
+            req(react$dt_spot_manual)
+            list_inputs = HPFC::load_inputs(params = LST_PARAMS, manual_data = react$dt_spot_manual, reuters_key = NULL)
+        }
+        
+        list_inputs = HPFC::load_inputs(params = LST_PARAMS, manual_data = NULL, reuters_key = PLEASE_INSERT_REUTERS_KEY)        
         list_inputs_field_gas(list_inputs)
         
         print('------------- LOAD INPUTS END ---------------')

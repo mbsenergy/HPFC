@@ -53,7 +53,7 @@ It will determine the price level source. It can be:
 
 LST_PARAMS = jsonlite::fromJSON(file.path('params.json'))
 
-list_inputs = load_inputs(params = LST_PARAMS)
+list_inputs = load_inputs(params = LST_PARAMS, manual_data = NULL, reuters_key = PLEASE_INSERT_REUTERS_KEY)
 ```
 
 

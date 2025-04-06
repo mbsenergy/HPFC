@@ -22,7 +22,7 @@
 #' @importFrom eikonapir set_proxy_port set_app_id
 #' 
 #' @export
-load_inputs = function(params) {
+load_inputs = function(params, manual_data = NULL, reuters_key = NULL) {
     
     LST_PARAMS = params
     
@@ -58,80 +58,88 @@ load_inputs = function(params) {
     
     ENV_SPOT = list()
     
-    ENV_SPOT$history_gas_full = HPFC::dt_spot_gas[RIC == HPFC::spot_GAS_products_full[products_GAS %in% unique(c(LST_PARAMS$selected_gas_code, LST_PARAMS$dependent_gas_code))]$spot_GAS_code]
-    ENV_SPOT$history_pwr_full = HPFC::dt_spot_pwr[RIC == HPFC::spot_PWR_products_full[countries %in% LST_PARAMS$selected_pwr_code]$spot_PWR_code]
+    if(LST_PARAMS$data_source == 'Excel') {
+        if(!is.null(manual_data)) {
+            
+            ENV_SPOT$history_gas_full = manual_data[RIC == HPFC::spot_GAS_products_full[products_GAS %in% unique(c(LST_PARAMS$selected_gas_code, LST_PARAMS$dependent_gas_code))]$spot_GAS_code]
+            ENV_SPOT$history_gas_full[, hour := NULL]
+            ENV_SPOT$history_gas = ENV_SPOT$history_gas_full[date <= LST_PARAMS$history_end]
+            ENV_SPOT$spot_gas_RIC = unique(HPFC::spot_GAS_products_full[products_GAS %in% c(LST_PARAMS$selected_gas_code, LST_PARAMS$dependent_gas_code)]$spot_GAS_code)
+            
+            cat(crayon::green$bold("\n✔ Manual Data retrieved from:"), paste(LST_DIRS$dir_data_raw, 'history_gas.csv'), "\n")
+            
+            ENV_SPOT$history_pwr_full = manual_data[RIC == HPFC::spot_PWR_products_full[countries %in% LST_PARAMS$selected_pwr_code]$spot_PWR_code]
+            ENV_SPOT$history_pwr = ENV_SPOT$history_pwr_full[date <= LST_PARAMS$history_end]
+            ENV_SPOT$spot_pwr_RIC = unique(HPFC::spot_PWR_products_full[countries %in% LST_PARAMS$selected_pwr_code]$spot_PWR_code)
+            
+            cat(crayon::green$bold("\n✔ Manual Data retrieved from:"), paste(LST_DIRS$dir_data_raw, 'history_pwr.csv'), "\n")
+        } else {
+            stop('Missing manual data!')
+        }
+        
+    } 
     
-    ENV_SPOT$history_gas = ENV_SPOT$history_gas_full[date <= LST_PARAMS$history_end]
-    ENV_SPOT$spot_gas_RIC = unique(HPFC::spot_GAS_products_full[products_GAS %in% c(LST_PARAMS$selected_gas_code, LST_PARAMS$dependent_gas_code)]$spot_GAS_code)
-    
-    ENV_SPOT$history_pwr = ENV_SPOT$history_pwr_full[date <= LST_PARAMS$history_end]
-    ENV_SPOT$spot_pwr_RIC = unique(HPFC::spot_PWR_products_full[countries %in% LST_PARAMS$selected_pwr_code]$spot_PWR_code)
-    
-    if(LST_PARAMS$data_source != 'LOCAL') {
+    if(LST_PARAMS$data_source != 'Excel') {
+        
         ### Connection
         eikonapir::set_proxy_port(9000L)
-        PLEASE_INSERT_REUTERS_KEY = LST_PARAMS$data_source
-        eikonapir::set_app_id(as.character(PLEASE_INSERT_REUTERS_KEY[1]))
+        PLEASE_INSERT_REUTERS_KEY = reuters_key[[1]]
+        eikonapir::set_app_id(as.character(PLEASE_INSERT_REUTERS_KEY))
         
-    }
-    
-    if(LST_PARAMS$data_source != 'LOCAL') {
-        
-        ## GAS
-        if(as.character(LST_PARAMS$history_end) >= '2025-01-01') {
-            
-            DT_NEW = HPFC::retrieve_spot(
-                ric = ENV_SPOT$spot_gas_RIC,
-                from_date = as.character('2025-01-01'),
-                to_date = as.character(LST_PARAMS$history_end),
-                type = 'GAS')
-            
-            ENV_SPOT$history_gas_full = 
-                rbind(
-                    ENV_SPOT$history_gas_full,
-                    DT_NEW,
-                    use.names=TRUE
-                )
-        }
+        ENV_SPOT$history_gas_full = HPFC::dt_spot_gas[RIC == HPFC::spot_GAS_products_full[products_GAS %in% unique(c(LST_PARAMS$selected_gas_code, LST_PARAMS$dependent_gas_code))]$spot_GAS_code]
+        ENV_SPOT$history_pwr_full = HPFC::dt_spot_pwr[RIC == HPFC::spot_PWR_products_full[countries %in% LST_PARAMS$selected_pwr_code]$spot_PWR_code]
         
         ENV_SPOT$history_gas = ENV_SPOT$history_gas_full[date <= LST_PARAMS$history_end]
+        ENV_SPOT$spot_gas_RIC = unique(HPFC::spot_GAS_products_full[products_GAS %in% c(LST_PARAMS$selected_gas_code, LST_PARAMS$dependent_gas_code)]$spot_GAS_code)
         
-        ## PWR
-        if(as.character(LST_PARAMS$history_end) >= '2025-01-01') {
+        ENV_SPOT$history_pwr = ENV_SPOT$history_pwr_full[date <= LST_PARAMS$history_end]
+        ENV_SPOT$spot_pwr_RIC = unique(HPFC::spot_PWR_products_full[countries %in% LST_PARAMS$selected_pwr_code]$spot_PWR_code)
+        
             
-            DT_NEW = HPFC::retrieve_spot(
-                ric = ENV_SPOT$spot_pwr_RIC,
-                from_date = '2025-01-01',
-                to_date = LST_PARAMS$history_end,
-                type = 'PWR')
+        if(LST_PARAMS$data_source != 'Excel') {
             
-            ENV_SPOT$history_pwr_full = 
-                rbind(
-                    ENV_SPOT$history_pwr_full,
-                    DT_NEW,
-                    use.names=TRUE
-                )
+            ## GAS
+            if(as.character(LST_PARAMS$history_end) >= '2025-01-01') {
+                
+                DT_NEW = HPFC::retrieve_spot(
+                    ric = ENV_SPOT$spot_gas_RIC,
+                    from_date = as.character('2025-01-01'),
+                    to_date = as.character(LST_PARAMS$history_end),
+                    type = 'GAS')
+                
+                ENV_SPOT$history_gas_full = 
+                    rbind(
+                        ENV_SPOT$history_gas_full,
+                        DT_NEW,
+                        use.names=TRUE
+                    )
+            }
+            
+            ENV_SPOT$history_gas = ENV_SPOT$history_gas_full[date <= LST_PARAMS$history_end]
+            
+            ## PWR
+            if(as.character(LST_PARAMS$history_end) >= '2025-01-01') {
+                
+                DT_NEW = HPFC::retrieve_spot(
+                    ric = ENV_SPOT$spot_pwr_RIC,
+                    from_date = '2025-01-01',
+                    to_date = LST_PARAMS$history_end,
+                    type = 'PWR')
+                
+                ENV_SPOT$history_pwr_full = 
+                    rbind(
+                        ENV_SPOT$history_pwr_full,
+                        DT_NEW,
+                        use.names=TRUE
+                    )
+                
+            }
+            
+            ENV_SPOT$history_pwr = ENV_SPOT$history_pwr_full[date <= LST_PARAMS$history_end]
             
         }
         
-        ENV_SPOT$history_pwr = ENV_SPOT$history_pwr_full[date <= LST_PARAMS$history_end]
-        
     }
-    
-    if(LST_PARAMS$data_source == 'MANUAL') {
-        ENV_SPOT$history_gas = fread(file.path(LST_DIRS$dir_data_raw, 'history_gas.csv'))
-        cat(crayon::green$bold("\n✔ Manual Data retrieved from:"), paste(LST_DIRS$dir_data_raw, 'history_gas.csv'), "\n")
-        
-        ENV_SPOT$history_pwr = fread(file.path(LST_DIRS$dir_data_raw, 'history_pwr.csv'))
-        cat(crayon::green$bold("\n✔ Manual Data retrieved from:"), paste(LST_DIRS$dir_data_raw, 'history_pwr.csv'), "\n")
-        
-    } 
-    
-    
-    if(LST_PARAMS$data_source == 'MANUAL') {
-        ENV_FWD$dt_fwds = fread(file.path(LST_DIRS$dir_data_raw, 'dt_fwds.csv'))
-        cat(crayon::green$bold("\n✔ Manual Data retrieved from:"), paste(LST_DIRS$dir_data_raw, 'dt_fwds.csv'), "\n")
-    } 
     
     ## PREPARE AND RETURN
     
@@ -159,7 +167,7 @@ load_inputs = function(params) {
     
     if(LST_PARAMS$sim_name != 'NO') {
         
-        if(LST_PARAMS$data_source == 'LOCAL') {
+        if(LST_PARAMS$data_source == 'Excel') {
             
             ENV_SPOT = readRDS(file.path(LST_DIRS$dir_data_raw, 'ENV_SPOT.rds'))
             ENV_CODES = readRDS(file.path(LST_DIRS$dir_data_other, 'ENV_CODES.rds'))
