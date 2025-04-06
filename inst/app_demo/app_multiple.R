@@ -12,6 +12,7 @@ library(react)
 # library(HPFC)
 devtools::load_all()
 
+
 mbs_theme =
     bs_theme(
         version = 5,
@@ -63,7 +64,7 @@ select_PWR_product =
     selectInput(
         inputId = "in_select_PWR_indicator",
         label = span("Power:", style = 'font-weight: bold;'),
-        multiple = FALSE,
+        multiple = TRUE,
         width = '100%',
         choices = vec_pwr_products,
         selected = 'Greece'
@@ -73,7 +74,7 @@ select_GAS_product =
     selectInput(
         inputId = "in_select_GAS_indicator",
         label = span("Gas:", style = 'font-weight: bold;'),
-        multiple = FALSE,
+        multiple = TRUE,
         width = '100%',
         choices = vec_gas_products,
         selected = 'TTF'
@@ -85,7 +86,7 @@ product_train_pwr =
         id = 'act_indicator_train_pwr',
         label = 'Train Power model',
         label_busy = "Training...",
-        icon = shiny::icon('backward'),
+        icon = shiny::icon('run'),
         width = '100%',
         type = "danger"
     )
@@ -96,7 +97,7 @@ product_train_gas =
         id = 'act_indicator_train_gas',
         label = 'Train Gas model',
         label_busy = "Training...",
-        icon = shiny::icon('backward'),
+        icon = shiny::icon('run'),
         width = '100%',
         type = "warning"
     )

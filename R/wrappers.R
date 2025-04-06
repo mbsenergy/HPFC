@@ -53,15 +53,6 @@ load_inputs = function(params) {
     ENV_CODES$calendar_holidays = setnames(HPFC::calendar_holidays, paste0("holiday_GR"), 'holiday', skip_absent = TRUE)
     ENV_CODES$calendar_holidays = ENV_CODES$calendar_holidays[, .(date, holiday)]
     
-    ENV_CODES$last_date = as.Date(LST_PARAMS$forecast_start) - 1
-    
-    ENV_CODES$calendar_future = copy(ENV_CODES$calendar_holidays)
-    ENV_CODES$calendar_future[,`:=` (year = as.character(data.table::year(date)), 
-                           quarter = as.character(data.table::quarter(date)),
-                           month = as.character(data.table::month(date)))
-                    ]
-
-    ENV_CODES$calendar_future = ENV_CODES$calendar_future[date >= LST_PARAMS$forecast_start & date <= LST_PARAMS$forecast_end]
     
     # A. Spot Market Data
     
@@ -137,46 +128,149 @@ load_inputs = function(params) {
     } 
     
     
-    # B. Forward Market Data
-    ENV_FWD = list()
+    if(LST_PARAMS$data_source == 'MANUAL') {
+        ENV_FWD$dt_fwds = fread(file.path(LST_DIRS$dir_data_raw, 'dt_fwds.csv'))
+        cat(crayon::green$bold("\n✔ Manual Data retrieved from:"), paste(LST_DIRS$dir_data_raw, 'dt_fwds.csv'), "\n")
+    } 
+
+    ## PREPARE AND RETURN
     
-    ENV_FWD$fwd_gas_RIC = unique(HPFC::spot_GAS_products_full[products_GAS %in% c(LST_PARAMS$selected_gas_code, LST_PARAMS$dependent_gas_code)]$products_GAS_code)
-    ENV_FWD$fwd_pwr_RIC =  unique(HPFC::spot_PWR_products_full[countries %in% LST_PARAMS$selected_pwr_code]$products_PWR_code)
-    
-    ENV_FWD$time_range = as.numeric(data.table::year(as.Date(LST_PARAMS$forecast_start))):as.numeric(data.table::year(as.Date(LST_PARAMS$forecast_end)))
-    
-    DT_GAS = HPFC::dt_fwds_gas[substr(RIC, 1, 4) == HPFC::spot_GAS_products_full[products_GAS %in% unique(c(LST_PARAMS$selected_gas_code, LST_PARAMS$dependent_gas_code))]$products_GAS_code]
-    if(LST_PARAMS$forecast_source == 'FWD') {
-        DT_PWR = HPFC::dt_fwds_pwr_fwddam[spot_PWR_code == HPFC::spot_PWR_products_full[countries %in% LST_PARAMS$selected_pwr_code]$spot_PWR_code, .(date, RIC, value = FWD)]
-    } else {
-        DT_PWR = HPFC::dt_fwds_pwr_fwddam[spot_PWR_code == HPFC::spot_PWR_products_full[countries %in% LST_PARAMS$selected_pwr_code]$spot_PWR_code, .(date, RIC, value = DAM)]
+    if(LST_PARAMS$archive != 'NO') {
+        
+        ## Backup
+        saveRDS(ENV_SPOT, file.path(LST_DIRS_archive$dir_data_raw, 'ENV_SPOT.rds'))
+        saveRDS(ENV_CODES, file.path(LST_DIRS_archive$dir_data_other, 'ENV_CODES.rds'))
+        
+        ## Single files
+        saveRDS(ENV_SPOT$history_gas, file.path(LST_DIRS_archive$dir_data_raw, 'history_gas.rds'))
+        saveRDS(ENV_SPOT$history_pwr, file.path(LST_DIRS_archive$dir_data_raw, 'history_pwr.rds'))
+        
+        
+        ## CSVs
+        fwrite(ENV_SPOT$history_gas, file.path(LST_DIRS_archive$dir_data_raw, 'history_gas.csv'))
+        fwrite(ENV_SPOT$history_pwr, file.path(LST_DIRS_archive$dir_data_raw, 'history_pwr.csv'))
+        
+        return_list = list(LST_PARAMS, LST_DIRS_archive, ENV_CODES, ENV_SPOT)
+        names(return_list) = c('LST_PARAMS', 'LST_DIRS_archive', 'ENV_CODES', 'ENV_SPOT')
+        
+        cat(crayon::green$bold("\n✔ Archived inputs in:"), LST_DIRS_archive$dir_data_raw, "\n")
+        
     }
     
-    if(LST_PARAMS$data_source == 'LOCAL') {
+    if(LST_PARAMS$sim_name != 'NO') {
         
-        ENV_FWD$dt_fwds = 
-            rbind(DT_GAS,
-                  DT_PWR,
-                  use.names=TRUE
-            )
+        if(LST_PARAMS$data_source == 'LOCAL') {
+            
+            ENV_SPOT = readRDS(file.path(LST_DIRS$dir_data_raw, 'ENV_SPOT.rds'))
+            ENV_CODES = readRDS(file.path(LST_DIRS$dir_data_other, 'ENV_CODES.rds'))
+            
+            cat(crayon::green$bold("\n✔ Sim Data retrieved from:"), LST_DIRS$dir_data_raw, "\n")
+            
+        }
         
-        ENV_FWD$dt_fwds = ENV_FWD$dt_fwds[ENV_FWD$dt_fwds[, .I[date == max(date)], by = RIC]$V1]
+        return_list = list(LST_PARAMS, LST_DIRS, ENV_CODES, ENV_SPOT)
+        names(return_list) = c('LST_PARAMS', 'LST_DIRS', 'ENV_CODES', 'ENV_SPOT')        
+        
+    }
+    
+    if(LST_PARAMS$sim_name == 'NO' & LST_PARAMS$archive == 'NO') {
+        return_list = list(LST_PARAMS, ENV_CODES, ENV_SPOT)
+        names(return_list) = c('LST_PARAMS', 'ENV_CODES', 'ENV_SPOT')   
+        
+        cat(crayon::green$bold("\n✔ Prepared inputs in for training."), "\n")
+    }
+    
+    return(return_list)
+}
 
-    } else {
+
+#' Prepare Forward Curves for Forecasting
+#'
+#' Prepares forward market data for power and gas products to be used in forecasting models. Supports both
+#' automated data retrieval and manual input. Outputs are stored and returned for downstream forecasting workflows.
+#'
+#' @param fwd_pwr_code Character vector. Power forward product code(s).
+#' @param fwd_gas_code Character vector. Gas forward product code(s).
+#' @param start_date Date. Forecast start date.
+#' @param end_date Date. Forecast end date.
+#' @param model_type Character. Either `'PWR'` (default) or `'GAS'`, determining which forward products to retrieve.
+#' @param forecast_source Character. Forward price source, `'FWD'` (default) or `'DAM'`.
+#' @param archive Character. Path where output files are saved.
+#' @param manual_pwr Optional `data.table`. Manually supplied forward power data.
+#' @param manual_gas Optional `data.table`. Manually supplied forward gas data.
+#'
+#' @details
+#' If `manual_pwr` and `manual_gas` are both provided, the function uses them instead of retrieving raw data.
+#' Otherwise, it constructs a list of required RICs and fetches the forward curves from internal datasets and APIs.
+#' It filters the latest available value for each RIC and ensures coverage for the forecast horizon.
+#'
+#' The function saves three files to the specified `archive` path (unless `LST_PARAMS$archive == 'NO'`):
+#' - `ENV_FWD.rds`: list containing metadata and raw data
+#' - `dt_fwds.rds`: processed forward curve data
+#' - `dt_fwds.csv`: forward data in CSV format
+#'
+#' @return A named list containing:
+#' \describe{
+#'   \item{ENV_FWD}{A list with calendar, RICs, forward data, and metadata for downstream modeling.}
+#' }
+#'
+#' @import data.table
+#' @importFrom crayon green bold
+#' @export
+prepare_fwd = function(fwd_pwr_code, fwd_gas_code, start_date, end_date, model_type = 'PWR', forecast_source = 'FWD', archive, manual_pwr = NULL, manual_gas = NULL) {
+    
+    ENV_FWD = list()
+    
+    is_manual = !is.null(manual_pwr) & !is.null(manual_gas)
+    
+    if(isFALSE(is_manual)) {
+        
+        forecast_start = start_date
+        forecast_end = end_date
+        
+        if(model_type == 'GAS') {
+            selected_gas_code = fwd_gas_code
+            ENV_FWD$fwd_gas_RIC = unique(HPFC::spot_GAS_products_full[products_GAS %in% c(selected_gas_code)]$products_GAS_code)
+            
+        } else {
+            selected_gas_code = fwd_gas_code
+            selected_pwr_code = fwd_pwr_code
+            ENV_FWD$fwd_gas_RIC = unique(HPFC::spot_GAS_products_full[products_GAS %in% c(selected_gas_code)]$products_GAS_code)
+            ENV_FWD$fwd_pwr_RIC =  unique(HPFC::spot_PWR_products_full[countries %in% selected_pwr_code]$products_PWR_code)
+        }
+        
+        ENV_FWD$last_date = as.Date(forecast_start) - 1
+        
+        calendar_future = copy(calendar_holidays)
+        calendar_future[,`:=` (year = as.character(data.table::year(date)), 
+                               quarter = as.character(data.table::quarter(date)),
+                               month = as.character(data.table::month(date)))
+        ]
+        
+        ENV_FWD$calendar_future = calendar_future[date >= forecast_start & date <= forecast_end]
+        
+        
+        # B. Forward Market Data
+        
+        ENV_FWD$time_range = as.numeric(data.table::year(as.Date(forecast_start))):as.numeric(data.table::year(as.Date(forecast_end)))
+        
+        DT_GAS = HPFC::dt_fwds_gas[substr(RIC, 1, 4) == ENV_FWD$fwd_gas_RIC]
+        if(forecast_source == 'FWD') {
+            DT_PWR = HPFC::dt_fwds_pwr_fwddam[spot_PWR_code == HPFC::spot_PWR_products_full[countries %in% selected_pwr_code]$spot_PWR_code, .(date, RIC, value = FWD)]
+        } else {
+            DT_PWR = HPFC::dt_fwds_pwr_fwddam[spot_PWR_code == HPFC::spot_PWR_products_full[countries %in% selected_pwr_code]$spot_PWR_code, .(date, RIC, value = DAM)]
+        }
         
         ## Generate RICS
-        lst_rics_gas = HPFC::generate_rics_gas(unique(HPFC::spot_GAS_products_full[products_GAS %in% unique(c(LST_PARAMS$selected_gas_code, LST_PARAMS$dependent_gas_code))]$products_GAS_code), time_range = 2025:as.numeric(data.table::year(as.Date(LST_PARAMS$forecast_end))))
+        lst_rics_gas = HPFC::generate_rics_gas(unique(ENV_FWD$fwd_gas_RIC), time_range = 2025:as.numeric(data.table::year(as.Date(forecast_end))))
         
-        if(LST_PARAMS$model_type == 'PWR') {
+        if(model_type == 'PWR') {
             ### POWER 
-            lst_rics_pwr = HPFC::generate_rics_pwr(LST_PARAMS$selected_pwr_code, time_range = 2025:as.numeric(data.table::year(as.Date(LST_PARAMS$forecast_end))))
-            
+            lst_rics_pwr = HPFC::generate_rics_pwr(selected_pwr_code, time_range = 2025:as.numeric(data.table::year(as.Date(forecast_end))))
             ENV_FWD$lst_rics = c(lst_rics_pwr, lst_rics_gas) ; rm(lst_rics_pwr, lst_rics_gas)
             
         } else {
-            
             ENV_FWD$lst_rics = c(lst_rics_gas) ; rm(lst_rics_gas)
-            
         }
         
         ## RETRIEVE
@@ -189,7 +283,7 @@ load_inputs = function(params) {
         
         if(max(ENV_FWD$time_range) > 2024) {
             
-            DT_NEW = HPFC::retrieve_fwd(ric = ENV_FWD$lst_rics, from_date = '2025-01-01', to_date = LST_PARAMS$forecast_end)
+            DT_NEW = HPFC::retrieve_fwd(ric = ENV_FWD$lst_rics, from_date = '2025-01-01', to_date = forecast_end)
             
             ENV_FWD$dt_fwds = rbind(
                 ENV_FWD$dt_fwds,
@@ -207,63 +301,34 @@ load_inputs = function(params) {
         
     }
     
-    if(LST_PARAMS$data_source == 'MANUAL') {
-        ENV_FWD$dt_fwds = fread(file.path(LST_DIRS$dir_data_raw, 'dt_fwds.csv'))
-        cat(crayon::green$bold("\n✔ Manual Data retrieved from:"), paste(LST_DIRS$dir_data_raw, 'dt_fwds.csv'), "\n")
-    } 
-
-    ## PREPARE AND RETURN
+    if(isTRUE(is_manual)) {
+        dt_fwd_pwr = manual_pwr
+        dt_fwd_gas = manual_gas
+        
+        dt_fwd_prep_pwr = merge(dt_fwd_pwr, generate_monthrics_pwr('Romania', time_range = 2024), by.x = 'yymm', by.y ='date', all.x = TRUE) 
+        dt_fwd_prep_gas = merge(dt_fwd_gas, generate_monthrics_gas('TFMB', time_range = 2024), by.x = 'yymm', by.y ='date', all.x = TRUE) 
+        
+        dt_fwds = rbind(dt_fwd_prep_pwr, dt_fwd_prep_gas)
+        dt_fwds[, sim := NULL]
+        colnames(dt_fwds) = c('date', 'value', 'RIC')
+        
+        ENV_FWD$dt_fwds = dt_fwds
+        
+    }
     
     if(LST_PARAMS$archive != 'NO') {
-        
-        ## Backup
-        saveRDS(ENV_SPOT, file.path(LST_DIRS_archive$dir_data_raw, 'ENV_SPOT.rds'))
-        saveRDS(ENV_FWD, file.path(LST_DIRS_archive$dir_data_raw, 'ENV_FWD.rds'))
-        saveRDS(ENV_CODES, file.path(LST_DIRS_archive$dir_data_other, 'ENV_CODES.rds'))
-        
-        ## Single files
-        saveRDS(ENV_SPOT$history_gas, file.path(LST_DIRS_archive$dir_data_raw, 'history_gas.rds'))
-        saveRDS(ENV_SPOT$history_pwr, file.path(LST_DIRS_archive$dir_data_raw, 'history_pwr.rds'))
-        
-        saveRDS(ENV_FWD$dt_fwds, file.path(LST_DIRS_archive$dir_data_raw, 'dt_fwds.rds'))
-        
-        ## CSVs
-        fwrite(ENV_FWD$dt_fwds, file.path(LST_DIRS_archive$dir_data_raw, 'dt_fwds.csv'))
-        fwrite(ENV_SPOT$history_gas, file.path(LST_DIRS_archive$dir_data_raw, 'history_gas.csv'))
-        fwrite(ENV_SPOT$history_pwr, file.path(LST_DIRS_archive$dir_data_raw, 'history_pwr.csv'))
-        
-        return_list = list(LST_PARAMS, LST_DIRS_archive, ENV_CODES, ENV_SPOT, ENV_FWD)
-        names(return_list) = c('LST_PARAMS', 'LST_DIRS_archive', 'ENV_CODES', 'ENV_SPOT', 'ENV_FWD')
-        
-        cat(crayon::green$bold("\n✔ Archived inputs in:"), LST_DIRS_archive$dir_data_raw, "\n")
-        
+        saveRDS(ENV_FWD, file.path(archive, 'ENV_FWD.rds'))
+        saveRDS(ENV_FWD$dt_fwds, file.path(archive, 'dt_fwds.rds'))
+        fwrite(ENV_FWD$dt_fwds, file.path(archive, 'dt_fwds.csv'))
     }
     
-    if(LST_PARAMS$sim_name != 'NO') {
-        
-        if(LST_PARAMS$data_source == 'LOCAL') {
-            
-            ENV_SPOT = readRDS(file.path(LST_DIRS$dir_data_raw, 'ENV_SPOT.rds'))
-            ENV_FWD = readRDS(file.path(LST_DIRS$dir_data_raw, 'ENV_FWD.rds'))
-            ENV_CODES = readRDS(file.path(LST_DIRS$dir_data_other, 'ENV_CODES.rds'))
-            
-            cat(crayon::green$bold("\n✔ Sim Data retrieved from:"), LST_DIRS$dir_data_raw, "\n")
-            
-        }
-        
-        return_list = list(LST_PARAMS, LST_DIRS, ENV_CODES, ENV_SPOT, ENV_FWD)
-        names(return_list) = c('LST_PARAMS', 'LST_DIRS', 'ENV_CODES', 'ENV_SPOT', 'ENV_FWD')        
-        
-    }
+    cat(crayon::green$bold("\n✔ Prepared fwds in for forecasting."), "\n")
     
-    if(LST_PARAMS$sim_name == 'NO' & LST_PARAMS$archive == 'NO') {
-        return_list = list(LST_PARAMS, ENV_CODES, ENV_SPOT, ENV_FWD)
-        names(return_list) = c('LST_PARAMS', 'ENV_CODES', 'ENV_SPOT', 'ENV_FWD')   
-        
-        cat(crayon::green$bold("\n✔ Prepared inputs in for training."), "\n")
-    }
+    return_list = list(ENV_FWD)
+    names(return_list) = c('ENV_FWD') 
     
     return(return_list)
+    
 }
 
 
