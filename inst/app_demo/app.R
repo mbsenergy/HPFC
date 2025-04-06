@@ -13,22 +13,6 @@ library(react)
 devtools::load_all()
 
 
-hpfc_theme =
-    bs_theme(
-        version = 5,
-        bootswatch = 'zephyr',
-        primary = '#287bb5',
-        secondary = '#dee2e6',
-        success = '#2fb380',
-        info = 'steelblue',
-        warning = '#f4bd61',
-        danger = '#d08770',
-        base_font = font_google(family = "Inter"),
-        heading_font = font_google(family = "Inter"),
-        font_scale = 0.9
-    )
-
-
 # INPUTS ------------------------------------------------------------------------------------------------- 
 
 ## Training ===========================================================================================
@@ -98,17 +82,6 @@ product_train_gas =
     )
 
 
-
-#### DATA SOURCE --------------------------------
-select_source =
-    radioButtons(
-        inputId = "in_source",
-        label = span("Select data source:", style = 'font-weight: bold;'),
-        choices = c("Reuters" = "0df86b690b2c4ae2bf245680dbbfcc86bb041dc9",
-                    "Excel" = 'LOCAL'),
-        inline = FALSE
-    )
-
 ### BUTTONS EXECUTE DOWNLOAD -----------------------
 train_pwr_download =
     downloadButton(
@@ -146,29 +119,6 @@ select_horizon_period =
         width = '100%'
     )
 
-### SELECT PRODUCTS --------------------------------------------------------
-
-select_PWR_product_train =
-    selectInput(
-        inputId = "in_select_PWR_indicator_train",
-        label = span("Power", style = 'font-weight: bold;'),
-        multiple = FALSE,
-        width = '100%',
-        choices = vec_pwr_products,
-        selected = 'Greece'
-    )
-
-
-select_GAS_product_train =
-    selectInput(
-        inputId = "in_select_GAS_indicator_train",
-        label = span("Gas:", style = 'font-weight: bold;'),
-        multiple = FALSE,
-        width = '100%',
-        choices = vec_gas_products,
-        selected = 'TTF'
-    )
-
 
 #### BUTTON TO EXECUTE FORECAST --------------------------------
 product_forecast_pwr =
@@ -189,17 +139,6 @@ product_forecast_gas =
         icon = shiny::icon('eye'),
         width = '100%',
         type = "warning"
-    )
-
-
-#### DATA SOURCE --------------------------------
-select_source_forecast =
-    radioButtons(
-        inputId = "in_source_forecast",
-        label = span("Select data source:", style = 'font-weight: bold;'),
-        choices = c("Reuters" = "0df86b690b2c4ae2bf245680dbbfcc86bb041dc9",
-                    "Excel" = 'LOCAL'),
-        inline = FALSE
     )
 
 
@@ -250,28 +189,27 @@ plot_forecast_selector_pwr =
 ui = page_navbar(
     
     # Use bslib for custom themes
-    theme = hpfc_theme,
+    theme = bs_theme(),
+    bg = '#001437',
     
     # Title Panel of the app
     title = "HPFC App",
     
-    bg = '#287bb5',
+    # bg = '#287bb5',
     
     # Tabs in the NavbarPage (Train and Forecast)
     nav_panel(title = 'TRAIN',
-        layout_sidebar(
-                   sidebar = sidebar(
-                       width = 400, padding = '40',
-                       title = 'Training',
-                             select_history_period,
-                             select_PWR_product_train,
-                             select_GAS_product_train,
-                             br(),
+              layout_sidebar(
+                  sidebar = sidebar(
+                      width = 400, padding = '40',
+                      title = 'Training',
+                      select_history_period,
+                      select_horizon_period,
+                      select_PWR_product,
+                             select_GAS_product,
+                             hr(),
                              product_train_pwr,
                              product_train_gas,
-                             br(),
-                             select_source,
-                             uiOutput("reactive_select_source_file"),
                              hr(),
                              fluidRow(train_pwr_download, train_gas_download),
                              br()
@@ -284,7 +222,7 @@ ui = page_navbar(
                                 layout_sidebar(
                                     sidebar = sidebar(reactableOutput('forecast_params_table_recap_pwr'), position = 'right', open = FALSE, width = '450px'),
                                     fluidRow(
-                                    echarts4rOutput(outputId = 'pwr_history_plot', height = '400px') %>% withSpinner(color = "#d08770"),
+                                    echarts4rOutput(outputId = 'pwr_history_plot') %>% withSpinner(color = "#d08770"),
                                     hr(), br(),
                                     reactableOutput(outputId = 'pwr_history_table') %>% withSpinner(color = "#d08770")
                                     )
@@ -295,7 +233,7 @@ ui = page_navbar(
                               layout_sidebar(
                                   sidebar = sidebar(reactableOutput('forecast_params_table_recap_gas'), position = 'right', open = FALSE, width = '450px'),
                                   fluidRow(
-                                    echarts4rOutput(outputId = 'gas_history_plot', height = '400px') %>% withSpinner(color = "#d08770"),
+                                    echarts4rOutput(outputId = 'gas_history_plot') %>% withSpinner(color = "#d08770"),
                                     hr(), br(),
                                     reactableOutput(outputId = 'gas_history_table') %>% withSpinner(color = "#d08770")
                                 )
@@ -310,15 +248,8 @@ ui = page_navbar(
                    sidebar = sidebar(
                        width = 400, padding = '40',
                        title = 'Forecasting',
-                             select_horizon_period,
-                             select_PWR_product,
-                             select_GAS_product,
-                             br(),
                              product_forecast_pwr,
                              product_forecast_gas,
-                             br(),
-                             select_source_forecast,
-                             uiOutput("reactive_select_source_file_forecast"),
                              hr(),
                              fluidRow(fwd_pwr_download, fwd_gas_download),
                              br()
@@ -329,31 +260,18 @@ ui = page_navbar(
                      full_screen = TRUE,
                      nav_panel('Power',
                                    fluidRow(
-                                       echarts4rOutput(outputId = 'pwr_forecast_plot', height = '400px') %>% withSpinner(color = "#d08770")
+                                       echarts4rOutput(outputId = 'pwr_forecast_plot') %>% withSpinner(color = "#d08770")
                                    )
                      ),
                      
                      nav_panel('Gas',
                                    fluidRow(
-                                       echarts4rOutput(outputId = 'gas_forecast_plot', height = '400px') %>% withSpinner(color = "#d08770")
+                                       echarts4rOutput(outputId = 'gas_forecast_plot') %>% withSpinner(color = "#d08770")
                                    )
                      )
                  )
                 )
-             ),
-    
-    nav_panel(title = "BACKTEST",
-             fluidRow('PLACEHOLDER')
-             ),
-    
-    nav_panel(title = "MONTECARLO",
-             fluidRow(
-                 column(12,
-                        h3("MONTECARLO"),
-                        reactableOutput("input_recap_table")
-                 )
              )
-    )
 )
 
 
@@ -362,35 +280,14 @@ ui = page_navbar(
 # SERVER  ------------------------------------------------------------------------------------------------- 
 server = function(input, output, session) {
     
-    # Reactive input for select source in training period
-    output$reactive_select_source_file <- renderUI({
-        req(input$in_source)
-        if(input$in_source == "Excel") {
-            fileInput("file", "Upload Excel File", accept = c(".xlsx"))
-        }
-    })
-    
-    # Reactive input for select source in forecast period
-    output$reactive_select_source_file_forecast <- renderUI({
-        req(input$in_source_forecast)
-        if(input$in_source_forecast == "Excel") {
-            fileInput("file_forecast", "Upload Excel File", accept = c(".xlsx"))
-        }
-    })
-    
     # Reactive input recap data -----------------
     recap_data = reactive({
         data.frame(
-            Input = c("History Period", "Power Products (Training)", "Gas Products (Training)", "Data Source (Training)",
-                      "Forecast Horizon Period",  "Power Products (Forecast)", "Gas Products (Forecast)", "Data Source (Forecast)"),
+            Input = c("History Period", "Forecast Horizon Period", "Power Products (Training)", "Gas Products (Training)"),
             Value = c(paste(input$in_select_history[1], "to", input$in_select_history[2]),
-                      paste(input$in_select_PWR_indicator_train, collapse = ", "),
-                      paste(input$in_select_GAS_indicator_train, collapse = ", "),
-                      input$in_source,
                       paste(input$in_select_horizon[1], "to", input$in_select_horizon[2]),
                       paste(input$in_select_PWR_indicator, collapse = ", "),
-                      paste(input$in_select_GAS_indicator, collapse = ", "),
-                      input$in_source_forecast)
+                      paste(input$in_select_GAS_indicator, collapse = ", "))
         )
     })
     
@@ -412,7 +309,7 @@ server = function(input, output, session) {
     observe({
         params_list = list(
             model_type = 'PWR',
-            selected_pwr_code = input$in_select_PWR_indicator_train,
+            selected_pwr_code = input$in_select_PWR_indicator,
             selected_gas_code = 'TTF',
             dependent_gas_code = 'TTF',
             history_start = input$in_select_history[1],
@@ -420,7 +317,7 @@ server = function(input, output, session) {
             forecast_start = input$in_select_horizon[1],
             forecast_end = input$in_select_horizon[2],
             model_source = 'TRAIN',
-            data_source = input$in_source, #0df86b690b2c4ae2bf245680dbbfcc86bb041dc9
+            data_source = '0df86b690b2c4ae2bf245680dbbfcc86bb041dc9',
             forecast_source = 'FWD',
             sim_name = 'NO',
             archive = 'NO'
@@ -581,25 +478,6 @@ server = function(input, output, session) {
     })
     
     
-    ## Download Power model -----------------------
-    object_with_train_data_pwr = reactiveVal(NULL)
-    
-    observe({
-        req(react$models_pwr_field)
-        object_with_train_data_pwr(react$models_pwr_field)
-    })
-    
-    output$act_train_pwr_download = downloadHandler(
-        filename = function() {
-            paste0("train_power_data_", Sys.Date(), ".rds")
-        },
-        content = function(file) {
-            saveRDS(react$object_with_train_data_pwr, file)
-        }
-    )
-    
-    
-    
     # TRAIN - GAS ------------------------------------------
     
     ## Inputs -----------------------
@@ -610,7 +488,7 @@ server = function(input, output, session) {
     observe({
         params_list = list(
             model_type = 'PWR',
-            selected_pwr_code = input$in_select_PWR_indicator_train,
+            selected_pwr_code = input$in_select_PWR_indicator,
             selected_gas_code = 'TTF',
             dependent_gas_code = 'TTF',
             history_start = input$in_select_history[1],
@@ -618,7 +496,7 @@ server = function(input, output, session) {
             forecast_start = input$in_select_horizon[1],
             forecast_end = input$in_select_horizon[2],
             model_source = 'TRAIN',
-            data_source = input$in_source, #0df86b690b2c4ae2bf245680dbbfcc86bb041dc9
+            data_source = '0df86b690b2c4ae2bf245680dbbfcc86bb041dc9',
             forecast_source = 'FWD',
             sim_name = 'NO',
             archive = 'NO'
@@ -761,7 +639,7 @@ server = function(input, output, session) {
     
     output$act_train_pwr_download = downloadHandler(
         filename = function() {
-            paste0("train_power_data_", Sys.Date(), ".rds")
+            paste0("pwr_models_", input$in_select_PWR_indicator, '-', Sys.Date(), ".rds")
         },
         content = function(file) {
             saveRDS(react$object_with_train_data_pwr, file)
@@ -778,7 +656,7 @@ server = function(input, output, session) {
     
     output$act_train_gas_download = downloadHandler(
         filename = function() {
-            paste0("train_gas_data_", Sys.Date(), ".rds")
+            paste0("gas_models_", input$in_select_GAS_indicator, '-', Sys.Date(), ".rds")
         },
         content = function(file) {
             saveRDS(react$object_with_train_data_gas, file)
@@ -862,7 +740,7 @@ server = function(input, output, session) {
     
     output$act_forecast_pwr_download = downloadHandler(
         filename = function() {
-            paste0("forecast_pwr_data_", Sys.Date(), ".rds")
+            paste0("pwr_forecast_", input$in_select_pwr_indicator, '-', Sys.Date(), ".rds")
         },
         content = function(file) {
             saveRDS(react$object_with_forecast_data_pwr, file)
@@ -871,7 +749,7 @@ server = function(input, output, session) {
     
     output$act_forecast_gas_download = downloadHandler(
         filename = function() {
-            paste0("forecast_gas_data_", Sys.Date(), ".rds")
+            paste0("gas_forecast_", input$in_select_GAS_indicator, '-', Sys.Date(), ".rds")
         },
         content = function(file) {
             saveRDS(react$object_with_forecast_data_gas, file)
