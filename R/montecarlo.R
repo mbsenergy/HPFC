@@ -81,3 +81,94 @@ montecarlo_sim = function(S0, Td, N, dt_spot_pwr, dt_fwd_pwr = NULL, seed = 42, 
     
     return(dts)
 }
+
+
+#' Apply Forecast Shaping to Power Prices
+#'
+#' Combines forward and spot market data for power and gas, along with pre-trained models,
+#' to generate shaped hourly forecasts for power prices over a specified time window.
+#'
+#' @param country Country name (e.g., `"Italy"`). Used to extract the relevant PWR product code and holidays.
+#' @param name Name identifier for the output scenario (default `"HPFC"`).
+#' @param start_date Start date of the forecast period (e.g., `"2024-01-01"`).
+#' @param end_date End date of the forecast period (e.g., `"2024-12-31"`).
+#' @param dt_fwd_pwr `data.table`. Monthly forward power prices. Must include columns `yymm`, `value`.
+#' @param dt_spot_pwr `data.table`. Historical hourly spot power prices. Must include `date`, `hour`, `value`, `RIC`.
+#' @param dt_fwd_gas `data.table`. Monthly forward gas prices. Must include columns `yymm`, `value`.
+#' @param dt_spot_gas `data.table`. Historical daily spot gas prices. Must include `date`, `value`.
+#' @param model_gas List with model parameters for gas forecasting. Defaults to `ENV_MODELS_GAS`.
+#' @param model_pwr List with model parameters for power forecasting. Defaults to `ENV_MODELS_PWR`.
+#'
+#' @return A `data.table` with shaped hourly power forecasts, including:
+#' \describe{
+#'   \item{date}{Date of forecasted value}
+#'   \item{hour}{Hour of the day (1–24)}
+#'   \item{forecast}{Forecasted power price}
+#'   \item{name}{Scenario label}
+#' }
+#' @import data.table
+#' @export
+apply_shape = function(
+        country = 'Italy',
+        name = 'HPFC',
+        start_date = '2024-01-01', 
+        end_date = '2024-12-31',
+        dt_fwd_pwr,
+        dt_spot_pwr,
+        dt_fwd_gas,
+        dt_spot_gas,
+        model_gas = ENV_MODELS_GAS,
+        model_pwr = ENV_MODELS_PWR
+) {
+    
+    spot_pwr_code = unique(dt_spot_pwr$RIC)
+    spot_gas_code = 'TTFDA'
+    fwd_pwr_code = unique(HPFC::spot_PWR_products_full[countries == country]$products_PWR_code)
+    fwd_gas_code = 'TFMB'
+    
+    last_date = as.Date(start_date) - 1
+    calendar_holidays = as.data.table(HPFC::new_calendar_holidays)
+    setnames(calendar_holidays, paste0("holiday_", country), 'holiday', skip_absent = TRUE)
+    calendar_future = calendar_holidays[, .(date, holiday)]
+    calendar_future[,`:=` (year = as.character(data.table::year(date)), 
+                           quarter = as.character(data.table::quarter(date)),
+                           month = as.character(data.table::month(date)))
+    ]
+    calendar_future = calendar_future[date >= start_date & date <= end_date]
+    time_range = as.numeric(data.table::year(as.Date(start_date))):as.numeric(data.table::year(as.Date(end_date)))
+    
+    dt_fwd_prep_pwr = merge(dt_fwd_pwr, generate_monthrics_pwr(country, time_range = 2024), by.x = 'yymm', by.y ='date', all.x = TRUE) 
+    dt_fwd_prep_gas = merge(dt_fwd_gas, generate_monthrics_gas(fwd_gas_code, time_range = 2024), by.x = 'yymm', by.y ='date', all.x = TRUE) 
+    
+    dt_fwds = rbind(dt_fwd_prep_pwr, dt_fwd_prep_gas)
+    dt_fwds[, sim := NULL]
+    colnames(dt_fwds) = c('date', 'value', 'RIC')
+    
+    LST_FOR = list(
+        model_lt_gas = copy(model_gas$dt_lt_param_gasdep),
+        model_lt_pwr = copy(model_pwr$dt_lt_param_pwr),
+        model_st_pwr = copy(model_pwr$lst_hr_param_pwr),
+        dt_fwds = copy(dt_fwds),
+        saved_history_gas = dt_spot_gas,
+        saved_history_pwr = dt_spot_pwr,
+        ric_spot_gas = spot_gas_code,
+        ric_fwd_gas = fwd_gas_code,
+        ric_spot_pwr = spot_pwr_code,
+        ric_fwd_pwr = fwd_pwr_code,
+        calendar_forecast = calendar_future,
+        start_date = start_date,
+        end_date = end_date,
+        last_date = last_date
+    ) 
+    
+    ENV_FOR_GAS = forecast_gas(input_forecast = LST_FOR)
+    ENV_FOR_PWR = forecast_pwr(input_forecast = LST_FOR, gas_forecast = ENV_FOR_GAS)
+    
+    dt_pwr = ENV_FOR_PWR[, .(date, hour, forecast = final_forecast)]
+    setcolorder(dt_pwr, c('date', 'hour',  'forecast'))
+    setorder(dt_pwr, date, hour)
+    dt_pwr[, name := name]
+    
+    return(dt_pwr)
+    
+}
