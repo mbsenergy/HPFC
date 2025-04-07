@@ -51,3 +51,6 @@ HPFC-Package.Rproj
 /inst/backtest/backtest_viz_files
 docs
 /vignettes/run
+/inst/app_demo/HPFC/last
+/inst/app_demo/HPFC/archive/history
+/inst/app_demo/HPFC/archive/models

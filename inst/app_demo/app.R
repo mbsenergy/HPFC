@@ -12,6 +12,7 @@ library(openxlsx)
 library(react)
 # library(HPFC)
 devtools::load_all()
+
 options(shiny.maxRequestSize = 50*1024^2)  # 50 MB
 PLEASE_INSERT_REUTERS_KEY = read.xlsx("PLEASE INSERT REUTERS KEY.xlsx", sheet = 1, colNames = FALSE)[2,1]
 
@@ -120,7 +121,7 @@ select_source_train =
         choices = c("Reuters",
                     "Excel"),
         selected = "Reuters",
-        inline = FALSE
+        inline = TRUE
     )
 
 
@@ -210,7 +211,7 @@ select_source_forecast =
         choices = c("Reuters",
                     "Excel"),
         selected = "Reuters",
-        inline = FALSE
+        inline = TRUE
     )
 
 
@@ -222,7 +223,7 @@ select_source_run =
         choices = c("New",
                     "Last",
                     "Sim"),
-        selected = "New",
+        selected = "Last",
         inline = TRUE
     )
 
@@ -314,15 +315,12 @@ ui = page_navbar(
                                     select_history_period,
                                     select_PWR_product,
                                     select_GAS_product,
-                                    hr(),
+                                    select_source_train,
+                                    uiOutput("select_source_file_train"),
                                     product_train_pwr,
                                     product_train_gas,
                                     hr(),
-                                    select_source_train,
-                                    uiOutput("select_source_file_train"),
-                                    hr(),
-                                    fluidRow(train_pwr_download, train_gas_download),
-                                    br()
+                                    fluidRow(train_pwr_download, train_gas_download)
                   ),
                   
                   # Main Panel for the training
@@ -366,16 +364,13 @@ ui = page_navbar(
                                     select_horizon_period,
                                     select_PWR_product_for,
                                     select_GAS_product_for,
-                                    hr(),
-                                    product_forecast_pwr,
-                                    product_forecast_gas,
-                                    hr(),
                                     select_source_forecast,
                                     uiOutput("select_source_file_forecast_pwr"),
                                     uiOutput("select_source_file_forecast_gas"),
+                                    product_forecast_pwr,
+                                    product_forecast_gas,
                                     hr(),
-                                    fluidRow(fwd_pwr_download, fwd_gas_download),
-                                    br()
+                                    fluidRow(fwd_pwr_download, fwd_gas_download)
                   ),
                   
                   # Main Panel for the forecast
@@ -575,7 +570,7 @@ server = function(input, output, session) {
         saveRDS(list_inputs$ENV_SPOT$history_pwr, file.path(last_path, paste0('history_pwr.rds')))
         
         if(nchar(input$in_new_sim_name) > 0) {
-            print('ok')
+            
             last_path = file.path('HPFC', 'archive', 'history', input$in_select_PWR_indicator, input$in_new_sim_name)
             if (!dir.exists(last_path)) {
                 dir.create(last_path, recursive = TRUE)
@@ -665,7 +660,7 @@ server = function(input, output, session) {
         saveRDS(ENV_MODELS_PWR$lst_hr_param_pwr, file.path(last_path, paste0('model_pwr_st.rds')))
         
         if(nchar(input$in_new_sim_name) > 0) {
-            print('ok')
+            
             last_path = file.path('HPFC', 'archive', 'models', input$in_select_PWR_indicator, input$in_new_sim_name)
             if (!dir.exists(last_path)) {
                 dir.create(last_path, recursive = TRUE)
@@ -811,7 +806,7 @@ server = function(input, output, session) {
         saveRDS(ENV_MODELS_GAS$dt_lt_param_gasdep, file.path(last_path, paste0('model_gas_lt.rds')))
         
         if(nchar(input$in_new_sim_name) > 0) {
-            print('ok')
+            
             last_path = file.path('HPFC', 'archive', 'models', input$in_select_GAS_indicator, input$in_new_sim_name)
             if (!dir.exists(last_path)) {
                 dir.create(last_path, recursive = TRUE)
@@ -1143,6 +1138,26 @@ server = function(input, output, session) {
         setcolorder(dt_pwr, c('date', 'hour', 'season', 'peak', 'RIC', 'spot', 'forecast', 'value_bl', 'value_gas'))
         setorder(dt_pwr, date, hour)
         
+        ## ARCHIVE -------------------------------------
+        
+        ### LAST
+        last_path = file.path('HPFC', 'last', 'output', input$in_select_PWR_indicator_for)
+        if (!dir.exists(last_path)) {
+            dir.create(last_path, recursive = TRUE)
+        }
+        
+        saveRDS(dt_pwr, file.path(last_path, paste0('forecast_pwr.rds')))
+        
+        if(nchar(input$sim_name) > 0) {
+            
+            last_path = file.path('HPFC', 'archive', 'output', input$in_select_PWR_indicator_for, input$sim_name)
+            if (!dir.exists(last_path)) {
+                dir.create(last_path, recursive = TRUE)
+            }
+            
+            saveRDS(dt_pwr, file.path(last_path, paste0('forecast_pwr.rds')))
+        }
+        
         object_with_forecast_data_pwr(dt_pwr)
         
         print('------------- FORECAST END -------------')        
@@ -1177,6 +1192,26 @@ server = function(input, output, session) {
         
         setcolorder(dt_gas, c('date', 'RIC', 'spot', 'forecast', 'value_gas'))
         setorder(dt_gas, date)
+        
+        ## ARCHIVE -------------------------------------
+        
+        ### LAST
+        last_path = file.path('HPFC', 'last', 'output', input$in_select_GAS_indicator_for)
+        if (!dir.exists(last_path)) {
+            dir.create(last_path, recursive = TRUE)
+        }
+        
+        saveRDS(dt_gas, file.path(last_path, paste0('forecast_gas.rds')))
+        
+        if(nchar(input$sim_name) > 0) {
+            
+            last_path = file.path('HPFC', 'archive', 'output', input$in_select_GAS_indicator_for, input$sim_name)
+            if (!dir.exists(last_path)) {
+                dir.create(last_path, recursive = TRUE)
+            }
+            
+            saveRDS(dt_gas, file.path(last_path, paste0('forecast_gas.rds')))
+        }
         
         object_with_forecast_data_gas(dt_gas)
         
