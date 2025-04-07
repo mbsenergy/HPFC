@@ -52,8 +52,8 @@ It will determine the price level source. It can be:
 ```{r, inputs, echo = TRUE}
 
 LST_PARAMS = jsonlite::fromJSON(file.path('params.json'))
-
-list_inputs = load_inputs(params = LST_PARAMS, manual_data = NULL, reuters_key = PLEASE_INSERT_REUTERS_KEY)
+LST_PARAMS
+list_inputs = load_inputs(params = LST_PARAMS, manual_data = NULL, reuters_key = Sys.getenv('REUTERS_KEY'))
 ```
 
 
@@ -163,11 +163,11 @@ list_inputs_fwd = prepare_fwd(
     end_date = LST_PARAMS$forecast_end,
     model_type = LST_PARAMS$model_type,
     forecast_source = LST_PARAMS$forecast_source,
-    archive = LST_PARAMS$archive,
+    archive = list_inputs$LST_DIRS_archive$dir_data_raw,
     manual_pwr = NULL,
-    manual_gas = NULL
+    manual_gas = NULL,
+    reuters_key = Sys.getenv('REUTERS_KEY')
 )
-
 ```
 
 
@@ -246,9 +246,3 @@ dt_pwr_lg[, .(value = round(mean(value))), by = .(date, type)] %>%
     e_theme('westeros')
 
 ```
-
-
-```{r}
-
-```
-

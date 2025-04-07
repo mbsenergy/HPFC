@@ -613,7 +613,8 @@ forecast_gas = function(input_forecast = LST_FOR) {
     dt_gas = LST_FOR$saved_history_gas[, .(date, value, RIC)]
     ric_gas = unique(dt_gas$RIC)
     dt_gas = HPFC::break_detection_dd(dt_gas)
-    dt_gas_dd_filt = HPFC::filter_outlier_dd(dt_gas)
+    # dt_gas_dd_filt = HPFC::filter_outlier_dd(dt_gas)
+    dt_gas_dd_filt = dt_gas
     
     fwd_calendar = HPFC::calendar_holidays
     fwd_calendar[, `:=` (year = as.character(data.table::year(date)), quarter = as.character(data.table::quarter(date)), month = as.character(data.table::month(date)))]
@@ -732,8 +733,8 @@ forecast_pwr = function(input_forecast = LST_FOR, gas_forecast = ENV_FOR_GAS, sm
     dt_gas = LST_FOR$saved_history_gas[, .(date, value, RIC)]
     ric_gas = unique(dt_gas$RIC)
     dt_gas = HPFC::break_detection_dd(dt_gas)
-    dt_gas_dd_filt = HPFC::filter_outlier_dd(dt_gas)
-    
+    # dt_gas_dd_filt = HPFC::filter_outlier_dd(dt_gas)
+    dt_gas_dd_filt = dt_gas
     saved_history_gas = copy(dt_gas)
     
     # Apply arbitrage-free transformations

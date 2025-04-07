@@ -36,10 +36,12 @@ simulate_single_path = function(S0, sigma, Td, N = NULL) {
 #' @param sigma Daily volatility.
 #' @param Td Number of time steps (days).
 #' @param N Number of simulations to run.
+#' @importFrom  crayon green
 #' @return A `data.table` with `time_index` and simulated price columns.
 simulate_random_walk = function(S0, sigma, Td, N) {
     paths_list = lapply(1:N, function(i) simulate_single_path(S0, sigma, Td, N = i))
     merged_paths = Reduce(function(x, y) merge(x, y, by="time_index", all=TRUE), paths_list)
+    cat(crayon::green$bold(paste0("\n✔ Monte Carlo simulation completed with ", N, " paths and σ = ", round(sigma, 4))), "\n")
     return(merged_paths)
 }
 

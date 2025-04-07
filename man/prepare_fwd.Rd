@@ -13,7 +13,8 @@ prepare_fwd(
   forecast_source = "FWD",
   archive,
   manual_pwr = NULL,
-  manual_gas = NULL
+  manual_gas = NULL,
+  reuters_key = NULL
 )
 }
 \arguments{
