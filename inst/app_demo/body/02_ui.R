@@ -2,7 +2,11 @@
 
 ui_app = page_navbar(
     theme = mbs_theme,
-    navbar_options = navbar_options(bg = "#001437", underline = FALSE, collapsible = TRUE, theme = 'dark'),
+    #navbar_options = navbar_options(bg = "#001437", underline = FALSE, collapsible = TRUE, theme = 'dark'),
+    # bg = "#001437", 
+    # underline = FALSE, 
+    # collapsible = TRUE, 
+    # theme = 'dark',
     
     # Title Panel of the app
     title = "HPFC",
