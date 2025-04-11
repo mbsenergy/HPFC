@@ -81,7 +81,8 @@ server_app = function(input, output, session) {
             })            
             
         } else {
-            output$select_source_file_train = renderUI(NULL)
+            output$select_source_file_train_pwr = renderUI(NULL)
+            output$select_source_file_train_gas = renderUI(NULL)
         }
     })
     
@@ -96,7 +97,6 @@ server_app = function(input, output, session) {
         if (input$in_select_PWR_indicator %in% sheet_names) {
             df = openxlsx::read.xlsx(file_path, sheet = input$in_select_PWR_indicator, detectDates = TRUE)
             dt = data.table::as.data.table(df)
-            print(dt)
             dt_spot_manual_pwr(dt)
         } else {
             dt_spot_manual_pwr(NULL)
@@ -111,7 +111,6 @@ server_app = function(input, output, session) {
         if (input$in_select_GAS_indicator %in% sheet_names) {
             df = openxlsx::read.xlsx(file_path, sheet = input$in_select_GAS_indicator, detectDates = TRUE)
             dt = data.table::as.data.table(df)
-            print(dt)
             dt_spot_manual_gas(dt)
         } else {
             dt_spot_manual_gas(NULL)
@@ -155,21 +154,35 @@ server_app = function(input, output, session) {
     })
     
     dt_forecast_manual_pwr = reactiveVal(NULL)
+    dt_forecast_manual_gas = reactiveVal(NULL)
+    
     observe({
         req(input$in_forecast_excel_pwr)
         file_path = input$in_forecast_excel_pwr$datapath
-        df = openxlsx::read.xlsx(file_path, detectDates = TRUE)
-        dt = data.table::as.data.table(df)
-        dt_forecast_manual_pwr(dt)
+        sheet_names = openxlsx::getSheetNames(file_path)
+        if (input$in_select_PWR_indicator %in% sheet_names) {
+            df = openxlsx::read.xlsx(file_path, sheet = input$in_select_PWR_indicator_for, detectDates = TRUE)
+            dt = data.table::as.data.table(df)
+            dt_forecast_manual_pwr(dt)
+        } else {
+            dt_forecast_manual_pwr(NULL)
+            warning("Selected sheet not found in Excel file.")
+        }
     })
     
-    dt_forecast_manual_gas = reactiveVal(NULL)
+    
     observe({
         req(input$in_forecast_excel_gas)
         file_path = input$in_forecast_excel_gas$datapath
-        df = openxlsx::read.xlsx(file_path, detectDates = TRUE)
-        dt = data.table::as.data.table(df)
-        dt_forecast_manual_gas(dt)
+        sheet_names = openxlsx::getSheetNames(file_path)
+        if (input$in_select_GAS_indicator %in% sheet_names) {
+            df = openxlsx::read.xlsx(file_path, sheet = input$in_select_GAS_indicator_for, detectDates = TRUE)
+            dt = data.table::as.data.table(df)
+            dt_forecast_manual_gas(dt)
+        } else {
+            dt_forecast_manual_gas(NULL)
+            warning("Selected sheet not found in Excel file.")
+        }
     })
     
     
@@ -809,14 +822,16 @@ server_app = function(input, output, session) {
         
         saveRDS(dt_pwr, file.path(last_path, paste0('forecast_pwr.rds')))
         
-        if(nchar(input$sim_name) > 0) {
-            
-            last_path = file.path('HPFC', 'archive', 'output', input$in_select_PWR_indicator_for, input$sim_name)
-            if (!dir.exists(last_path)) {
-                dir.create(last_path, recursive = TRUE)
+        if(!is.null(input$sim_name)) {
+            if(nchar(input$sim_name) > 0) {
+                
+                last_path = file.path('HPFC', 'archive', 'output', input$in_select_PWR_indicator_for, input$sim_name)
+                if (!dir.exists(last_path)) {
+                    dir.create(last_path, recursive = TRUE)
+                }
+                
+                saveRDS(dt_pwr, file.path(last_path, paste0('forecast_pwr.rds')))
             }
-            
-            saveRDS(dt_pwr, file.path(last_path, paste0('forecast_pwr.rds')))
         }
         
         object_with_forecast_data_pwr(dt_pwr)
@@ -864,14 +879,16 @@ server_app = function(input, output, session) {
         
         saveRDS(dt_gas, file.path(last_path, paste0('forecast_gas.rds')))
         
-        if(nchar(input$sim_name) > 0) {
-            
-            last_path = file.path('HPFC', 'archive', 'output', input$in_select_GAS_indicator_for, input$sim_name)
-            if (!dir.exists(last_path)) {
-                dir.create(last_path, recursive = TRUE)
+        if(!is.null(input$sim_name)) {
+            if(nchar(input$sim_name) > 0) {
+                
+                last_path = file.path('HPFC', 'archive', 'output', input$in_select_GAS_indicator_for, input$sim_name)
+                if (!dir.exists(last_path)) {
+                    dir.create(last_path, recursive = TRUE)
+                }
+                
+                saveRDS(dt_gas, file.path(last_path, paste0('forecast_gas.rds')))
             }
-            
-            saveRDS(dt_gas, file.path(last_path, paste0('forecast_gas.rds')))
         }
         
         object_with_forecast_data_gas(dt_gas)

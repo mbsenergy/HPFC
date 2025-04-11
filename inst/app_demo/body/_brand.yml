@@ -43,8 +43,6 @@ color:
     cyan: pool
     orange: terracotta
     
-  foreground: white
-  background: blue
   primary: blue
   success: green
   info: cyan
@@ -56,13 +54,11 @@ color:
 defaults:
   bootstrap:
     defaults:
-      enable-rounded: false
+      enable-rounded: true
       link-decoration: none
       my-blue: "$brand-blue"
   shiny:
     theme:
       preset: zephyr
-      defaults:
-        bslib-dashboard-design: true
       rules: |
         .navbar-brand { color: $my-blue }        
