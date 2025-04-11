@@ -1,0 +1,68 @@
+logo:
+  small: logo.png
+  medium: logo.png
+  large: logo.png
+
+meta:
+  name: MBS Consulting | A Cerved Company
+  link: https://www.mbsconsuilting.com
+  
+color:
+  palette:
+    # Core palette
+    aubergine: '#4A154B'
+    horchata: '#F4EDE4'
+    black: '#1A1A1A'
+    white: '#FFFFFF'
+    blue: '#001437'
+    green: '#2EB67D'
+    yellow: '#ECB22E'
+
+    # Secondary palette
+    cobalt: '#1E328F'
+    sky: '#0E9DD3'
+    teal: '#2392A2'
+    pool: '#78D7DD'
+    evergreen: '#185F34'
+    moss: '#729C1A'
+    sandbar: '#FFD57E'
+    peach: '#FED4BE'
+    salmon: '#F2606A'
+    bubblegum: '#FFB6BD'
+    crimson: '#921D21'
+    terracotta: '#DE8969'
+    berry: '#7C2852'
+    mauve: '#C05B8C'
+    darkblue: "#020817"
+
+    # Bootstrap color aliases
+    purple: aubergine
+    red: salmon
+    pink: bubblegum
+    indigo: '#4F2B8C'
+    cyan: pool
+    orange: terracotta
+    
+  foreground: white
+  background: blue
+  primary: blue
+  success: green
+  info: cyan
+  warning: orange
+  danger: red
+  light: white
+  dark: blue
+  
+defaults:
+  bootstrap:
+    defaults:
+      enable-rounded: false
+      link-decoration: none
+      my-blue: "$brand-blue"
+  shiny:
+    theme:
+      preset: zephyr
+      defaults:
+        bslib-dashboard-design: true
+      rules: |
+        .navbar-brand { color: $my-blue }        

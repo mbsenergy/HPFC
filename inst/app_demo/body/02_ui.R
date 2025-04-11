@@ -1,13 +1,11 @@
 # UI ------------------------------------------------------------------------------------------------- 
 
 ui_app = page_navbar(
-    
-    # Use bslib for custom themes
     theme = mbs_theme,
-    bg = '#001437',
+    navbar_options = navbar_options(bg = "#001437", underline = FALSE, collapsible = TRUE, theme = 'dark'),
     
     # Title Panel of the app
-    title = "HPFC App",
+    title = "HPFC",
     
     header = tagList(
         useShinyjs(),
@@ -40,20 +38,25 @@ ui_app = page_navbar(
                        layout_sidebar(
                            sidebar = sidebar(bg = 'white',
                                              width = 400,
-                                             accordion(class = 'padding: 20px',
+                                             select_sim_name,
+                                             select_history_period,
+                                             select_source_train,
+                                             uiOutput("select_source_file_train"),
+                                             accordion(
                                                        accordion_panel(
-                                                           title = 'Training All'
+                                                           title = 'Training Multiple',
+                                                           select_PWR_product_mult,
+                                                           select_GAS_product_mult,
+                                                           product_train_pwr_mult,
+                                                           br(),
+                                                           product_train_gas_mult
                                                        ),
                                                        accordion_panel(
                                                            title = 'Training Single',
-                                                           select_sim_name,
-                                                           hr(),
-                                                           select_history_period,
                                                            select_PWR_product,
                                                            select_GAS_product,
-                                                           select_source_train,
-                                                           uiOutput("select_source_file_train"),
                                                            product_train_pwr,
+                                                           br(),
                                                            product_train_gas,
                                                            hr(),
                                                            fluidRow(train_pwr_download, train_gas_download)
@@ -91,28 +94,31 @@ ui_app = page_navbar(
                        )
              ),
              
-             nav_spacer(),
-             
              nav_panel(title = 'FORECAST',
                        layout_sidebar(
                            sidebar = sidebar(bg = 'white',
                                              width = 400, 
-                                             accordion(class = 'padding: 20px',
+                                             select_source_run,
+                                             uiOutput("select_source_run"),
+                                             select_horizon_horizon,
+                                             select_source_forecast,
+                                             uiOutput("select_source_file_forecast_pwr"),
+                                             uiOutput("select_source_file_forecast_gas"),
+                                             accordion(
                                                        accordion_panel(
-                                                           title = 'Forecast All'
+                                                           title = 'Forecast Multiple',
+                                                           select_PWR_product_for_multi,
+                                                           select_GAS_product_for_multi,
+                                                           product_forecast_pwr_multi,
+                                                           br(),
+                                                           product_forecast_gas_multi,                                                           
                                                        ),
                                                        accordion_panel(
-                                                           title = 'Forecasting',
-                                                           select_source_run,
-                                                           uiOutput("select_source_run"),
-                                                           hr(),
-                                                           select_horizon_period,
+                                                           title = 'Forecasting Single',
                                                            select_PWR_product_for,
                                                            select_GAS_product_for,
-                                                           select_source_forecast,
-                                                           uiOutput("select_source_file_forecast_pwr"),
-                                                           uiOutput("select_source_file_forecast_gas"),
                                                            product_forecast_pwr,
+                                                           br(),
                                                            product_forecast_gas,
                                                            hr(),
                                                            fluidRow(fwd_pwr_download, fwd_gas_download)
@@ -138,8 +144,6 @@ ui_app = page_navbar(
                        )
              ),
              
-             nav_spacer(),
-             
              nav_panel(title = 'BACKTESTING',
                        layout_sidebar(
                            sidebar = sidebar(bg = 'white',
@@ -149,7 +153,11 @@ ui_app = page_navbar(
                        )
              )
              
-    )
+    ),
+    
+    nav_spacer(),
+    
+        nav_item(textOutput("reuters_status"))
 )
 
 

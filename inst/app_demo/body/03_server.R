@@ -3,6 +3,44 @@
 # SERVER  ------------------------------------------------------------------------------------------------- 
 server_app = function(input, output, session) {
     
+    ## Check Connection
+    
+    check_reuters = reactiveVal(FALSE)
+    
+    observe({
+        print('---------------------------------------------')
+        print('CONNECTION TEST')
+        check_reuters = FALSE
+        
+        ### Connection
+        eikonapir::set_proxy_port(9000L)
+        print(PLEASE_INSERT_REUTERS_KEY[[1]])
+        eikonapir::set_app_id(as.character(PLEASE_INSERT_REUTERS_KEY[[1]]))
+        
+        tryCatch({
+            get_rics_d('MSFT.O', from_date = Sys.Date() - (365 * 10), to_date = Sys.Date())
+            check_reuters = TRUE
+        }, error = function(e) {
+            check_reuters = FALSE
+        })
+        
+        if(isTRUE(check_reuters)) {
+            print('[CONNECTION] OK')
+            check_reuters(TRUE)
+        } else {
+            print('[CONNECTION] ERROR')
+            check_reuters(FALSE)
+        }
+    })
+    
+    output$reuters_status = renderText({
+        if (isTRUE(check_reuters())) {
+            "✅ EIKON: OK"
+        } else {
+            "❌ EIKON: ERROR"
+        }
+    })
+    
     ## FORECAST SOURCE -----------------------
     
     observe({
@@ -554,18 +592,6 @@ server_app = function(input, output, session) {
         
         FWD = react$fwd_pwr_field$ENV_FWD
         
-        if (input$in_source_run == 'New') {
-            
-            req(react$models_gas_field_pwr)
-            req(react$models_pwr_field)
-            req(react$fwd_pwr_field)
-            
-            ENV_MODELS_GAS = react$models_gas_field_pwr
-            ENV_MODELS_PWR = react$models_pwr_field
-            list_inputs = react$list_inputs_field_pwr$ENV_SPOT
-            LST_PARAMS = react$params_input_pwr
-        }
-        
         if (input$in_source_run == 'Last') {
             last_path_models = file.path('HPFC', 'last', 'models', input$in_select_PWR_indicator_for)
             last_path_history = file.path('HPFC', 'last', 'history', input$in_select_PWR_indicator_for)
@@ -651,17 +677,6 @@ server_app = function(input, output, session) {
         print('------------- FORECAST PARAMS PREP START -------------')
         
         FWD = react$fwd_gas_field$ENV_FWD
-        
-        if (input$in_source_run == 'New') {
-            
-            req(react$models_gas_field_pwr)
-            req(react$models_pwr_field)
-            req(react$fwd_pwr_field)
-            
-            ENV_MODELS_GAS = react$models_gas_field_gas
-            list_inputs = react$list_inputs_field_gas
-            LST_PARAMS = react$params_input_gas
-        }
         
         if (input$in_source_run == 'Last') {
             last_path_models = file.path('HPFC', 'last', 'models', input$in_select_GAS_indicator_for)
