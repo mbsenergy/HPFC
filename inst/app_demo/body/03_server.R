@@ -62,28 +62,69 @@ server_app = function(input, output, session) {
     ### SPOTS
     observe({
         if (input$in_source_train == 'Excel') {
-            output$select_source_file_train = renderUI({
+            output$select_source_file_train_pwr = renderUI({
                 fileInput(
-                    inputId = "in_train_excel",
-                    label = "Excel file with spot data",
+                    inputId = "in_train_excel_pwr",
+                    label = "Excel file with Power spot data",
                     accept = c(".xlsx", ".xls"),
                     multiple = FALSE
                 )
             })
+            
+            output$select_source_file_train_gas = renderUI({
+                fileInput(
+                    inputId = "in_train_excel_gas",
+                    label = "Excel file with Gas spot data",
+                    accept = c(".xlsx", ".xls"),
+                    multiple = FALSE
+                )
+            })            
             
         } else {
             output$select_source_file_train = renderUI(NULL)
         }
     })
     
+    dt_spot_manual_pwr = reactiveVal(NULL)
+    dt_spot_manual_gas = reactiveVal(NULL)
     dt_spot_manual = reactiveVal(NULL)
+    
     observe({
-        req(input$in_train_excel)
-        file_path = input$in_train_excel$datapath
-        df = openxlsx::read.xlsx(file_path, detectDates = TRUE)
-        dt = data.table::as.data.table(df)
-        dt_spot_manual(dt)
+        req(input$in_train_excel_pwr)
+        file_path = input$in_train_excel_pwr$datapath
+        sheet_names = openxlsx::getSheetNames(file_path)
+        if (input$in_select_PWR_indicator %in% sheet_names) {
+            df = openxlsx::read.xlsx(file_path, sheet = input$in_select_PWR_indicator, detectDates = TRUE)
+            dt = data.table::as.data.table(df)
+            print(dt)
+            dt_spot_manual_pwr(dt)
+        } else {
+            dt_spot_manual_pwr(NULL)
+            warning("Selected sheet not found in Excel file.")
+        }
     })
+    
+    observe({
+        req(input$in_train_excel_gas)
+        file_path = input$in_train_excel_gas$datapath
+        sheet_names = openxlsx::getSheetNames(file_path)
+        if (input$in_select_GAS_indicator %in% sheet_names) {
+            df = openxlsx::read.xlsx(file_path, sheet = input$in_select_GAS_indicator, detectDates = TRUE)
+            dt = data.table::as.data.table(df)
+            print(dt)
+            dt_spot_manual_gas(dt)
+        } else {
+            dt_spot_manual_gas(NULL)
+            warning("Selected sheet not found in Excel file.")
+        }
+    })
+    
+    observe({
+        req(react$dt_spot_manual_gas, react$dt_spot_manual_pwr)
+        DTS = rbind(react$dt_spot_manual_pwr, react$dt_spot_manual_gas, fill = TRUE)
+        print(DTS)
+        dt_spot_manual(DTS)
+    })    
     
     
     ### FWD

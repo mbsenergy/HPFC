@@ -41,7 +41,8 @@ ui_app = page_navbar(
                                              select_sim_name,
                                              select_history_period,
                                              select_source_train,
-                                             uiOutput("select_source_file_train"),
+                                             uiOutput("select_source_file_train_pwr"),
+                                             uiOutput("select_source_file_train_gas"),
                                              accordion(
                                                        accordion_panel(
                                                            title = 'Training Multiple',
