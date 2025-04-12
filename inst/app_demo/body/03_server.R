@@ -121,7 +121,6 @@ server_app = function(input, output, session) {
     observe({
         req(react$dt_spot_manual_gas, react$dt_spot_manual_pwr)
         DTS = rbind(react$dt_spot_manual_pwr, react$dt_spot_manual_gas, fill = TRUE)
-        print(DTS)
         dt_spot_manual(DTS)
     })    
     
@@ -247,11 +246,11 @@ server_app = function(input, output, session) {
         
         if(input$in_source_train == 'Excel') {
             
-            req(react$dt_spot_manual)
-            list_inputs = HPFC::load_inputs(params = LST_PARAMS,
-                                            manual_data = react$dt_spot_manual,
-                                            reuters_key = NULL)
-            
+            if(!is.null(react$dt_spot_manual)) {
+                list_inputs = HPFC::load_inputs(params = LST_PARAMS,
+                                                manual_data = react$dt_spot_manual,
+                                                reuters_key = NULL)
+            }
         } else {
             
             list_inputs = HPFC::load_inputs(params = LST_PARAMS, manual_data = NULL,
@@ -422,12 +421,12 @@ server_app = function(input, output, session) {
         
         if(input$in_source_train == 'Excel') {
             
-            req(react$dt_spot_manual)
-            list_inputs = HPFC::load_inputs(params = LST_PARAMS, 
-                                            manual_data = react$dt_spot_manual, 
-                                            reuters_key = NULL
-                                            )
-            
+            if(!is.null(react$dt_spot_manual)) {
+                list_inputs = HPFC::load_inputs(params = LST_PARAMS, 
+                                                manual_data = react$dt_spot_manual, 
+                                                reuters_key = NULL
+                )
+            }
         } else {
             
             list_inputs = HPFC::load_inputs(params = LST_PARAMS, 
