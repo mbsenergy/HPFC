@@ -237,11 +237,11 @@ server_app = function(input, output, session) {
     observeEvent(input$act_indicator_train_pwr, {
         
         print('')
-        print('==================== ++++++++++++++ ====================')
+        print('==================== ++++++++++++++++++ ====================')
         print('==================== START TRAINING PWR ====================')
-        print('==================== ++++++++++++++ ====================')
+        print('==================== ++++++++++++++++++ ====================')
         print('')
-        print('------------- LOAD INPUTS START -------------')
+        print('-------------------- LOAD INPUTS START  --------------------')
         
         LST_PARAMS = react$params_input_pwr
         
@@ -252,8 +252,10 @@ server_app = function(input, output, session) {
             
         } else {
             
-            list_inputs = HPFC::load_inputs(params = LST_PARAMS, manual_data = NULL, reuters_key = PLEASE_INSERT_REUTERS_KEY)
-            
+            list_inputs = HPFC::load_inputs(params = LST_PARAMS, manual_data = NULL,
+                                            reuters_key = PLEASE_INSERT_REUTERS_KEY,
+                                            last_run_path = file.path('HPFC', 'last', 'history')
+            )
         }
         
         
@@ -263,8 +265,8 @@ server_app = function(input, output, session) {
             dir.create(last_path, recursive = TRUE)
         }
         
-        saveRDS(list_inputs$ENV_SPOT$history_gas, file.path(last_path, paste0('history_gas.rds')))
-        saveRDS(list_inputs$ENV_SPOT$history_pwr, file.path(last_path, paste0('history_pwr.rds')))
+        fwrite(list_inputs$ENV_SPOT$history_gas, file.path(last_path, paste0('history_gas.csv')))
+        fwrite(list_inputs$ENV_SPOT$history_pwr, file.path(last_path, paste0('history_pwr.csv')))
         
         if(nchar(input$in_new_sim_name) > 0) {
             
@@ -273,13 +275,13 @@ server_app = function(input, output, session) {
                 dir.create(last_path, recursive = TRUE)
             }
             
-            saveRDS(list_inputs$ENV_SPOT$history_gas, file.path(last_path, paste0('history_gas.rds')))
-            saveRDS(list_inputs$ENV_SPOT$history_pwr, file.path(last_path, paste0('history_pwr.rds')))
+            fwrite(list_inputs$ENV_SPOT$history_gas, file.path(last_path, paste0('history_gas.csv')))
+            fwrite(list_inputs$ENV_SPOT$history_pwr, file.path(last_path, paste0('history_pwr.csv')))
         }
         
         list_inputs_field_pwr(list_inputs)
         
-        print('------------- LOAD INPUTS END ---------------')
+        print('-------------------- LOAD INPUTS END   --------------------')
         
     })
     
@@ -294,8 +296,8 @@ server_app = function(input, output, session) {
         
         req(react$list_inputs_field_pwr)
         
-        print('==================== ++++++++++++++ ====================')
-        print('------------- PREPARE START -------------')
+        print('============= +++++++++++++ ====================')
+        print('------------- PREPARE START --------------------')
         
         list_inputs = react$list_inputs_field_pwr
         ENV_MODELS_GAS = prepare_gas(list_inputs = list_inputs)
@@ -304,7 +306,7 @@ server_app = function(input, output, session) {
         prepare_gas_field_pwr(ENV_MODELS_GAS)
         prepare_pwr_field(ENV_MODELS_PWR)
         
-        print('------------- PREPARE END ---------------')
+        print('------------- PREPARE END ----------------------')
         
     })
     
@@ -318,8 +320,8 @@ server_app = function(input, output, session) {
         req(react$prepare_gas_field_pwr)
         req(react$prepare_pwr_field)
         
-        print('==================== ++++++++++++++ ====================')
-        print('------------- TRAIN START -------------')
+        print('============= +++++++++++ ====================')
+        print('------------- TRAIN START --------------------')
         
         ENV_MODELS_GAS = react$prepare_gas_field_pwr
         ENV_MODELS_PWR = react$prepare_pwr_field
@@ -371,7 +373,7 @@ server_app = function(input, output, session) {
         models_gas_field_pwr(ENV_MODELS_GAS)
         models_pwr_field(ENV_MODELS_PWR)
         
-        print('------------- TRAIN END ---------------')
+        print('------------- TRAIN END  --------------------')
         
     })
     
@@ -408,11 +410,11 @@ server_app = function(input, output, session) {
     observeEvent(input$act_indicator_train_gas, {
         
         print('')
-        print('==================== ++++++++++++++ ====================')
+        print('==================== ++++++++++++++++++ ====================')
         print('==================== START TRAINING GAS ====================')
-        print('==================== ++++++++++++++ ====================')
+        print('==================== ++++++++++++++++++ ====================')
         print('')
-        print('------------- LOAD INPUTS START -------------')
+        print('-------------------- LOAD INPUTS START  --------------------')
         
         LST_PARAMS = react$params_input_gas
         
@@ -433,7 +435,7 @@ server_app = function(input, output, session) {
             dir.create(last_path, recursive = TRUE)
         }
         
-        saveRDS(list_inputs$ENV_SPOT$history_gas, file.path(last_path, paste0('history_gas.rds')))
+        fwrite(list_inputs$ENV_SPOT$history_gas, file.path(last_path, paste0('history_gas.csv')))
         
         if(nchar(input$in_new_sim_name) > 0) {
             last_path = file.path('HPFC', 'archive', 'history', input$in_select_GAS_indicator, input$in_new_sim_name)
@@ -441,12 +443,12 @@ server_app = function(input, output, session) {
                 dir.create(last_path, recursive = TRUE)
             }
             
-            saveRDS(list_inputs$ENV_SPOT$history_gas, file.path(last_path, paste0('history_gas.rds')))
+            fwrite(list_inputs$ENV_SPOT$history_gas, file.path(last_path, paste0('history_gas.csv')))
         }
         
         list_inputs_field_gas(list_inputs)
         
-        print('------------- LOAD INPUTS END ---------------')
+        print('-------------------- LOAD INPUTS END   --------------------')
         
     })
     
@@ -460,15 +462,15 @@ server_app = function(input, output, session) {
         
         req(react$list_inputs_field_gas)
         
-        print('==================== ++++++++++++++ ====================')
-        print('------------- PREPARE START -------------')
+        print('=================== +++++++++++++ ====================')
+        print('------------------- PREPARE START --------------------')
         
         list_inputs = react$list_inputs_field_gas
         ENV_MODELS_GAS = prepare_gas(list_inputs = list_inputs)
         
         prepare_gas_field_gas(ENV_MODELS_GAS)
         
-        print('------------- PREPARE END ---------------')
+        print('------------------- PREPARE END ----------------------')
         
     })
     
@@ -480,8 +482,8 @@ server_app = function(input, output, session) {
         
         req(react$prepare_gas_field_gas)
         
-        print('==================== ++++++++++++++ ====================')
-        print('------------- TRAIN START -------------')
+        print('=================== +++++++++++ ====================')
+        print('------------------- TRAIN START --------------------')
         
         ENV_MODELS_GAS = react$prepare_gas_field_gas
         
@@ -514,7 +516,7 @@ server_app = function(input, output, session) {
         
         models_gas_field_gas(ENV_MODELS_GAS)
         
-        print('------------- TRAIN END ---------------')
+        print('------------------- TRAIN END --------------------')
         
     })
     
@@ -641,8 +643,8 @@ server_app = function(input, output, session) {
         
         req(react$fwd_pwr_field)
         
-        print('==================== ++++++++++++++ ====================')
-        print('------------- FORECAST PARAMS PREP START -------------')
+        print('=================== ++++++++++++++++++++++++++ =============')
+        print('------------------- FORECAST PARAMS PREP START -------------')
         
         FWD = react$fwd_pwr_field$ENV_FWD
         
@@ -656,8 +658,8 @@ server_app = function(input, output, session) {
             ENV_MODELS_GAS$dt_lt_param_gasdep = readRDS(file.path(last_path_models, 'model_gas_lt.rds'))
             ENV_MODELS_PWR$dt_lt_param_pwr = readRDS(file.path(last_path_models, 'model_pwr_lt.rds'))
             ENV_MODELS_PWR$lst_hr_param_pwr = readRDS(file.path(last_path_models, 'model_pwr_st.rds'))
-            list_inputs$history_gas = readRDS(file.path(last_path_history, 'history_gas.rds'))
-            list_inputs$history_pwr = readRDS(file.path(last_path_history, 'history_pwr.rds'))
+            list_inputs$history_gas = fread(file.path(last_path_history, 'history_gas.csv'))
+            list_inputs$history_pwr = fread(file.path(last_path_history, 'history_pwr.csv'))
         }
         
         if (input$in_source_run == 'Sim') {
@@ -670,8 +672,8 @@ server_app = function(input, output, session) {
             ENV_MODELS_GAS$dt_lt_param_gasdep = readRDS(file.path(last_path_models, 'model_gas_lt.rds'))
             ENV_MODELS_PWR$dt_lt_param_pwr = readRDS(file.path(last_path_models, 'model_pwr_lt.rds'))
             ENV_MODELS_PWR$lst_hr_param_pwr = readRDS(file.path(last_path_models, 'model_pwr_st.rds'))
-            list_inputs$history_gas = readRDS(file.path(last_path_history, 'history_gas.rds'))
-            list_inputs$history_pwr = readRDS(file.path(last_path_history, 'history_pwr.rds'))
+            list_inputs$history_gas = fread(file.path(last_path_history, 'history_gas.csv'))
+            list_inputs$history_pwr = fread(file.path(last_path_history, 'history_pwr.csv'))
         }        
         
         LST_FOR = list(
@@ -707,15 +709,15 @@ server_app = function(input, output, session) {
                 })
             )        
         
-        print('------------- FORECAST PARAMS PREP END -----------------')
+        print('------------------- FORECAST PARAMS PREP END -----------------')
         
         forecast_params_field_pwr(LST_FOR)
         forecast_params_table_pwr(dt_recap)
         
         print('')
-        print('==================== ++++++++++++++ ====================')
-        print('==================== END TRAINING PWR  ====================')
-        print('==================== ++++++++++++++ ====================')
+        print('==================== ++++++++++++++++ ====================')
+        print('==================== END TRAINING PWR ====================')
+        print('==================== ++++++++++++++++ ====================')
         print('')
     })
     
@@ -727,7 +729,7 @@ server_app = function(input, output, session) {
         
         req(react$fwd_gas_field)
         
-        print('==================== ++++++++++++++ ====================')
+        print('============= ++++++++++++++++++++++++++ =============')
         print('------------- FORECAST PARAMS PREP START -------------')
         
         FWD = react$fwd_gas_field$ENV_FWD
@@ -739,7 +741,7 @@ server_app = function(input, output, session) {
             ENV_MODELS_GAS = list()
             list_inputs = list()
             ENV_MODELS_GAS$dt_lt_param_gasdep = readRDS(file.path(last_path_models, 'model_gas_lt.rds'))
-            list_inputs$history_gas = readRDS(file.path(last_path_history, 'history_gas.rds'))
+            list_inputs$history_gas = fread(file.path(last_path_history, 'history_gas.csv'))
         }
         
         if (input$in_source_run == 'Sim') {
@@ -749,7 +751,7 @@ server_app = function(input, output, session) {
             ENV_MODELS_GAS = list()
             list_inputs = list()
             ENV_MODELS_GAS$dt_lt_param_gasdep = readRDS(file.path(last_path_models, 'model_gas_lt.rds'))
-            list_inputs$history_gas = readRDS(file.path(last_path_history, 'history_gas.rds'))
+            list_inputs$history_gas = fread(file.path(last_path_history, 'history_gas.csv'))
         }
         
         LST_FOR = list(
@@ -786,9 +788,9 @@ server_app = function(input, output, session) {
         forecast_params_table_gas(dt_recap)
         
         print('')
-        print('==================== ++++++++++++++ ====================')
-        print('==================== END TRAINING GAS  ====================')
-        print('==================== ++++++++++++++ ====================')
+        print('==================== ++++++++++++++++ ====================')
+        print('==================== END TRAINING GAS ====================')
+        print('==================== ++++++++++++++++ ====================')
         print('')
     })
     
@@ -796,9 +798,9 @@ server_app = function(input, output, session) {
         
         req(react$forecast_params_field_pwr)
         print('')
-        print('==================== ++++++++++++++ ====================')
+        print('==================== +++++++++++++++++++++ ====================')
         print('==================== START FORECASTING PWR ====================')
-        print('==================== ++++++++++++++ ====================')
+        print('==================== +++++++++++++++++++++ ====================')
         print('')
         print('------------- FORECAST START -------------')
         
@@ -838,9 +840,9 @@ server_app = function(input, output, session) {
         
         print('------------- FORECAST END -------------')        
         print('')
-        print('==================== ++++++++++++++ ====================')
+        print('==================== +++++++++++++++++++ ====================')
         print('==================== END FORECASTING PWR ====================')
-        print('==================== ++++++++++++++ ====================')
+        print('==================== +++++++++++++++++++ ====================')
         print('')
         
     })
@@ -854,9 +856,9 @@ server_app = function(input, output, session) {
         
         req(react$forecast_params_field_gas)
         print('')
-        print('==================== ++++++++++++++ ====================')
+        print('==================== +++++++++++++++++++++ ====================')
         print('==================== START FORECASTING GAS ====================')
-        print('==================== ++++++++++++++ ====================')
+        print('==================== +++++++++++++++++++++ ====================')
         print('')
         print('------------- FORECAST START -------------')
         
@@ -895,9 +897,9 @@ server_app = function(input, output, session) {
         
         print('------------- FORECAST END -------------')        
         print('')
-        print('==================== ++++++++++++++ ====================')
+        print('==================== +++++++++++++++++++ ====================')
         print('==================== END FORECASTING GAS ====================')
-        print('==================== ++++++++++++++ ====================')
+        print('==================== +++++++++++++++++++ ====================')
         print('')
         
     })    

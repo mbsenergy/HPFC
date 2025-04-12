@@ -4,7 +4,7 @@
 
 suppressMessages(suppressWarnings(
     source(file.path('body', "00_settings.R"))
-    ))
+))
 
 options(shiny.reactlog = TRUE)
 options(warn = -1)

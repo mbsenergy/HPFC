@@ -17,7 +17,7 @@ mbs_theme =
     bs_theme(
         version = 5,
         brand = file.path('body', '_brand.yml'),
-        font_scale = 0.9
+        font_scale = 0.85
     )
 
 ## Sourcer ----------------------------------------------------------------

@@ -22,7 +22,7 @@
 #' @importFrom eikonapir set_proxy_port set_app_id
 #' 
 #' @export
-load_inputs = function(params, manual_data = NULL, reuters_key = NULL) {
+load_inputs = function(params, manual_data = NULL, reuters_key = NULL, last_run_path = NULL) {
     
     LST_PARAMS = params
     
@@ -50,8 +50,9 @@ load_inputs = function(params, manual_data = NULL, reuters_key = NULL) {
     
     ### CODES Parameters
     ENV_CODES = list()
-    ENV_CODES$calendar_holidays = setnames(HPFC::calendar_holidays, paste0("holiday_GR"), 'holiday', skip_absent = TRUE)
-    ENV_CODES$calendar_holidays = ENV_CODES$calendar_holidays[, .(date, holiday)]
+    calendar_holidays = as.data.table(HPFC::new_calendar_holidays)
+    setnames(calendar_holidays, paste0("holiday_", selected_pwr_code), 'holiday', skip_absent = TRUE)
+    ENV_CODES$calendar_holidays = calendar_holidays[, .(date, holiday)]
     
     
     # A. Spot Market Data
@@ -86,20 +87,39 @@ load_inputs = function(params, manual_data = NULL, reuters_key = NULL) {
         PLEASE_INSERT_REUTERS_KEY = reuters_key[[1]]
         eikonapir::set_app_id(as.character(PLEASE_INSERT_REUTERS_KEY))
         
-        ENV_SPOT$history_gas_full = HPFC::dt_spot_gas[RIC == HPFC::spot_GAS_products_full[products_GAS %in% unique(c(LST_PARAMS$selected_gas_code, LST_PARAMS$dependent_gas_code))]$spot_GAS_code]
-        ENV_SPOT$history_pwr_full = HPFC::dt_spot_pwr[RIC == HPFC::spot_PWR_products_full[countries %in% LST_PARAMS$selected_pwr_code]$spot_PWR_code]
+        gas_codes = HPFC::spot_GAS_products_full[products_GAS %in% unique(c(LST_PARAMS$selected_gas_code, LST_PARAMS$dependent_gas_code))]$spot_GAS_code
+        pwr_codes = HPFC::spot_PWR_products_full[countries %in% LST_PARAMS$selected_pwr_code]$spot_PWR_code
+        
+        if (length(gas_codes) == 0) {
+            file_path = file.path(last_run_path, 'backup_spot_gas.xlsx')
+            sheet_names = openxlsx::getSheetNames(file.path(file_path, 'backup_spot_gas.xlsx'))
+            df = openxlsx::read.xlsx(file_path, sheet = LST_PARAMS$selected_gas_code, detectDates = TRUE)
+            ENV_SPOT$history_gas_full = data.table::as.data.table(df)
+            ENV_SPOT$spot_gas_RIC = LST_PARAMS$selected_gas_code
+        } else {
+            ENV_SPOT$history_gas_full = HPFC::dt_spot_gas[RIC == gas_codes]
+            ENV_SPOT$spot_gas_RIC = gas_codes
+        }
+        
+        if (length(pwr_codes) == 0) {
+            file_path = file.path(last_run_path, 'backup_spot_pwr.xlsx')
+            sheet_names = openxlsx::getSheetNames(file_path)
+            df = openxlsx::read.xlsx(file_path, sheet = LST_PARAMS$selected_pwr_code, detectDates = TRUE)
+            ENV_SPOT$history_pwr_full = data.table::as.data.table(df)
+            ENV_SPOT$spot_pwr_RIC = LST_PARAMS$selected_pwr_code
+        } else {
+            ENV_SPOT$history_pwr_full = HPFC::dt_spot_pwr[RIC == pwr_codes]
+            ENV_SPOT$spot_pwr_RIC = pwr_codes
+        }
         
         ENV_SPOT$history_gas = ENV_SPOT$history_gas_full[date <= LST_PARAMS$history_end]
-        ENV_SPOT$spot_gas_RIC = unique(HPFC::spot_GAS_products_full[products_GAS %in% c(LST_PARAMS$selected_gas_code, LST_PARAMS$dependent_gas_code)]$spot_GAS_code)
-        
         ENV_SPOT$history_pwr = ENV_SPOT$history_pwr_full[date <= LST_PARAMS$history_end]
-        ENV_SPOT$spot_pwr_RIC = unique(HPFC::spot_PWR_products_full[countries %in% LST_PARAMS$selected_pwr_code]$spot_PWR_code)
         
             
         if(LST_PARAMS$data_source != 'Excel') {
             
             ## GAS
-            if(as.character(LST_PARAMS$history_end) >= '2025-01-01') {
+            if(length(gas_codes) > 0 & as.character(LST_PARAMS$history_end) >= '2025-01-01') {
                 
                 DT_NEW = HPFC::retrieve_spot(
                     ric = ENV_SPOT$spot_gas_RIC,
@@ -118,7 +138,7 @@ load_inputs = function(params, manual_data = NULL, reuters_key = NULL) {
             ENV_SPOT$history_gas = ENV_SPOT$history_gas_full[date <= LST_PARAMS$history_end]
             
             ## PWR
-            if(as.character(LST_PARAMS$history_end) >= '2025-01-01') {
+            if(length(pwr_codes) > 0 & as.character(LST_PARAMS$history_end) >= '2025-01-01') {
                 
                 DT_NEW = HPFC::retrieve_spot(
                     ric = ENV_SPOT$spot_pwr_RIC,

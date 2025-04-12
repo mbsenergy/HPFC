@@ -1,10 +1,10 @@
 # GENERAL ======================================================================
 
 ### RICS NAMES -----------------------------------------------------------------
-vec_pwr_products =        c(HPFC::spot_PWR_products_full$countries, 'Serbia')
-names(vec_pwr_products) = c(HPFC::spot_PWR_products_full$countries, 'Serbia')
-vec_gas_products =        c(HPFC::spot_GAS_products_full$products_GAS, 'BRM')
-names(vec_gas_products) = c(HPFC::spot_GAS_products_full$products_GAS, 'BRM')
+vec_pwr_products =        HPFC::spot_PWR_products_full$countries
+names(vec_pwr_products) = HPFC::spot_PWR_products_full$countries
+vec_gas_products =        HPFC::spot_GAS_products_full$products_GAS
+names(vec_gas_products) = HPFC::spot_GAS_products_full$products_GAS
 
 ## SIM NAME -------------------------------------------------------------------
 select_sim_name = 
