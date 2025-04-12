@@ -51,7 +51,7 @@ load_inputs = function(params, manual_data = NULL, reuters_key = NULL, last_run_
     ### CODES Parameters
     ENV_CODES = list()
     calendar_holidays = as.data.table(HPFC::new_calendar_holidays)
-    setnames(calendar_holidays, paste0("holiday_", selected_pwr_code), 'holiday', skip_absent = TRUE)
+    setnames(calendar_holidays, paste0("holiday_", LST_PARAMS$selected_pwr_code), 'holiday', skip_absent = TRUE)
     ENV_CODES$calendar_holidays = calendar_holidays[, .(date, holiday)]
     
     
@@ -62,7 +62,7 @@ load_inputs = function(params, manual_data = NULL, reuters_key = NULL, last_run_
     if(LST_PARAMS$data_source == 'Excel') {
         if(!is.null(manual_data)) {
             
-            ENV_SPOT$history_gas_full = manual_data[RIC == HPFC::spot_GAS_products_full[products_GAS %in% unique(c(LST_PARAMS$selected_gas_code, LST_PARAMS$dependent_gas_code))]$spot_GAS_code]
+            ENV_SPOT$history_gas_full = manual_data[RIC == HPFC::spot_GAS_products_full[products_GAS %in% unique(c(LST_PARAMS$LST_PARAMS$selected_gas_code, LST_PARAMS$dependent_gas_code))]$spot_GAS_code]
             ENV_SPOT$history_gas_full[, hour := NULL]
             ENV_SPOT$history_gas = ENV_SPOT$history_gas_full[date <= LST_PARAMS$history_end]
             ENV_SPOT$spot_gas_RIC = unique(HPFC::spot_GAS_products_full[products_GAS %in% c(LST_PARAMS$selected_gas_code, LST_PARAMS$dependent_gas_code)]$spot_GAS_code)
@@ -89,8 +89,11 @@ load_inputs = function(params, manual_data = NULL, reuters_key = NULL, last_run_
         
         gas_codes = HPFC::spot_GAS_products_full[products_GAS %in% unique(c(LST_PARAMS$selected_gas_code, LST_PARAMS$dependent_gas_code))]$spot_GAS_code
         pwr_codes = HPFC::spot_PWR_products_full[countries %in% LST_PARAMS$selected_pwr_code]$spot_PWR_code
+
+        is_eikon_gas = HPFC::gas_mapped_codes[products == gas_codes]$eikon
+        is_eikon_pwr = HPFC::pwr_mapped_codes[countries == pwr_codes]$eikon
         
-        if (length(gas_codes) == 0) {
+        if (is_eikon_gas == 'NO') {
             file_path = file.path(last_run_path, 'backup_spot_gas.xlsx')
             sheet_names = openxlsx::getSheetNames(file.path(file_path, 'backup_spot_gas.xlsx'))
             df = openxlsx::read.xlsx(file_path, sheet = LST_PARAMS$selected_gas_code, detectDates = TRUE)
@@ -101,7 +104,7 @@ load_inputs = function(params, manual_data = NULL, reuters_key = NULL, last_run_
             ENV_SPOT$spot_gas_RIC = gas_codes
         }
         
-        if (length(pwr_codes) == 0) {
+        if (is_eikon_pwr == 'NO') {
             file_path = file.path(last_run_path, 'backup_spot_pwr.xlsx')
             sheet_names = openxlsx::getSheetNames(file_path)
             df = openxlsx::read.xlsx(file_path, sheet = LST_PARAMS$selected_pwr_code, detectDates = TRUE)
@@ -253,21 +256,21 @@ prepare_fwd = function(fwd_pwr_code = NULL, fwd_gas_code = NULL, start_date, end
     forecast_end = end_date
     
     if(model_type == 'GAS') {
-        selected_gas_code = fwd_gas_code
-        ENV_FWD$fwd_gas_RIC = unique(HPFC::spot_GAS_products_full[products_GAS %in% c(selected_gas_code)]$products_GAS_code) ; selected_pwr_code = 'Greece'
+        LST_PARAMS$selected_gas_code = fwd_gas_code
+        ENV_FWD$fwd_gas_RIC = unique(HPFC::spot_GAS_products_full[products_GAS %in% c(LST_PARAMS$selected_gas_code)]$products_GAS_code) ; LST_PARAMS$selected_pwr_code = 'Greece'
         
     } else {
-        selected_gas_code = fwd_gas_code
-        selected_pwr_code = fwd_pwr_code
-        ENV_FWD$fwd_gas_RIC = unique(HPFC::spot_GAS_products_full[products_GAS %in% c(selected_gas_code)]$products_GAS_code)
-        ENV_FWD$fwd_pwr_RIC =  unique(HPFC::spot_PWR_products_full[countries %in% selected_pwr_code]$products_PWR_code)
+        LST_PARAMS$selected_gas_code = fwd_gas_code
+        LST_PARAMS$selected_pwr_code = fwd_pwr_code
+        ENV_FWD$fwd_gas_RIC = unique(HPFC::spot_GAS_products_full[products_GAS %in% c(LST_PARAMS$selected_gas_code)]$products_GAS_code)
+        ENV_FWD$fwd_pwr_RIC =  unique(HPFC::spot_PWR_products_full[countries %in% LST_PARAMS$selected_pwr_code]$products_PWR_code)
     }
     
     ENV_FWD$last_date = as.Date(forecast_start) - 1
     
     ### CODES Parameters
     calendar_holidays = as.data.table(HPFC::new_calendar_holidays)
-    setnames(calendar_holidays, paste0("holiday_", selected_pwr_code), 'holiday', skip_absent = TRUE)
+    setnames(calendar_holidays, paste0("holiday_", LST_PARAMS$selected_pwr_code), 'holiday', skip_absent = TRUE)
     calendar_future = calendar_holidays[, .(date, holiday)]
     calendar_future[,`:=` (year = as.character(data.table::year(date)), 
                            quarter = as.character(data.table::quarter(date)),
@@ -288,9 +291,9 @@ prepare_fwd = function(fwd_pwr_code = NULL, fwd_gas_code = NULL, start_date, end
         DT_GAS = HPFC::dt_fwds_gas[substr(RIC, 1, 4) == ENV_FWD$fwd_gas_RIC]
         if(model_type == 'PWR') {
             if(forecast_source == 'FWD') {
-                DT_PWR = HPFC::dt_fwds_pwr_fwddam[spot_PWR_code == HPFC::spot_PWR_products_full[countries %in% selected_pwr_code]$spot_PWR_code, .(date, RIC, value = FWD)]
+                DT_PWR = HPFC::dt_fwds_pwr_fwddam[spot_PWR_code == HPFC::spot_PWR_products_full[countries %in% LST_PARAMS$selected_pwr_code]$spot_PWR_code, .(date, RIC, value = FWD)]
             } else {
-                DT_PWR = HPFC::dt_fwds_pwr_fwddam[spot_PWR_code == HPFC::spot_PWR_products_full[countries %in% selected_pwr_code]$spot_PWR_code, .(date, RIC, value = DAM)]
+                DT_PWR = HPFC::dt_fwds_pwr_fwddam[spot_PWR_code == HPFC::spot_PWR_products_full[countries %in% LST_PARAMS$selected_pwr_code]$spot_PWR_code, .(date, RIC, value = DAM)]
             }
         }
         
@@ -299,7 +302,7 @@ prepare_fwd = function(fwd_pwr_code = NULL, fwd_gas_code = NULL, start_date, end
         
         if(model_type == 'PWR') {
             ### POWER 
-            lst_rics_pwr = HPFC::generate_rics_pwr(selected_pwr_code, time_range = 2025:as.numeric(data.table::year(as.Date(forecast_end))))
+            lst_rics_pwr = HPFC::generate_rics_pwr(LST_PARAMS$selected_pwr_code, time_range = 2025:as.numeric(data.table::year(as.Date(forecast_end))))
             ENV_FWD$lst_rics = c(lst_rics_pwr, lst_rics_gas) ; rm(lst_rics_pwr, lst_rics_gas)
             
         } else {
@@ -345,11 +348,11 @@ prepare_fwd = function(fwd_pwr_code = NULL, fwd_gas_code = NULL, start_date, end
     
     if(isTRUE(is_manual)) {
         dt_fwd_gas = manual_gas
-        dt_fwd_prep_gas = merge(dt_fwd_gas, generate_monthrics_gas(unique(HPFC::spot_GAS_products_full[products_GAS %in% c(selected_gas_code)]$products_GAS_code), time_range = 2024), by.x = 'yymm', by.y ='date', all.x = TRUE) 
+        dt_fwd_prep_gas = merge(dt_fwd_gas, generate_monthrics_gas(unique(HPFC::spot_GAS_products_full[products_GAS %in% c(LST_PARAMS$selected_gas_code)]$products_GAS_code), time_range = 2024), by.x = 'yymm', by.y ='date', all.x = TRUE) 
         
         if(model_type == 'PWR') {
             dt_fwd_pwr = manual_pwr
-            dt_fwd_prep_pwr = merge(dt_fwd_pwr, generate_monthrics_pwr(unique(HPFC::spot_PWR_products_full[countries %in% selected_pwr_code]$countries), time_range = 2024), by.x = 'yymm', by.y ='date', all.x = TRUE) 
+            dt_fwd_prep_pwr = merge(dt_fwd_pwr, generate_monthrics_pwr(unique(HPFC::spot_PWR_products_full[countries %in% LST_PARAMS$selected_pwr_code]$countries), time_range = 2024), by.x = 'yymm', by.y ='date', all.x = TRUE) 
             dt_fwds = rbind(dt_fwd_prep_pwr, dt_fwd_prep_gas)
             
         } else {
@@ -511,7 +514,7 @@ prepare_pwr = function(list_inputs = list_inputs) {
     ENV_MODELS_PWR$dt_hr_param_pwr[, RIC := NULL]
     
     ENV_MODELS_PWR$gas_history = ENV_SPOT$history_gas[date >= LST_PARAMS$history_start & date <= LST_PARAMS$history_end, .(date, value, RIC)]
-    ENV_MODELS_PWR$gas_history = ENV_MODELS_PWR$gas_history[RIC == HPFC::spot_GAS_products_full[products_GAS %in% unique(c(LST_PARAMS$selected_gas_code, LST_PARAMS$dependent_gas_code))]$spot_GAS_code, .(date, value)] 
+    ENV_MODELS_PWR$gas_history = ENV_MODELS_PWR$gas_history[RIC == HPFC::spot_GAS_products_full[products_GAS %in% unique(c(LST_PARAMS$LST_PARAMS$selected_gas_code, LST_PARAMS$dependent_gas_code))]$spot_GAS_code, .(date, value)] 
     
     ENV_MODELS_PWR$calendar_holidays_pwr = copy(ENV_CODES$calendar_holidays)
     
