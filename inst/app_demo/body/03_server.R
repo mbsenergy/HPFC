@@ -421,7 +421,11 @@ server_app = function(input, output, session) {
         if(input$in_source_train == 'Excel') {
             
             req(react$dt_spot_manual)
-            list_inputs = HPFC::load_inputs(params = LST_PARAMS, manual_data = react$dt_spot_manual, reuters_key = NULL)
+            list_inputs = HPFC::load_inputs(params = LST_PARAMS, 
+                                            manual_data = react$dt_spot_manual, 
+                                            reuters_key = NULL,
+                                            last_run_path = file.path('HPFC', 'last', 'history')
+                                            )
             
         } else {
             

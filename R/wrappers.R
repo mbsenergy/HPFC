@@ -54,10 +54,9 @@ load_inputs = function(params, manual_data = NULL, reuters_key = NULL, last_run_
     setnames(calendar_holidays, paste0("holiday_", LST_PARAMS$selected_pwr_code), 'holiday', skip_absent = TRUE)
     ENV_CODES$calendar_holidays = calendar_holidays[, .(date, holiday)]
     
-    gas_codes = HPFC::spot_GAS_products_full[products_GAS %in% unique(c(LST_PARAMS$selected_gas_code, LST_PARAMS$dependent_gas_code))]$spot_GAS_code
+    gas_codes = HPFC::spot_GAS_products_full[products_GAS %in% LST_PARAMS$selected_gas_code]$spot_GAS_code
     pwr_codes = HPFC::spot_PWR_products_full[countries %in% LST_PARAMS$selected_pwr_code]$spot_PWR_code
     # A. Spot Market Data
-    
     ENV_SPOT = list()
     
     if(LST_PARAMS$data_source == 'Excel') {
@@ -88,21 +87,18 @@ load_inputs = function(params, manual_data = NULL, reuters_key = NULL, last_run_
         PLEASE_INSERT_REUTERS_KEY = reuters_key[[1]]
         eikonapir::set_app_id(as.character(PLEASE_INSERT_REUTERS_KEY))
         
-        is_eikon_gas = HPFC::gas_mapped_codes[products %in% unique(c(LST_PARAMS$selected_gas_code, LST_PARAMS$dependent_gas_code))]$eikon
+        is_eikon_gas = HPFC::gas_mapped_codes[products %in% LST_PARAMS$selected_gas_code]$eikon
         is_eikon_pwr = HPFC::pwr_mapped_codes[countries == HPFC::spot_PWR_products_full[spot_PWR_code == pwr_codes]$countries]$eikon
-        print('2');print(is_eikon_gas)
-        
-
+        print('is_eikon_gas');print(is_eikon_gas)
         if (is_eikon_gas == 'NO') {
             file_path = file.path(last_run_path, 'backup_spot_gas.xlsx')
             sheet_names = openxlsx::getSheetNames(file.path(file_path, 'backup_spot_gas.xlsx'))
             df = openxlsx::read.xlsx(file_path, sheet = LST_PARAMS$selected_gas_code, detectDates = TRUE)
             ENV_SPOT$history_gas_full = data.table::as.data.table(df)
-            ENV_SPOT$spot_gas_RIC = LST_PARAMS$selected_gas_code
+            ENV_SPOT$spot_gas_RIC = gas_codes
         } else {
             ENV_SPOT$history_gas_full = HPFC::dt_spot_gas[RIC == gas_codes]
             ENV_SPOT$spot_gas_RIC = gas_codes
-            print('3');print(ENV_SPOT$history_gas_full)
         }
         
         if (is_eikon_pwr == 'NO') {
@@ -123,8 +119,7 @@ load_inputs = function(params, manual_data = NULL, reuters_key = NULL, last_run_
         if(LST_PARAMS$data_source != 'Excel') {
             
             ## GAS
-            if(length(gas_codes) > 0 & as.character(LST_PARAMS$history_end) >= '2025-01-01') {
-                
+            if(is_eikon_gas == 'YES' & as.character(LST_PARAMS$history_end) >= '2025-01-01') {
                 DT_NEW = HPFC::retrieve_spot(
                     ric = gas_codes,
                     from_date = as.character('2025-01-01'),
@@ -140,9 +135,8 @@ load_inputs = function(params, manual_data = NULL, reuters_key = NULL, last_run_
             }
             
             ENV_SPOT$history_gas = ENV_SPOT$history_gas_full[date <= LST_PARAMS$history_end]
-            
             ## PWR
-            if(length(pwr_codes) > 0 & as.character(LST_PARAMS$history_end) >= '2025-01-01') {
+            if(is_eikon_pwr == 'YES' & as.character(LST_PARAMS$history_end) >= '2025-01-01') {
                 
                 DT_NEW = HPFC::retrieve_spot(
                     ric = pwr_codes,
