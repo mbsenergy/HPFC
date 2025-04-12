@@ -92,10 +92,13 @@ load_inputs = function(params, manual_data = NULL, reuters_key = NULL, last_run_
         print('is_eikon_gas');print(is_eikon_gas)
         if (is_eikon_gas == 'NO') {
             file_path = file.path(last_run_path, 'backup_spot_gas.xlsx')
-            sheet_names = openxlsx::getSheetNames(file.path(file_path, 'backup_spot_gas.xlsx'))
+            print(file_path)
+            sheet_names = openxlsx::getSheetNames(file_path)
+            print(sheet_names)
             df = openxlsx::read.xlsx(file_path, sheet = LST_PARAMS$selected_gas_code, detectDates = TRUE)
             ENV_SPOT$history_gas_full = data.table::as.data.table(df)
             ENV_SPOT$spot_gas_RIC = gas_codes
+            print(ENV_SPOT$history_gas_full)
         } else {
             ENV_SPOT$history_gas_full = HPFC::dt_spot_gas[RIC == gas_codes]
             ENV_SPOT$spot_gas_RIC = gas_codes
@@ -103,10 +106,13 @@ load_inputs = function(params, manual_data = NULL, reuters_key = NULL, last_run_
         
         if (is_eikon_pwr == 'NO') {
             file_path = file.path(last_run_path, 'backup_spot_pwr.xlsx')
+            print(file_path)
             sheet_names = openxlsx::getSheetNames(file_path)
+            print(sheet_names)
             df = openxlsx::read.xlsx(file_path, sheet = LST_PARAMS$selected_pwr_code, detectDates = TRUE)
             ENV_SPOT$history_pwr_full = data.table::as.data.table(df)
             ENV_SPOT$spot_pwr_RIC = LST_PARAMS$selected_pwr_code
+            print(ENV_SPOT$history_pwr_full)
         } else {
             ENV_SPOT$history_pwr_full = HPFC::dt_spot_pwr[RIC == pwr_codes]
             ENV_SPOT$spot_pwr_RIC = pwr_codes

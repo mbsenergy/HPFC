@@ -248,7 +248,9 @@ server_app = function(input, output, session) {
         if(input$in_source_train == 'Excel') {
             
             req(react$dt_spot_manual)
-            list_inputs = HPFC::load_inputs(params = LST_PARAMS, manual_data = react$dt_spot_manual, reuters_key = NULL)
+            list_inputs = HPFC::load_inputs(params = LST_PARAMS,
+                                            manual_data = react$dt_spot_manual,
+                                            reuters_key = NULL)
             
         } else {
             
@@ -423,13 +425,15 @@ server_app = function(input, output, session) {
             req(react$dt_spot_manual)
             list_inputs = HPFC::load_inputs(params = LST_PARAMS, 
                                             manual_data = react$dt_spot_manual, 
-                                            reuters_key = NULL,
-                                            last_run_path = file.path('HPFC', 'last', 'history')
+                                            reuters_key = NULL
                                             )
             
         } else {
             
-            list_inputs = HPFC::load_inputs(params = LST_PARAMS, manual_data = NULL, reuters_key = PLEASE_INSERT_REUTERS_KEY)        
+            list_inputs = HPFC::load_inputs(params = LST_PARAMS, 
+                                            manual_data = NULL, 
+                                            reuters_key = PLEASE_INSERT_REUTERS_KEY,
+                                            last_run_path = file.path('HPFC', 'last', 'history'))        
             
         }
         
