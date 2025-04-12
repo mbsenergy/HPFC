@@ -37,6 +37,7 @@ ui_app = page_navbar(
              nav_panel(title = 'TRAIN',
                        layout_sidebar(
                            sidebar = sidebar(bg = 'white',
+                                             title = 'Train',
                                              width = 400,
                                              select_sim_name,
                                              select_history_period,
@@ -98,6 +99,7 @@ ui_app = page_navbar(
              nav_panel(title = 'FORECAST',
                        layout_sidebar(
                            sidebar = sidebar(bg = 'white',
+                                             title = 'Forecast',
                                              width = 400, 
                                              select_source_run,
                                              uiOutput("select_source_run"),
