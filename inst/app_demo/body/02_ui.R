@@ -34,10 +34,10 @@ ui_app = page_navbar(
     
     nav_menu(title = 'HPFC', 
              
-             nav_panel(title = h2('TRAIN'),
+             nav_panel(title = 'TRAIN',
                        layout_sidebar(
                            sidebar = sidebar(bg = 'white',
-                                             title = 'Train',
+                                             title = h3('Train'),
                                              width = 400,
                                              select_sim_name,
                                              select_history_period,
@@ -45,24 +45,24 @@ ui_app = page_navbar(
                                              uiOutput("select_source_file_train_pwr"),
                                              uiOutput("select_source_file_train_gas"),
                                              accordion(
-                                                       accordion_panel(
-                                                           title = 'Training Multiple',
-                                                           select_PWR_product_mult,
-                                                           select_GAS_product_mult,
-                                                           product_train_pwr_mult,
-                                                           br(),
-                                                           product_train_gas_mult
-                                                       ),
-                                                       accordion_panel(
-                                                           title = 'Training Single',
-                                                           select_PWR_product,
-                                                           select_GAS_product,
-                                                           product_train_pwr,
-                                                           br(),
-                                                           product_train_gas,
-                                                           hr(),
-                                                           fluidRow(train_pwr_download, train_gas_download)
-                                                       )
+                                                 accordion_panel(
+                                                     title = 'Training Multiple',
+                                                     select_PWR_product_mult,
+                                                     select_GAS_product_mult,
+                                                     product_train_pwr_mult,
+                                                     br(),
+                                                     product_train_gas_mult
+                                                 ),
+                                                 accordion_panel(
+                                                     title = 'Training Single',
+                                                     select_PWR_product,
+                                                     select_GAS_product,
+                                                     product_train_pwr,
+                                                     br(),
+                                                     product_train_gas,
+                                                     hr(),
+                                                     fluidRow(train_pwr_download, train_gas_download)
+                                                 )
                                              )
                            ),
                            
@@ -71,38 +71,43 @@ ui_app = page_navbar(
                                nav_panel('Power Multiple',
                                          fluidRow(
                                              select_pwrplot_mult,
-                                             card(full_screen = TRUE,
+                                             card(
                                                   card_body(
-                                                 echarts4rOutput(outputId = 'pwr_history_plot_mult') %>% withSpinner(color = "#F2606A")
-                                                 )),
-                                                 card(full_screen = TRUE,
-                                                      card_body(
-                                                 datagridOutput(outputId = 'pwr_history_table_mult') %>% withSpinner(color = "#F2606A")
-                                             ))
+                                                      echarts4rOutput(outputId = 'pwr_history_plot_mult') %>% withSpinner(color = "#F2606A")
+                                                  )),
+                                             card(
+                                                  card_body(
+                                                      datagridOutput(outputId = 'pwr_history_table_mult') %>% withSpinner(color = "#F2606A")
+                                                  ))
                                          )
                                ),
                                nav_panel('Gas Multiple',
                                          fluidRow(
                                              select_gasplot_mult,
-                                             fluidRow( 
-                                                 echarts4rOutput(outputId = 'gas_history_plot_mult') %>% withSpinner(color = "#F2606A"),
-                                                 hr(), br(),
-                                                 datagridOutput(outputId = 'gas_history_table_mult') %>% withSpinner(color = "#F2606A")
-                                             )
+                                             card(
+                                                  card_body(
+                                                      echarts4rOutput(outputId = 'gas_history_plot_mult') %>% withSpinner(color = "#F2606A")
+                                                  )),
+                                             card(
+                                                  card_body(
+                                                      datagridOutput(outputId = 'gas_history_table_mult') %>% withSpinner(color = "#F2606A")
+                                                  ))
                                          )
                                ),
                                nav_panel('Power Single',
                                          layout_sidebar(
                                              sidebar = sidebar(bg = 'white',
                                                                datagridOutput('forecast_params_table_recap_pwr'), position = 'right', open = FALSE, width = '450px'),
-                                             card(full_screen = TRUE,
-                                                  card_body(
-                                                 echarts4rOutput(outputId = 'pwr_history_plot') %>% withSpinner(color = "#F2606A")
-                                                 )),
-                                             card(full_screen = TRUE,
-                                                  card_body(
-                                                 datagridOutput(outputId = 'pwr_history_table') %>% withSpinner(color = "#F2606A")
-                                                  ))
+                                             fluidRow(
+                                                 card(
+                                                      card_body(
+                                                          echarts4rOutput(outputId = 'pwr_history_plot') %>% withSpinner(color = "#F2606A")
+                                                      )),
+                                                 card(
+                                                      card_body(
+                                                          datagridOutput(outputId = 'pwr_history_table') %>% withSpinner(color = "#F2606A")
+                                                      ))
+                                             )
                                          )
                                ),
                                
@@ -110,24 +115,26 @@ ui_app = page_navbar(
                                          layout_sidebar(
                                              sidebar = sidebar(bg = 'white',
                                                                datagridOutput('forecast_params_table_recap_gas'), position = 'right', open = FALSE, width = '450px'),
-                                             card(full_screen = TRUE,
-                                                  card_body(
-                                                 echarts4rOutput(outputId = 'gas_history_plot') %>% withSpinner(color = "#F2606A")
-                                                 )),
-                                             card(full_screen = TRUE,
-                                                  card_body(
-                                                 datagridOutput(outputId = 'gas_history_table') %>% withSpinner(color = "#F2606A")
-                                             ))
+                                             fluidRow(
+                                                 card(
+                                                      card_body(
+                                                          echarts4rOutput(outputId = 'gas_history_plot') %>% withSpinner(color = "#F2606A")
+                                                      )),
+                                                 card(
+                                                      card_body(
+                                                          datagridOutput(outputId = 'gas_history_table') %>% withSpinner(color = "#F2606A")
+                                                      ))
+                                             )
                                          )
                                )
                            )
                        )
              ),
              
-             nav_panel(title = h2('FORECAST'),
+             nav_panel(title = 'FORECAST',
                        layout_sidebar(
                            sidebar = sidebar(bg = 'white',
-                                             title = 'Forecast',
+                                             title = h3('Forecast'),
                                              width = 400, 
                                              select_source_run,
                                              uiOutput("select_source_run"),
@@ -136,24 +143,24 @@ ui_app = page_navbar(
                                              uiOutput("select_source_file_forecast_pwr"),
                                              uiOutput("select_source_file_forecast_gas"),
                                              accordion(
-                                                       accordion_panel(
-                                                           title = 'Forecast Multiple',
-                                                           select_PWR_product_for_mult,
-                                                           select_GAS_product_for_mult,
-                                                           product_forecast_pwr_mult,
-                                                           br(),
-                                                           product_forecast_gas_mult,                                                           
-                                                       ),
-                                                       accordion_panel(
-                                                           title = 'Forecasting Single',
-                                                           select_PWR_product_for,
-                                                           select_GAS_product_for,
-                                                           product_forecast_pwr,
-                                                           br(),
-                                                           product_forecast_gas,
-                                                           hr(),
-                                                           fluidRow(fwd_pwr_download, fwd_gas_download)
-                                                       )
+                                                 accordion_panel(
+                                                     title = 'Forecast Multiple',
+                                                     select_PWR_product_for_mult,
+                                                     select_GAS_product_for_mult,
+                                                     product_forecast_pwr_mult,
+                                                     br(),
+                                                     product_forecast_gas_mult,                                                           
+                                                 ),
+                                                 accordion_panel(
+                                                     title = 'Forecasting Single',
+                                                     select_PWR_product_for,
+                                                     select_GAS_product_for,
+                                                     product_forecast_pwr,
+                                                     br(),
+                                                     product_forecast_gas,
+                                                     hr(),
+                                                     fluidRow(fwd_pwr_download, fwd_gas_download)
+                                                 )
                                              )
                            ),
                            
@@ -185,7 +192,7 @@ ui_app = page_navbar(
                        )
              ),
              
-             nav_panel(title = h2('BACKTESTING'),
+             nav_panel(title = 'BACKTESTING',
                        layout_sidebar(
                            sidebar = sidebar(bg = 'white',
                                              width = 400, padding = '40'
@@ -198,7 +205,7 @@ ui_app = page_navbar(
     
     nav_spacer(),
     
-        nav_item(textOutput("reuters_status"))
+    nav_item(textOutput("reuters_status"))
 )
 
 

@@ -93,30 +93,50 @@ server_app = function(input, output, session) {
     observe({
         req(input$in_train_excel_pwr)
         file_path = input$in_train_excel_pwr$datapath
+        
+        # Get all sheet names
         sheet_names = openxlsx::getSheetNames(file_path)
-        if (input$in_select_PWR_indicator %in% sheet_names) {
-            df = openxlsx::read.xlsx(file_path, sheet = input$in_select_PWR_indicator, detectDates = TRUE)
-            dt = data.table::as.data.table(df)
-            dt_spot_manual_pwr(dt)
-        } else {
-            dt_spot_manual_pwr(NULL)
-            warning("Selected sheet not found in Excel file.")
-        }
+        
+        # Read and bind all sheets
+        dt_all = rbindlist(
+            lapply(sheet_names, function(sheet) {
+                df = openxlsx::read.xlsx(file_path, sheet = sheet, detectDates = TRUE)
+                dt = data.table::as.data.table(df)
+                dt[, sheet_name := sheet]  # Optional: track source sheet
+                return(dt)
+            }),
+            use.names = TRUE,
+            fill = TRUE
+        )
+        
+        # Store in reactive value
+        dt_spot_manual_pwr(dt_all)
     })
+    
     
     observe({
         req(input$in_train_excel_gas)
         file_path = input$in_train_excel_gas$datapath
+        
+        # Get all sheet names
         sheet_names = openxlsx::getSheetNames(file_path)
-        if (input$in_select_GAS_indicator %in% sheet_names) {
-            df = openxlsx::read.xlsx(file_path, sheet = input$in_select_GAS_indicator, detectDates = TRUE)
-            dt = data.table::as.data.table(df)
-            dt_spot_manual_gas(dt)
-        } else {
-            dt_spot_manual_gas(NULL)
-            warning("Selected sheet not found in Excel file.")
-        }
+        
+        # Read and bind all sheets
+        dt_all = rbindlist(
+            lapply(sheet_names, function(sheet) {
+                df = openxlsx::read.xlsx(file_path, sheet = sheet, detectDates = TRUE)
+                dt = data.table::as.data.table(df)
+                dt[, sheet_name := sheet]  # Optional: track source sheet
+                return(dt)
+            }),
+            use.names = TRUE,
+            fill = TRUE
+        )
+        
+        # Store in reactive value
+        dt_spot_manual_gas(dt_all)
     })
+    
     
     observe({
         req(react$dt_spot_manual_gas, react$dt_spot_manual_pwr)
@@ -331,6 +351,10 @@ server_app = function(input, output, session) {
                         e_y_axis(name = "Price") %>%
                         e_tooltip(trigger = "axis") %>%
                         e_datazoom(type = "slider") %>%
+                        e_toolbox_feature(feature = "saveAsImage") %>%
+                        e_toolbox_feature(feature = "dataZoom") %>%
+                        e_toolbox_feature(feature = "dataView") %>%
+                        e_toolbox_feature(feature = "restore") %>%
                         e_theme("westeros") 
                     
                     print('------------- PLOT END  --------------------')
@@ -492,6 +516,10 @@ server_app = function(input, output, session) {
                         e_y_axis(name = "Price") %>%
                         e_tooltip(trigger = "axis") %>%
                         e_datazoom(type = "slider") %>%
+                        e_toolbox_feature(feature = "saveAsImage") %>%
+                        e_toolbox_feature(feature = "dataZoom") %>%
+                        e_toolbox_feature(feature = "dataView") %>%
+                        e_toolbox_feature(feature = "restore") %>%
                         e_theme("westeros") 
                     
                     print('------------- PLOT END  --------------------')
@@ -542,6 +570,325 @@ server_app = function(input, output, session) {
         datagrid(DT,
                  filters = TRUE)
     })
+    
+    
+    
+    # MULTIPLE - TRAIN - GAS ------------------------------------------
+    
+    plot_list_gas_multi = reactiveVal(NULL)
+    
+    observeEvent(input$act_indicator_train_gas_mult, {
+        
+        if(!is.null(react$dt_spot_manual_gas) & input$in_source_train == 'Excel') {
+            
+            LST_PARAMS = list(
+                model_type = 'GAS',
+                selected_pwr_code = input$in_select_PWR_indicator,
+                selected_gas_code = NULL,
+                dependent_gas_code = 'TTF',
+                history_start = input$in_select_history[1],
+                history_end = input$in_select_history[2],
+                forecast_start = input$in_select_horizon[1],
+                forecast_end = input$in_select_horizon[2],
+                model_source = 'TRAIN',
+                data_source = input$in_source_train,
+                forecast_source = 'FWD',
+                sim_name = 'NO',
+                archive = 'NO',
+                shiny_sim = input$in_new_sim_name,
+                shiny_manual = react$dt_spot_manual_gas
+            )            
+            
+            plot_list = lapply(input$in_select_GAS_indicator_mult, function(x, LST_PARAMS) {
+                
+                tryCatch({
+                    print('')
+                    print('==================== ++++++++++++++++++ ====================')
+                    print('==================== MANUAL MULTI TRAINING GAS ====================')
+                    print(x)
+                    print('==================== ++++++++++++++++++ ====================')
+                    
+                    LST_PARAMS$selected_gas_code = x
+                    
+                    print('')
+                    print('==================== START TRAINING GAS ====================')
+                    print('')
+                    print('-------------------- LOAD INPUTS START  --------------------')
+                    
+                    list_inputs = HPFC::load_inputs(params = LST_PARAMS,
+                                                    manual_data = LST_PARAMS$shiny_manual,
+                                                    reuters_key = NULL)
+                    
+                    ## ARCHIVE
+                    last_path = file.path('HPFC', 'last', 'history', x)
+                    if (!dir.exists(last_path)) {
+                        dir.create(last_path, recursive = TRUE)
+                    }
+                    
+                    fwrite(list_inputs$ENV_SPOT$history_gas, file.path(last_path, paste0('history_gas.csv')))
+                    
+                    if(nchar(LST_PARAMS$shiny_sim) > 0) {
+                        
+                        last_path = file.path('HPFC', 'archive', 'history', x, LST_PARAMS$shiny_sim)
+                        if (!dir.exists(last_path)) {
+                            dir.create(last_path, recursive = TRUE)
+                        }
+                        
+                        fwrite(list_inputs$ENV_SPOT$history_gas, file.path(last_path, paste0('history_gas.csv')))
+                    }
+                    
+                    print('-------------------- LOAD INPUTS END   --------------------')     
+                    
+                    print('============= +++++++++++++ ====================')
+                    print('------------- PREPARE START --------------------')
+                    
+                    ENV_MODELS_GAS = prepare_gas(list_inputs = list_inputs)
+                    
+                    print('------------- PREPARE END ----------------------')
+                    
+                    print('============= +++++++++++ ====================')
+                    print('------------- TRAIN START --------------------')
+                    
+                    ENV_MODELS_GAS$dt_lt_param_gasdep = 
+                        train_lt_gas(
+                            gas_data = ENV_MODELS_GAS$dt_lt_param_gasdep,
+                            ric_gas = unique(ENV_MODELS_GAS$dt_gas$RIC)
+                        )
+                    
+                    ## ARCHIVE -------------------------------------
+                    
+                    ### LAST
+                    last_path = file.path('HPFC', 'last', 'models', x)
+                    if (!dir.exists(last_path)) {
+                        dir.create(last_path, recursive = TRUE)
+                    }
+                    
+                    saveRDS(ENV_MODELS_GAS$dt_lt_param_gasdep, file.path(last_path, paste0('model_gas_lt.rds')))
+                    
+                    if(nchar(LST_PARAMS$shiny_sim) > 0) {
+                        
+                        last_path = file.path('HPFC', 'archive', 'models', x, LST_PARAMS$shiny_sim)
+                        if (!dir.exists(last_path)) {
+                            dir.create(last_path, recursive = TRUE)
+                        }
+                        
+                        saveRDS(ENV_MODELS_GAS$dt_lt_param_gasdep, file.path(last_path, paste0('model_gas_lt.rds')))
+                    }
+                    
+                    print('------------- TRAIN END  --------------------') 
+                    
+                    print('============= +++++++++++ ====================')
+                    print('------------- PLOT START --------------------')
+                    
+                    DT = copy(list_inputs$ENV_SPOT$history_gas)
+                    rics = unique(DT$RIC) 
+                    setorder(DT, date, RIC)
+                    
+                    PLOT_X = 
+                        DT %>%
+                        e_charts(date) %>%
+                        e_line(value, name = rics, symbol = 'none') %>%
+                        e_title(text = paste("Daily Spot Prices for", rics)) %>%
+                        e_x_axis(name = "Date") %>%
+                        e_y_axis(name = "Price") %>%
+                        e_tooltip(trigger = "axis") %>%
+                        e_datazoom(type = "slider") %>%
+                        e_toolbox_feature(feature = "saveAsImage") %>%
+                        e_toolbox_feature(feature = "dataZoom") %>%
+                        e_toolbox_feature(feature = "dataView") %>%
+                        e_toolbox_feature(feature = "restore") %>%
+                        e_theme("westeros") 
+                    
+                    print('------------- PLOT END  --------------------')
+                    showNotification(paste(x, 'completed!'), type = "default", duration = 20)
+                    
+                    DT_X = DT
+                    
+                    LIST_X = list(PLOT_X, DT_X)
+                    names(LIST_X) = c('PLOT_X', 'DT_X')
+                    
+                    return(LIST_X)
+                    
+                }, error = function(e) {
+                    msg = paste0("Error while training ", x, ": ", e$message)
+                    showNotification(msg, type = "error", duration = NULL)
+                    message(msg)
+                    return(NULL)
+                })
+            },
+            LST_PARAMS = LST_PARAMS
+            ) 
+            
+        } else {
+            
+            LST_PARAMS = list(
+                model_type = 'GAS',
+                selected_pwr_code = input$in_select_PWR_indicator,
+                selected_gas_code = NULL,
+                dependent_gas_code = 'TTF',
+                history_start = input$in_select_history[1],
+                history_end = input$in_select_history[2],
+                forecast_start = input$in_select_horizon[1],
+                forecast_end = input$in_select_horizon[2],
+                model_source = 'TRAIN',
+                data_source = input$in_source_train,
+                forecast_source = 'FWD',
+                sim_name = 'NO',
+                archive = 'NO',
+                shiny_sim = input$in_new_sim_name
+            )
+            
+            plot_list = lapply(input$in_select_GAS_indicator_mult, function(x, LST_PARAMS) {
+                
+                tryCatch({
+                    print('')
+                    print('==================== ++++++++++++++++++ ====================')
+                    print('==================== REUTERS MULTI TRAINING GAS ====================')
+                    print(x)
+                    print('==================== ++++++++++++++++++ ====================')
+                    
+                    LST_PARAMS$selected_gas_code = x
+                    
+                    print('')
+                    print('==================== START TRAINING GAS ====================')
+                    print('')
+                    print('-------------------- LOAD INPUTS START  --------------------')
+                    
+                    list_inputs = HPFC::load_inputs(params = LST_PARAMS, manual_data = NULL,
+                                                    reuters_key = PLEASE_INSERT_REUTERS_KEY,
+                                                    last_run_path = file.path('HPFC', 'last', 'history')
+                    )
+                    
+                    ## ARCHIVE
+                    last_path = file.path('HPFC', 'last', 'history', x)
+                    if (!dir.exists(last_path)) {
+                        dir.create(last_path, recursive = TRUE)
+                    }
+                    
+                    fwrite(list_inputs$ENV_SPOT$history_gas, file.path(last_path, paste0('history_gas.csv')))
+                    
+                    if(nchar(LST_PARAMS$shiny_sim) > 0) {
+                        
+                        last_path = file.path('HPFC', 'archive', 'history', x, LST_PARAMS$shiny_sim)
+                        if (!dir.exists(last_path)) {
+                            dir.create(last_path, recursive = TRUE)
+                        }
+                        
+                        fwrite(list_inputs$ENV_SPOT$history_gas, file.path(last_path, paste0('history_gas.csv')))
+                    }
+                    
+                    print('-------------------- LOAD INPUTS END   --------------------')     
+                    
+                    print('============= +++++++++++++ ====================')
+                    print('------------- PREPARE START --------------------')
+                    
+                    ENV_MODELS_GAS = prepare_gas(list_inputs = list_inputs)
+                    
+                    print('------------- PREPARE END ----------------------')
+                    
+                    print('============= +++++++++++ ====================')
+                    print('------------- TRAIN START --------------------')
+                    
+                    ENV_MODELS_GAS$dt_lt_param_gasdep = 
+                        train_lt_gas(
+                            gas_data = ENV_MODELS_GAS$dt_lt_param_gasdep,
+                            ric_gas = unique(ENV_MODELS_GAS$dt_gas$RIC)
+                        )
+                    
+                    ## ARCHIVE -------------------------------------
+                    
+                    ### LAST
+                    last_path = file.path('HPFC', 'last', 'models', x)
+                    if (!dir.exists(last_path)) {
+                        dir.create(last_path, recursive = TRUE)
+                    }
+                    
+                    saveRDS(ENV_MODELS_GAS$dt_lt_param_gasdep, file.path(last_path, paste0('model_gas_lt.rds')))
+                    
+                    if(nchar(LST_PARAMS$shiny_sim) > 0) {
+                        
+                        last_path = file.path('HPFC', 'archive', 'models', x, LST_PARAMS$shiny_sim)
+                        if (!dir.exists(last_path)) {
+                            dir.create(last_path, recursive = TRUE)
+                        }
+                        
+                        saveRDS(ENV_MODELS_GAS$dt_lt_param_gasdep, file.path(last_path, paste0('model_gas_lt.rds')))
+                    }
+                    
+                    print('------------- TRAIN END  --------------------')     
+                    
+                    print('============= +++++++++++ ====================')
+                    print('------------- PLOT START --------------------')
+                    
+                    DT = copy(list_inputs$ENV_SPOT$history_gas)
+                    rics = unique(DT$RIC) 
+                    setorder(DT, date, RIC)
+                    
+                    PLOT_X = 
+                        DT %>%
+                        e_charts(date) %>%
+                        e_line(value, name = rics, symbol = 'none') %>%
+                        e_title(text = paste("Daily Spot Prices for", rics)) %>%
+                        e_x_axis(name = "Date") %>%
+                        e_y_axis(name = "Price") %>%
+                        e_tooltip(trigger = "axis") %>%
+                        e_datazoom(type = "slider") %>%
+                        e_toolbox_feature(feature = "saveAsImage") %>%
+                        e_toolbox_feature(feature = "dataZoom") %>%
+                        e_toolbox_feature(feature = "dataView") %>%
+                        e_toolbox_feature(feature = "restore") %>%
+                        e_theme("westeros") 
+                    
+                    print('------------- PLOT END  --------------------')
+                    showNotification(paste(x, 'completed!'), type = "default", duration = 20)
+                    
+                    DT_X = DT
+                    
+                    LIST_X = list(PLOT_X, DT_X)
+                    names(LIST_X) = c('PLOT_X', 'DT_X')
+                    
+                    return(LIST_X)
+                    
+                }, error = function(e) {
+                    msg = paste0("Error while training ", x, ": ", e$message)
+                    showNotification(msg, type = "error", duration = NULL)
+                    message(msg)
+                    return(NULL)
+                })
+            },
+            LST_PARAMS = LST_PARAMS
+            )
+            
+        }
+        names(plot_list) = input$in_select_GAS_indicator_mult
+        valid_names = names(plot_list)[!sapply(plot_list, is.null)]
+        plot_list_gas_multi(plot_list[valid_names])
+        
+        updateSelectInput(
+            session = session,
+            inputId = "in_select_gasplot_mult",
+            choices = valid_names,
+            selected = if (length(valid_names) > 0) valid_names[1] else NULL
+        )
+        
+        plot_list_gas_multi(plot_list)
+        
+    })
+    
+    output$gas_history_plot_mult = renderEcharts4r({
+        req(react$plot_list_gas_multi)
+        react$plot_list_gas_multi[[input$in_select_gasplot_mult]]$PLOT_X
+    })
+    
+    output$gas_history_table_mult = renderDatagrid({
+        req(react$plot_list_gas_multi)
+        DT = copy(react$plot_list_gas_multi[[input$in_select_gasplot_mult]]$DT_X)
+        setorder(DT, date, RIC)
+        datagrid(DT,
+                 filters = TRUE)
+    })
+    
+    
     
     
     
@@ -729,7 +1076,7 @@ server_app = function(input, output, session) {
     ### Prepare inputs params
     observe({
         params_list = list(
-            model_type = 'PWR',
+            model_type = 'GAS',
             selected_pwr_code = input$in_select_PWR_indicator,
             selected_gas_code = input$in_select_GAS_indicator,
             dependent_gas_code = input$in_select_PWR_indicator,
@@ -762,9 +1109,9 @@ server_app = function(input, output, session) {
         
         if(input$in_source_train == 'Excel') {
             
-            if(!is.null(react$dt_spot_manual)) {
+            if(!is.null(react$dt_spot_manual_gas)) {
                 list_inputs = HPFC::load_inputs(params = LST_PARAMS, 
-                                                manual_data = react$dt_spot_manual, 
+                                                manual_data = react$dt_spot_manual_gas, 
                                                 reuters_key = NULL
                 )
             }
@@ -1316,6 +1663,10 @@ server_app = function(input, output, session) {
             e_y_axis(name = "Price") %>%
             e_tooltip(trigger = "axis") %>%
             e_datazoom(type = "slider") %>%
+            e_toolbox_feature(feature = "saveAsImage") %>%
+            e_toolbox_feature(feature = "dataZoom") %>%
+            e_toolbox_feature(feature = "dataView") %>%
+            e_toolbox_feature(feature = "restore") %>%
             e_theme("westeros") 
         
     })
@@ -1350,6 +1701,10 @@ server_app = function(input, output, session) {
             e_y_axis(name = "Price") %>%
             e_tooltip(trigger = "axis") %>%
             e_datazoom(type = "slider") %>%
+            e_toolbox_feature(feature = "saveAsImage") %>%
+            e_toolbox_feature(feature = "dataZoom") %>%
+            e_toolbox_feature(feature = "dataView") %>%
+            e_toolbox_feature(feature = "restore") %>%
             e_theme("westeros") 
         
     })
@@ -1385,7 +1740,10 @@ server_app = function(input, output, session) {
             e_line(value, smooth = TRUE, symbol='none') %>% 
             e_title(text = paste("Hourly Forecast Prices for", rics)) %>%
             e_tooltip(trigger = "axis") %>% 
-            e_toolbox_feature(feature = "saveAsImage", title = "Save as image") %>% 
+            e_toolbox_feature(feature = "saveAsImage") %>%
+            e_toolbox_feature(feature = "dataZoom") %>%
+            e_toolbox_feature(feature = "dataView") %>%
+            e_toolbox_feature(feature = "restore") %>%
             e_datazoom(start = 0) %>% 
             e_theme('westeros')
         
@@ -1405,7 +1763,10 @@ server_app = function(input, output, session) {
             e_line(value, smooth = TRUE, symbol='none') %>% 
             e_title(text = paste("Daily Forecast Prices for", rics)) %>%
             e_tooltip(trigger = "axis") %>% 
-            e_toolbox_feature(feature = "saveAsImage", title = "Save as image") %>% 
+            e_toolbox_feature(feature = "saveAsImage") %>%
+            e_toolbox_feature(feature = "dataZoom") %>%
+            e_toolbox_feature(feature = "dataView") %>%
+            e_toolbox_feature(feature = "restore") %>%
             e_datazoom(start = 0) %>% 
             e_theme('westeros')
     })
