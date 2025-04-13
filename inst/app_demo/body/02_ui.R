@@ -168,12 +168,14 @@ ui_app = page_navbar(
                            navset_card_pill(
                                nav_panel('Power Multiple',
                                          fluidRow(
+                                             select_pwrplot_mult_for,
                                              echarts4rOutput(outputId = 'pwr_forecast_plot_mult') %>% withSpinner(color = "#C05B8C")
                                          )
                                ),
                                
                                nav_panel('Gas Multiple',
                                          fluidRow(
+                                             select_gasplot_mult_for,
                                              echarts4rOutput(outputId = 'gas_forecast_plot_mult') %>% withSpinner(color = "#C05B8C")
                                          )
                                ),                               

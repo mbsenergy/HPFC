@@ -1257,7 +1257,7 @@ server_app = function(input, output, session) {
     
     # PREPARE FWD ---------------------------------------------------
     
-    list_pwr_for_multi = reactiveVal(NULL)
+    list_pwr_for_mult = reactiveVal(NULL)
     
     observeEvent(input$act_indicator_forecast_pwr_mult, {
         
@@ -1265,25 +1265,23 @@ server_app = function(input, output, session) {
             
             showNotification("Using manual data", type = "message")
             
-            list_inputs_fwd = prepare_fwd(
-                fwd_pwr_code = NULL,
-                fwd_gas_code = 'TTF',
-                start_date = input$in_select_horizon[1],
-                end_date = input$in_select_horizon[2],
-                model_type = 'PWR',
-                forecast_source = 'FWD',
-                archive = 'NO',
-                manual_pwr = react$dt_forecast_manual_pwr,
-                manual_gas = react$dt_forecast_manual_gas,
-                shiny_run = input$in_source_run,
-                siny_sim = input$sim_name
-            )
             
-            list_pwr = lapply(input$in_select_PWR_indicator_for_mult, function(x, list_inputs_fwd) {
+            list_pwr = lapply(input$in_select_PWR_indicator_for_mult, function(x, list_inputs_fwd, shiny_run, shiny_sim) {
                 
                 tryCatch({
                     
-                    list_inputs_fwd$fwd_pwr_code = x
+                    list_inputs_fwd = prepare_fwd(
+                        fwd_pwr_code = x,
+                        fwd_gas_code = 'TTF',
+                        start_date = input$in_select_horizon[1],
+                        end_date = input$in_select_horizon[2],
+                        model_type = 'PWR',
+                        forecast_source = 'FWD',
+                        archive = 'NO',
+                        manual_pwr = react$dt_forecast_manual_pwr,
+                        manual_gas = react$dt_forecast_manual_gas
+                    )
+                    
                     ## Forecast Parameters -----------------------
                     
                     print('=================== ++++++++++++++++++++++++++ =============')
@@ -1399,31 +1397,30 @@ server_app = function(input, output, session) {
                     return(NULL)
                 })
             },
-            list_inputs_fwd = list_inputs_fwd
+            list_inputs_fwd = list_inputs_fwd,
+            shiny_run = input$in_source_run,
+            shiny_sim = input$sim_name
             )
             
         } else {
             
-            list_inputs_fwd = prepare_fwd(
-                fwd_pwr_code = NULL,
-                fwd_gas_code = 'TTF',
-                start_date = input$in_select_horizon[1],
-                end_date = input$in_select_horizon[2],
-                model_type = 'PWR',
-                forecast_source = 'FWD',
-                archive = 'NO',
-                manual_pwr = NULL,
-                manual_gas = NULL,
-                reuters_key = PLEASE_INSERT_REUTERS_KEY,
-                shiny_run = input$in_source_run,
-                siny_sim = input$sim_name
-            )    
-            
-            list_pwr = lapply(input$in_select_PWR_indicator_for_mult, function(x, list_inputs_fwd) {
+            list_pwr = lapply(input$in_select_PWR_indicator_for_mult, function(x, list_inputs_fwd, shiny_run, shiny_sim) {
                 
                 tryCatch({
                     
-                    list_inputs_fwd$fwd_pwr_code = x
+                    list_inputs_fwd = prepare_fwd(
+                        fwd_pwr_code = x,
+                        fwd_gas_code = 'TTF',
+                        start_date = input$in_select_horizon[1],
+                        end_date = input$in_select_horizon[2],
+                        model_type = 'PWR',
+                        forecast_source = 'FWD',
+                        archive = 'NO',
+                        manual_pwr = NULL,
+                        manual_gas = NULL,
+                        reuters_key = PLEASE_INSERT_REUTERS_KEY
+                    ) 
+                    
                     ## Forecast Parameters -----------------------
                     
                     print('=================== ++++++++++++++++++++++++++ =============')
@@ -1539,23 +1536,50 @@ server_app = function(input, output, session) {
                     return(NULL)
                 })
             },
-            list_inputs_fwd = list_inputs_fwd
+            list_inputs_fwd = list_inputs_fwd,
+            shiny_run = input$in_source_run,
+            shiny_sim = input$sim_name
             )
             
         }
         
         names(list_pwr) = input$in_select_PWR_indicator_for_mult
         valid_names = names(list_pwr)[!sapply(list_pwr, is.null)]
-        list_pwr_for_multi(list_pwr[valid_names])
+        list_pwr_for_mult(list_pwr[valid_names])
         
         updateSelectInput(
             session = session,
-            inputId = "in_select_gasplot_mult",
+            inputId = "in_select_pwrplot_mult_for",
             choices = valid_names,
             selected = if (length(valid_names) > 0) valid_names[1] else NULL
         )
         
-        list_pwr_for_multi(list_pwr)        
+        list_pwr_for_mult(list_pwr)        
+        
+    })
+    
+    output$pwr_forecast_plot_mult = renderEcharts4r({
+        
+        req(react$list_pwr_for_mult)
+        
+        DTS = copy(react$list_pwr_for_mult[[input$in_select_pwrplot_mult_for]])
+        dt_pwr_lg = melt(DTS, id.vars = c('date', 'hour', 'season', 'peak', 'RIC'), variable.name = 'type', value.name = 'value')
+        dt_pwr_lg[, datetime := as.POSIXct(paste(date, sprintf("%02d:00:00", hour)), format = "%Y-%m-%d %H:%M:%S", tz = "CET")]
+        rics = unique(dt_pwr_lg$RIC) 
+        setorder(dt_pwr_lg, datetime, RIC)
+        
+        dt_pwr_lg %>% 
+            group_by(type) %>% 
+            e_charts(datetime) %>% 
+            e_line(value, smooth = TRUE, symbol='none') %>% 
+            e_title(text = paste("Hourly Forecast Prices for", rics)) %>%
+            e_tooltip(trigger = "axis") %>% 
+            e_toolbox_feature(feature = "saveAsImage") %>%
+            e_toolbox_feature(feature = "dataZoom") %>%
+            e_toolbox_feature(feature = "dataView") %>%
+            e_toolbox_feature(feature = "restore") %>%
+            e_datazoom(start = 0) %>% 
+            e_theme('westeros')
         
     })
     

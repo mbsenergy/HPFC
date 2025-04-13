@@ -169,6 +169,26 @@ select_GAS_product_for_mult =
         selected = 'TTF'
     )
 
+select_pwrplot_mult_for =
+    selectInput(
+        inputId = "in_select_pwrplot_mult_for",
+        label = NULL,
+        multiple = FALSE,
+        width = '100%',
+        choices = vec_pwr_products,
+        selected = 'Greece'
+    )
+
+select_gasplot_mult_for =
+    selectInput(
+        inputId = "in_select_gasplot_mult_for",
+        label = NULL,
+        multiple = FALSE,
+        width = '100%',
+        choices = vec_gas_products,
+        selected = 'TTF'
+    )
+
 #### BUTTON TO EXECUTE FORECAST --------------------------------
 product_forecast_pwr_mult =
     input_task_button(
