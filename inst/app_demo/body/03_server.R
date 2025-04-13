@@ -1266,7 +1266,7 @@ server_app = function(input, output, session) {
             showNotification("Using manual data", type = "message")
             
             
-            list_pwr = lapply(input$in_select_PWR_indicator_for_mult, function(x, list_inputs_fwd, shiny_run, shiny_sim) {
+            list_pwr = lapply(input$in_select_PWR_indicator_for_mult, function(x, list_inputs_fwd, start_date, end_date, shiny_run, shiny_sim) {
                 
                 tryCatch({
                     
@@ -1289,7 +1289,7 @@ server_app = function(input, output, session) {
                     
                     FWD = list_inputs_fwd$ENV_FWD
                     
-                    if (list_inputs_fwd$shiny_run == 'Last') {
+                    if (shiny_run == 'Last') {
                         last_path_models = file.path('HPFC', 'last', 'models', x)
                         last_path_history = file.path('HPFC', 'last', 'history', x)
                         
@@ -1303,9 +1303,9 @@ server_app = function(input, output, session) {
                         list_inputs$history_pwr = fread(file.path(last_path_history, 'history_pwr.csv'))
                     }
                     
-                    if (list_inputs_fwd$shiny_run == 'Sim') {
-                        last_path_models = file.path('HPFC', 'archive', 'models', x, list_inputs_fwd$siny_sim)
-                        last_path_history = file.path('HPFC', 'archive', 'history', x, list_inputs_fwd$siny_sim)
+                    if (shiny_run == 'Sim') {
+                        last_path_models = file.path('HPFC', 'archive', 'models', x, shiny_sim)
+                        last_path_history = file.path('HPFC', 'archive', 'history', x, shiny_sim)
                         
                         ENV_MODELS_GAS = list()
                         ENV_MODELS_PWR = list()
@@ -1329,8 +1329,8 @@ server_app = function(input, output, session) {
                         ric_spot_pwr = HPFC::spot_PWR_products_full[countries %in% unique(x)]$spot_PWR_code,
                         ric_fwd_pwr = HPFC::spot_PWR_products_full[countries %in% unique(x)]$products_PWR_code,
                         calendar_forecast = FWD$calendar_future,
-                        start_date = input$in_select_horizon[1],
-                        end_date = input$in_select_horizon[2],
+                        start_date = start_date,
+                        end_date = end_date,
                         last_date = FWD$last_date
                     ) 
                     
@@ -1353,7 +1353,7 @@ server_app = function(input, output, session) {
                     ENV_FOR_PWR = forecast_pwr(input_forecast = LST_FOR, gas_forecast = ENV_FOR_GAS)
                     
                     dt_pwr_for = ENV_FOR_PWR[, .(date, hour, forecast = final_forecast, RIC, season, peak, value_gas, value_bl = spot_forward_month_BL)]
-                    dt_pwr_obs = react$forecast_params_field_pwr$saved_history_pwr[year(date) %in% unique(year(dt_pwr_for$date)) & RIC == unique(dt_pwr_for$RIC)][, .(date, hour, spot = value, RIC)]
+                    dt_pwr_obs = LST_FOR$saved_history_pwr[year(date) %in% unique(year(dt_pwr_for$date)) & RIC == unique(dt_pwr_for$RIC)][, .(date, hour, spot = value, RIC)]
                     dt_pwr = merge(dt_pwr_for, dt_pwr_obs, by = c('date', 'hour', 'RIC'), all = TRUE)
                     
                     setcolorder(dt_pwr, c('date', 'hour', 'season', 'peak', 'RIC', 'spot', 'forecast', 'value_bl', 'value_gas'))
@@ -1369,10 +1369,10 @@ server_app = function(input, output, session) {
                     
                     saveRDS(dt_pwr, file.path(last_path, paste0('forecast_pwr.rds')))
                     
-                    if(!is.null(list_inputs_fwd$siny_sim)) {
-                        if(nchar(list_inputs_fwd$siny_sim) > 0) {
+                    if(!is.null(shiny_sim)) {
+                        if(nchar(shiny_sim) > 0) {
                             
-                            last_path = file.path('HPFC', 'archive', 'output', x, list_inputs_fwd$siny_sim)
+                            last_path = file.path('HPFC', 'archive', 'output', x, shiny_sim)
                             if (!dir.exists(last_path)) {
                                 dir.create(last_path, recursive = TRUE)
                             }
@@ -1398,13 +1398,15 @@ server_app = function(input, output, session) {
                 })
             },
             list_inputs_fwd = list_inputs_fwd,
+            start_date = input$in_select_horizon[1],
+            end_date = input$in_select_horizon[2],
             shiny_run = input$in_source_run,
             shiny_sim = input$sim_name
             )
             
         } else {
             
-            list_pwr = lapply(input$in_select_PWR_indicator_for_mult, function(x, list_inputs_fwd, shiny_run, shiny_sim) {
+            list_pwr = lapply(input$in_select_PWR_indicator_for_mult, function(x, list_inputs_fwd, start_date, end_date, shiny_run, shiny_sim) {
                 
                 tryCatch({
                     
@@ -1428,7 +1430,7 @@ server_app = function(input, output, session) {
                     
                     FWD = list_inputs_fwd$ENV_FWD
                     
-                    if (list_inputs_fwd$shiny_run == 'Last') {
+                    if (shiny_run == 'Last') {
                         last_path_models = file.path('HPFC', 'last', 'models', x)
                         last_path_history = file.path('HPFC', 'last', 'history', x)
                         
@@ -1442,9 +1444,9 @@ server_app = function(input, output, session) {
                         list_inputs$history_pwr = fread(file.path(last_path_history, 'history_pwr.csv'))
                     }
                     
-                    if (list_inputs_fwd$shiny_run == 'Sim') {
-                        last_path_models = file.path('HPFC', 'archive', 'models', x, list_inputs_fwd$siny_sim)
-                        last_path_history = file.path('HPFC', 'archive', 'history', x, list_inputs_fwd$siny_sim)
+                    if (shiny_run == 'Sim') {
+                        last_path_models = file.path('HPFC', 'archive', 'models', x, shiny_sim)
+                        last_path_history = file.path('HPFC', 'archive', 'history', x, shiny_sim)
                         
                         ENV_MODELS_GAS = list()
                         ENV_MODELS_PWR = list()
@@ -1468,18 +1470,12 @@ server_app = function(input, output, session) {
                         ric_spot_pwr = HPFC::spot_PWR_products_full[countries %in% unique(x)]$spot_PWR_code,
                         ric_fwd_pwr = HPFC::spot_PWR_products_full[countries %in% unique(x)]$products_PWR_code,
                         calendar_forecast = FWD$calendar_future,
-                        start_date = input$in_select_horizon[1],
-                        end_date = input$in_select_horizon[2],
+                        start_date = start_date,
+                        end_date = end_date,
                         last_date = FWD$last_date
                     ) 
                     
                     print('------------------- FORECAST PARAMS PREP END -----------------')
-                    
-                    print('')
-                    print('==================== ++++++++++++++++ ====================')
-                    print('==================== END TRAINING PWR ====================')
-                    print('==================== ++++++++++++++++ ====================')
-                    print('')
                     
                     print('')
                     print('==================== +++++++++++++++++++++ ====================')
@@ -1490,14 +1486,12 @@ server_app = function(input, output, session) {
                     
                     ENV_FOR_GAS = forecast_gas(input_forecast = LST_FOR)
                     ENV_FOR_PWR = forecast_pwr(input_forecast = LST_FOR, gas_forecast = ENV_FOR_GAS)
-                    
                     dt_pwr_for = ENV_FOR_PWR[, .(date, hour, forecast = final_forecast, RIC, season, peak, value_gas, value_bl = spot_forward_month_BL)]
-                    dt_pwr_obs = react$forecast_params_field_pwr$saved_history_pwr[year(date) %in% unique(year(dt_pwr_for$date)) & RIC == unique(dt_pwr_for$RIC)][, .(date, hour, spot = value, RIC)]
+                    dt_pwr_obs = LST_FOR$saved_history_pwr[year(date) %in% unique(year(dt_pwr_for$date)) & RIC == unique(dt_pwr_for$RIC)][, .(date, hour, spot = value, RIC)]
                     dt_pwr = merge(dt_pwr_for, dt_pwr_obs, by = c('date', 'hour', 'RIC'), all = TRUE)
                     
                     setcolorder(dt_pwr, c('date', 'hour', 'season', 'peak', 'RIC', 'spot', 'forecast', 'value_bl', 'value_gas'))
                     setorder(dt_pwr, date, hour)
-                    
                     ## ARCHIVE -------------------------------------
                     
                     ### LAST
@@ -1507,11 +1501,10 @@ server_app = function(input, output, session) {
                     }
                     
                     saveRDS(dt_pwr, file.path(last_path, paste0('forecast_pwr.rds')))
-                    
-                    if(!is.null(list_inputs_fwd$siny_sim)) {
-                        if(nchar(list_inputs_fwd$siny_sim) > 0) {
+                    if(!is.null(shiny_sim)) {
+                        if(nchar(shiny_sim) > 0) {
                             
-                            last_path = file.path('HPFC', 'archive', 'output', x, list_inputs_fwd$siny_sim)
+                            last_path = file.path('HPFC', 'archive', 'output', x, shiny_sim)
                             if (!dir.exists(last_path)) {
                                 dir.create(last_path, recursive = TRUE)
                             }
@@ -1537,6 +1530,8 @@ server_app = function(input, output, session) {
                 })
             },
             list_inputs_fwd = list_inputs_fwd,
+            start_date = input$in_select_horizon[1],
+            end_date = input$in_select_horizon[2],
             shiny_run = input$in_source_run,
             shiny_sim = input$sim_name
             )
