@@ -5,7 +5,7 @@ ui_app = page_navbar(
     navbar_options = navbar_options(bg = "#001437", underline = FALSE, collapsible = TRUE, theme = 'dark'),
     
     # Title Panel of the app
-    title = "HPFC",
+    title = span("HPFC", style = 'color: white'),
     
     header = tagList(
         useShinyjs(),

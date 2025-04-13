@@ -208,7 +208,7 @@ server_app = function(input, output, session) {
     
     # MULTIPLE - TRAIN - PWR ------------------------------------------
     
-    plot_list_pwr_multi = reactiveVal(NULL)
+    list_pwr_multi = reactiveVal(NULL)
     
     observeEvent(input$act_indicator_train_pwr_mult, {
         
@@ -232,7 +232,7 @@ server_app = function(input, output, session) {
                 shiny_manual = react$dt_spot_manual
             )            
             
-            plot_list = lapply(input$in_select_PWR_indicator_mult, function(x, LST_PARAMS) {
+            list_gas = lapply(input$in_select_PWR_indicator_mult, function(x, LST_PARAMS) {
                 
                 tryCatch({
                     print('')
@@ -396,7 +396,7 @@ server_app = function(input, output, session) {
                 shiny_sim = input$in_new_sim_name
             )
             
-            plot_list = lapply(input$in_select_PWR_indicator_mult, function(x, LST_PARAMS) {
+            list_pwr = lapply(input$in_select_PWR_indicator_mult, function(x, LST_PARAMS) {
                 
                 tryCatch({
                     print('')
@@ -543,9 +543,9 @@ server_app = function(input, output, session) {
             )
             
         }
-        names(plot_list) = input$in_select_PWR_indicator_mult
-        valid_names = names(plot_list)[!sapply(plot_list, is.null)]
-        plot_list_pwr_multi(plot_list[valid_names])
+        names(list_pwr) = input$in_select_PWR_indicator_mult
+        valid_names = names(list_pwr)[!sapply(list_pwr, is.null)]
+        list_pwr_multi(list_pwr[valid_names])
         
         updateSelectInput(
             session = session,
@@ -554,18 +554,18 @@ server_app = function(input, output, session) {
             selected = if (length(valid_names) > 0) valid_names[1] else NULL
         )
         
-        plot_list_pwr_multi(plot_list)
+        list_pwr_multi(list_pwr)
         
     })
     
     output$pwr_history_plot_mult = renderEcharts4r({
-        req(react$plot_list_pwr_multi)
-        react$plot_list_pwr_multi[[input$in_select_pwrplot_mult]]$PLOT_X
+        req(react$list_pwr_multi)
+        react$list_pwr_multi[[input$in_select_pwrplot_mult]]$PLOT_X
     })
     
     output$pwr_history_table_mult = renderDatagrid({
-        req(react$plot_list_pwr_multi)
-        DT = copy(react$plot_list_pwr_multi[[input$in_select_pwrplot_mult]]$DT_X)
+        req(react$list_pwr_multi)
+        DT = copy(react$list_pwr_multi[[input$in_select_pwrplot_mult]]$DT_X)
         setorder(DT, date, RIC)
         datagrid(DT,
                  filters = TRUE)
@@ -575,7 +575,7 @@ server_app = function(input, output, session) {
     
     # MULTIPLE - TRAIN - GAS ------------------------------------------
     
-    plot_list_gas_multi = reactiveVal(NULL)
+    list_gas_multi = reactiveVal(NULL)
     
     observeEvent(input$act_indicator_train_gas_mult, {
         
@@ -599,7 +599,7 @@ server_app = function(input, output, session) {
                 shiny_manual = react$dt_spot_manual_gas
             )            
             
-            plot_list = lapply(input$in_select_GAS_indicator_mult, function(x, LST_PARAMS) {
+            list_gas = lapply(input$in_select_GAS_indicator_mult, function(x, LST_PARAMS) {
                 
                 tryCatch({
                     print('')
@@ -738,7 +738,7 @@ server_app = function(input, output, session) {
                 shiny_sim = input$in_new_sim_name
             )
             
-            plot_list = lapply(input$in_select_GAS_indicator_mult, function(x, LST_PARAMS) {
+            list_gas = lapply(input$in_select_GAS_indicator_mult, function(x, LST_PARAMS) {
                 
                 tryCatch({
                     print('')
@@ -860,9 +860,9 @@ server_app = function(input, output, session) {
             )
             
         }
-        names(plot_list) = input$in_select_GAS_indicator_mult
-        valid_names = names(plot_list)[!sapply(plot_list, is.null)]
-        plot_list_gas_multi(plot_list[valid_names])
+        names(list_gas) = input$in_select_GAS_indicator_mult
+        valid_names = names(list_gas)[!sapply(list_gas, is.null)]
+        list_gas_multi(list_gas[valid_names])
         
         updateSelectInput(
             session = session,
@@ -871,18 +871,18 @@ server_app = function(input, output, session) {
             selected = if (length(valid_names) > 0) valid_names[1] else NULL
         )
         
-        plot_list_gas_multi(plot_list)
+        list_gas_multi(list_gas)
         
     })
     
     output$gas_history_plot_mult = renderEcharts4r({
-        req(react$plot_list_gas_multi)
-        react$plot_list_gas_multi[[input$in_select_gasplot_mult]]$PLOT_X
+        req(react$list_gas_multi)
+        react$list_gas_multi[[input$in_select_gasplot_mult]]$PLOT_X
     })
     
     output$gas_history_table_mult = renderDatagrid({
-        req(react$plot_list_gas_multi)
-        DT = copy(react$plot_list_gas_multi[[input$in_select_gasplot_mult]]$DT_X)
+        req(react$list_gas_multi)
+        DT = copy(react$list_gas_multi[[input$in_select_gasplot_mult]]$DT_X)
         setorder(DT, date, RIC)
         datagrid(DT,
                  filters = TRUE)
@@ -1252,6 +1252,317 @@ server_app = function(input, output, session) {
     
     
     
+    
+    # MULTIPLE - FORECAST - PWR ------------------------------------------
+    
+    # PREPARE FWD ---------------------------------------------------
+    
+    list_pwr_for_multi = reactiveVal(NULL)
+    
+    observeEvent(input$act_indicator_forecast_pwr_mult, {
+        
+        if(input$in_source_forecast == 'Excel') {
+            
+            showNotification("Using manual data", type = "message")
+            
+            list_inputs_fwd = prepare_fwd(
+                fwd_pwr_code = NULL,
+                fwd_gas_code = 'TTF',
+                start_date = input$in_select_horizon[1],
+                end_date = input$in_select_horizon[2],
+                model_type = 'PWR',
+                forecast_source = 'FWD',
+                archive = 'NO',
+                manual_pwr = react$dt_forecast_manual_pwr,
+                manual_gas = react$dt_forecast_manual_gas,
+                shiny_run = input$in_source_run,
+                siny_sim = input$sim_name
+            )
+            
+            list_pwr = lapply(input$in_select_PWR_indicator_for_mult, function(x, list_inputs_fwd) {
+                
+                tryCatch({
+                    
+                    list_inputs_fwd$fwd_pwr_code = x
+                    ## Forecast Parameters -----------------------
+                    
+                    print('=================== ++++++++++++++++++++++++++ =============')
+                    print('------------------- FORECAST PARAMS PREP START -------------')
+                    
+                    FWD = list_inputs_fwd$ENV_FWD
+                    
+                    if (list_inputs_fwd$shiny_run == 'Last') {
+                        last_path_models = file.path('HPFC', 'last', 'models', x)
+                        last_path_history = file.path('HPFC', 'last', 'history', x)
+                        
+                        ENV_MODELS_GAS = list()
+                        ENV_MODELS_PWR = list()
+                        list_inputs = list()
+                        ENV_MODELS_GAS$dt_lt_param_gasdep = readRDS(file.path(last_path_models, 'model_gas_lt.rds'))
+                        ENV_MODELS_PWR$dt_lt_param_pwr = readRDS(file.path(last_path_models, 'model_pwr_lt.rds'))
+                        ENV_MODELS_PWR$lst_hr_param_pwr = readRDS(file.path(last_path_models, 'model_pwr_st.rds'))
+                        list_inputs$history_gas = fread(file.path(last_path_history, 'history_gas.csv'))
+                        list_inputs$history_pwr = fread(file.path(last_path_history, 'history_pwr.csv'))
+                    }
+                    
+                    if (list_inputs_fwd$shiny_run == 'Sim') {
+                        last_path_models = file.path('HPFC', 'archive', 'models', x, list_inputs_fwd$siny_sim)
+                        last_path_history = file.path('HPFC', 'archive', 'history', x, list_inputs_fwd$siny_sim)
+                        
+                        ENV_MODELS_GAS = list()
+                        ENV_MODELS_PWR = list()
+                        list_inputs = list()
+                        ENV_MODELS_GAS$dt_lt_param_gasdep = readRDS(file.path(last_path_models, 'model_gas_lt.rds'))
+                        ENV_MODELS_PWR$dt_lt_param_pwr = readRDS(file.path(last_path_models, 'model_pwr_lt.rds'))
+                        ENV_MODELS_PWR$lst_hr_param_pwr = readRDS(file.path(last_path_models, 'model_pwr_st.rds'))
+                        list_inputs$history_gas = fread(file.path(last_path_history, 'history_gas.csv'))
+                        list_inputs$history_pwr = fread(file.path(last_path_history, 'history_pwr.csv'))
+                    }        
+                    
+                    LST_FOR = list(
+                        model_lt_gas = copy(ENV_MODELS_GAS$dt_lt_param_gasdep),
+                        model_lt_pwr = copy(ENV_MODELS_PWR$dt_lt_param_pwr),
+                        model_st_pwr = copy(ENV_MODELS_PWR$lst_hr_param_pwr),
+                        dt_fwds = copy(FWD$dt_fwds),
+                        saved_history_gas = copy(list_inputs$history_gas),
+                        saved_history_pwr = copy(list_inputs$history_pwr),
+                        ric_spot_gas = HPFC::spot_GAS_products_full[products_GAS %in% unique('TTF')]$spot_GAS_code,
+                        ric_fwd_gas = HPFC::spot_GAS_products_full[products_GAS %in% unique('TTF')]$products_GAS_code,
+                        ric_spot_pwr = HPFC::spot_PWR_products_full[countries %in% unique(x)]$spot_PWR_code,
+                        ric_fwd_pwr = HPFC::spot_PWR_products_full[countries %in% unique(x)]$products_PWR_code,
+                        calendar_forecast = FWD$calendar_future,
+                        start_date = input$in_select_horizon[1],
+                        end_date = input$in_select_horizon[2],
+                        last_date = FWD$last_date
+                    ) 
+                    
+                    print('------------------- FORECAST PARAMS PREP END -----------------')
+                    
+                    print('')
+                    print('==================== ++++++++++++++++ ====================')
+                    print('==================== END TRAINING PWR ====================')
+                    print('==================== ++++++++++++++++ ====================')
+                    print('')
+                    
+                    print('')
+                    print('==================== +++++++++++++++++++++ ====================')
+                    print('==================== START FORECASTING PWR ====================')
+                    print('==================== +++++++++++++++++++++ ====================')
+                    print('')
+                    print('------------- FORECAST START -------------')
+                    
+                    ENV_FOR_GAS = forecast_gas(input_forecast = LST_FOR)
+                    ENV_FOR_PWR = forecast_pwr(input_forecast = LST_FOR, gas_forecast = ENV_FOR_GAS)
+                    
+                    dt_pwr_for = ENV_FOR_PWR[, .(date, hour, forecast = final_forecast, RIC, season, peak, value_gas, value_bl = spot_forward_month_BL)]
+                    dt_pwr_obs = react$forecast_params_field_pwr$saved_history_pwr[year(date) %in% unique(year(dt_pwr_for$date)) & RIC == unique(dt_pwr_for$RIC)][, .(date, hour, spot = value, RIC)]
+                    dt_pwr = merge(dt_pwr_for, dt_pwr_obs, by = c('date', 'hour', 'RIC'), all = TRUE)
+                    
+                    setcolorder(dt_pwr, c('date', 'hour', 'season', 'peak', 'RIC', 'spot', 'forecast', 'value_bl', 'value_gas'))
+                    setorder(dt_pwr, date, hour)
+                    
+                    ## ARCHIVE -------------------------------------
+                    
+                    ### LAST
+                    last_path = file.path('HPFC', 'last', 'output', x)
+                    if (!dir.exists(last_path)) {
+                        dir.create(last_path, recursive = TRUE)
+                    }
+                    
+                    saveRDS(dt_pwr, file.path(last_path, paste0('forecast_pwr.rds')))
+                    
+                    if(!is.null(list_inputs_fwd$siny_sim)) {
+                        if(nchar(list_inputs_fwd$siny_sim) > 0) {
+                            
+                            last_path = file.path('HPFC', 'archive', 'output', x, list_inputs_fwd$siny_sim)
+                            if (!dir.exists(last_path)) {
+                                dir.create(last_path, recursive = TRUE)
+                            }
+                            
+                            saveRDS(dt_pwr, file.path(last_path, paste0('forecast_pwr.rds')))
+                        }
+                    }
+                    
+                    print('------------- FORECAST END -------------')        
+                    print('')
+                    print('==================== +++++++++++++++++++ ====================')
+                    print('==================== END FORECASTING PWR ====================')
+                    print('==================== +++++++++++++++++++ ====================')
+                    print('')
+                    
+                    return(dt_pwr)
+                    
+                }, error = function(e) {
+                    msg = paste0("Error while training ", x, ": ", e$message)
+                    showNotification(msg, type = "error", duration = NULL)
+                    message(msg)
+                    return(NULL)
+                })
+            },
+            list_inputs_fwd = list_inputs_fwd
+            )
+            
+        } else {
+            
+            list_inputs_fwd = prepare_fwd(
+                fwd_pwr_code = NULL,
+                fwd_gas_code = 'TTF',
+                start_date = input$in_select_horizon[1],
+                end_date = input$in_select_horizon[2],
+                model_type = 'PWR',
+                forecast_source = 'FWD',
+                archive = 'NO',
+                manual_pwr = NULL,
+                manual_gas = NULL,
+                reuters_key = PLEASE_INSERT_REUTERS_KEY,
+                shiny_run = input$in_source_run,
+                siny_sim = input$sim_name
+            )    
+            
+            list_pwr = lapply(input$in_select_PWR_indicator_for_mult, function(x, list_inputs_fwd) {
+                
+                tryCatch({
+                    
+                    list_inputs_fwd$fwd_pwr_code = x
+                    ## Forecast Parameters -----------------------
+                    
+                    print('=================== ++++++++++++++++++++++++++ =============')
+                    print('------------------- FORECAST PARAMS PREP START -------------')
+                    
+                    FWD = list_inputs_fwd$ENV_FWD
+                    
+                    if (list_inputs_fwd$shiny_run == 'Last') {
+                        last_path_models = file.path('HPFC', 'last', 'models', x)
+                        last_path_history = file.path('HPFC', 'last', 'history', x)
+                        
+                        ENV_MODELS_GAS = list()
+                        ENV_MODELS_PWR = list()
+                        list_inputs = list()
+                        ENV_MODELS_GAS$dt_lt_param_gasdep = readRDS(file.path(last_path_models, 'model_gas_lt.rds'))
+                        ENV_MODELS_PWR$dt_lt_param_pwr = readRDS(file.path(last_path_models, 'model_pwr_lt.rds'))
+                        ENV_MODELS_PWR$lst_hr_param_pwr = readRDS(file.path(last_path_models, 'model_pwr_st.rds'))
+                        list_inputs$history_gas = fread(file.path(last_path_history, 'history_gas.csv'))
+                        list_inputs$history_pwr = fread(file.path(last_path_history, 'history_pwr.csv'))
+                    }
+                    
+                    if (list_inputs_fwd$shiny_run == 'Sim') {
+                        last_path_models = file.path('HPFC', 'archive', 'models', x, list_inputs_fwd$siny_sim)
+                        last_path_history = file.path('HPFC', 'archive', 'history', x, list_inputs_fwd$siny_sim)
+                        
+                        ENV_MODELS_GAS = list()
+                        ENV_MODELS_PWR = list()
+                        list_inputs = list()
+                        ENV_MODELS_GAS$dt_lt_param_gasdep = readRDS(file.path(last_path_models, 'model_gas_lt.rds'))
+                        ENV_MODELS_PWR$dt_lt_param_pwr = readRDS(file.path(last_path_models, 'model_pwr_lt.rds'))
+                        ENV_MODELS_PWR$lst_hr_param_pwr = readRDS(file.path(last_path_models, 'model_pwr_st.rds'))
+                        list_inputs$history_gas = fread(file.path(last_path_history, 'history_gas.csv'))
+                        list_inputs$history_pwr = fread(file.path(last_path_history, 'history_pwr.csv'))
+                    }        
+                    
+                    LST_FOR = list(
+                        model_lt_gas = copy(ENV_MODELS_GAS$dt_lt_param_gasdep),
+                        model_lt_pwr = copy(ENV_MODELS_PWR$dt_lt_param_pwr),
+                        model_st_pwr = copy(ENV_MODELS_PWR$lst_hr_param_pwr),
+                        dt_fwds = copy(FWD$dt_fwds),
+                        saved_history_gas = copy(list_inputs$history_gas),
+                        saved_history_pwr = copy(list_inputs$history_pwr),
+                        ric_spot_gas = HPFC::spot_GAS_products_full[products_GAS %in% unique('TTF')]$spot_GAS_code,
+                        ric_fwd_gas = HPFC::spot_GAS_products_full[products_GAS %in% unique('TTF')]$products_GAS_code,
+                        ric_spot_pwr = HPFC::spot_PWR_products_full[countries %in% unique(x)]$spot_PWR_code,
+                        ric_fwd_pwr = HPFC::spot_PWR_products_full[countries %in% unique(x)]$products_PWR_code,
+                        calendar_forecast = FWD$calendar_future,
+                        start_date = input$in_select_horizon[1],
+                        end_date = input$in_select_horizon[2],
+                        last_date = FWD$last_date
+                    ) 
+                    
+                    print('------------------- FORECAST PARAMS PREP END -----------------')
+                    
+                    print('')
+                    print('==================== ++++++++++++++++ ====================')
+                    print('==================== END TRAINING PWR ====================')
+                    print('==================== ++++++++++++++++ ====================')
+                    print('')
+                    
+                    print('')
+                    print('==================== +++++++++++++++++++++ ====================')
+                    print('==================== START FORECASTING PWR ====================')
+                    print('==================== +++++++++++++++++++++ ====================')
+                    print('')
+                    print('------------- FORECAST START -------------')
+                    
+                    ENV_FOR_GAS = forecast_gas(input_forecast = LST_FOR)
+                    ENV_FOR_PWR = forecast_pwr(input_forecast = LST_FOR, gas_forecast = ENV_FOR_GAS)
+                    
+                    dt_pwr_for = ENV_FOR_PWR[, .(date, hour, forecast = final_forecast, RIC, season, peak, value_gas, value_bl = spot_forward_month_BL)]
+                    dt_pwr_obs = react$forecast_params_field_pwr$saved_history_pwr[year(date) %in% unique(year(dt_pwr_for$date)) & RIC == unique(dt_pwr_for$RIC)][, .(date, hour, spot = value, RIC)]
+                    dt_pwr = merge(dt_pwr_for, dt_pwr_obs, by = c('date', 'hour', 'RIC'), all = TRUE)
+                    
+                    setcolorder(dt_pwr, c('date', 'hour', 'season', 'peak', 'RIC', 'spot', 'forecast', 'value_bl', 'value_gas'))
+                    setorder(dt_pwr, date, hour)
+                    
+                    ## ARCHIVE -------------------------------------
+                    
+                    ### LAST
+                    last_path = file.path('HPFC', 'last', 'output', x)
+                    if (!dir.exists(last_path)) {
+                        dir.create(last_path, recursive = TRUE)
+                    }
+                    
+                    saveRDS(dt_pwr, file.path(last_path, paste0('forecast_pwr.rds')))
+                    
+                    if(!is.null(list_inputs_fwd$siny_sim)) {
+                        if(nchar(list_inputs_fwd$siny_sim) > 0) {
+                            
+                            last_path = file.path('HPFC', 'archive', 'output', x, list_inputs_fwd$siny_sim)
+                            if (!dir.exists(last_path)) {
+                                dir.create(last_path, recursive = TRUE)
+                            }
+                            
+                            saveRDS(dt_pwr, file.path(last_path, paste0('forecast_pwr.rds')))
+                        }
+                    }
+                    
+                    print('------------- FORECAST END -------------')        
+                    print('')
+                    print('==================== +++++++++++++++++++ ====================')
+                    print('==================== END FORECASTING PWR ====================')
+                    print('==================== +++++++++++++++++++ ====================')
+                    print('')
+                    
+                    return(dt_pwr)
+                    
+                }, error = function(e) {
+                    msg = paste0("Error while training ", x, ": ", e$message)
+                    showNotification(msg, type = "error", duration = NULL)
+                    message(msg)
+                    return(NULL)
+                })
+            },
+            list_inputs_fwd = list_inputs_fwd
+            )
+            
+        }
+        
+        names(list_pwr) = input$in_select_PWR_indicator_for_mult
+        valid_names = names(list_pwr)[!sapply(list_pwr, is.null)]
+        list_pwr_for_multi(list_pwr[valid_names])
+        
+        updateSelectInput(
+            session = session,
+            inputId = "in_select_gasplot_mult",
+            choices = valid_names,
+            selected = if (length(valid_names) > 0) valid_names[1] else NULL
+        )
+        
+        list_pwr_for_multi(list_pwr)        
+        
+    })
+    
+    
+    
+    
+    
     # SINGLE - FORECAST - PWR ------------------------------------------
     
     object_with_forecast_data_pwr = reactiveVal(NULL) 
@@ -1298,41 +1609,6 @@ server_app = function(input, output, session) {
         
     })
     
-    observeEvent(input$act_indicator_forecast_gas, {
-        
-        if(input$in_source_forecast == 'Excel') {
-            req(react$dt_forecast_manual_gas)
-            list_inputs_fwd = prepare_fwd(
-                fwd_gas_code = input$in_select_GAS_indicator_for,
-                start_date = input$in_select_horizon[1],
-                end_date = input$in_select_horizon[2],
-                model_type = 'GAS',
-                forecast_source = 'FWD',
-                archive = 'NO',
-                manual_pwr = NULL,
-                manual_gas = react$dt_forecast_manual_gas
-            )
-            
-            showNotification("Using manual data", type = "message")
-            
-        } else {
-            list_inputs_fwd = prepare_fwd(
-                fwd_gas_code = input$in_select_GAS_indicator_for,
-                start_date = input$in_select_horizon[1],
-                end_date = input$in_select_horizon[2],
-                model_type = 'GAS',
-                forecast_source = 'FWD',
-                archive = 'NO',
-                manual_pwr = NULL,
-                manual_gas = NULL,
-                reuters_key = PLEASE_INSERT_REUTERS_KEY
-            )
-            
-        }
-        
-        fwd_gas_field(list_inputs_fwd)
-        
-    })    
     
     ## Forecast Parameters -----------------------
     forecast_params_field_pwr = reactiveVal(NULL)
@@ -1420,6 +1696,101 @@ server_app = function(input, output, session) {
         print('')
     })
     
+    
+    observe({
+        
+        req(react$forecast_params_field_pwr)
+        print('')
+        print('==================== +++++++++++++++++++++ ====================')
+        print('==================== START FORECASTING PWR ====================')
+        print('==================== +++++++++++++++++++++ ====================')
+        print('')
+        print('------------- FORECAST START -------------')
+        
+        ENV_FOR_GAS = forecast_gas(input_forecast = react$forecast_params_field_pwr)
+        ENV_FOR_PWR = forecast_pwr(input_forecast = react$forecast_params_field_pwr, gas_forecast = ENV_FOR_GAS)
+        
+        dt_pwr_for = ENV_FOR_PWR[, .(date, hour, forecast = final_forecast, RIC, season, peak, value_gas, value_bl = spot_forward_month_BL)]
+        dt_pwr_obs = react$forecast_params_field_pwr$saved_history_pwr[year(date) %in% unique(year(dt_pwr_for$date)) & RIC == unique(dt_pwr_for$RIC)][, .(date, hour, spot = value, RIC)]
+        dt_pwr = merge(dt_pwr_for, dt_pwr_obs, by = c('date', 'hour', 'RIC'), all = TRUE)
+        
+        setcolorder(dt_pwr, c('date', 'hour', 'season', 'peak', 'RIC', 'spot', 'forecast', 'value_bl', 'value_gas'))
+        setorder(dt_pwr, date, hour)
+        
+        ## ARCHIVE -------------------------------------
+        
+        ### LAST
+        last_path = file.path('HPFC', 'last', 'output', input$in_select_PWR_indicator_for)
+        if (!dir.exists(last_path)) {
+            dir.create(last_path, recursive = TRUE)
+        }
+        
+        saveRDS(dt_pwr, file.path(last_path, paste0('forecast_pwr.rds')))
+        
+        if(!is.null(input$sim_name)) {
+            if(nchar(input$sim_name) > 0) {
+                
+                last_path = file.path('HPFC', 'archive', 'output', input$in_select_PWR_indicator_for, input$sim_name)
+                if (!dir.exists(last_path)) {
+                    dir.create(last_path, recursive = TRUE)
+                }
+                
+                saveRDS(dt_pwr, file.path(last_path, paste0('forecast_pwr.rds')))
+            }
+        }
+        
+        object_with_forecast_data_pwr(dt_pwr)
+        
+        print('------------- FORECAST END -------------')        
+        print('')
+        print('==================== +++++++++++++++++++ ====================')
+        print('==================== END FORECASTING PWR ====================')
+        print('==================== +++++++++++++++++++ ====================')
+        print('')
+        
+    })
+    
+    
+    # SINGLE - FORECAST - GAS ------------------------------------------
+    
+    object_with_forecast_data_gas = reactiveVal(NULL) 
+    
+    observeEvent(input$act_indicator_forecast_gas, {
+        
+        if(input$in_source_forecast == 'Excel') {
+            req(react$dt_forecast_manual_gas)
+            list_inputs_fwd = prepare_fwd(
+                fwd_gas_code = input$in_select_GAS_indicator_for,
+                start_date = input$in_select_horizon[1],
+                end_date = input$in_select_horizon[2],
+                model_type = 'GAS',
+                forecast_source = 'FWD',
+                archive = 'NO',
+                manual_pwr = NULL,
+                manual_gas = react$dt_forecast_manual_gas
+            )
+            
+            showNotification("Using manual data", type = "message")
+            
+        } else {
+            list_inputs_fwd = prepare_fwd(
+                fwd_gas_code = input$in_select_GAS_indicator_for,
+                start_date = input$in_select_horizon[1],
+                end_date = input$in_select_horizon[2],
+                model_type = 'GAS',
+                forecast_source = 'FWD',
+                archive = 'NO',
+                manual_pwr = NULL,
+                manual_gas = NULL,
+                reuters_key = PLEASE_INSERT_REUTERS_KEY
+            )
+            
+        }
+        
+        fwd_gas_field(list_inputs_fwd)
+        
+    })    
+    
     ## Forecast Parameters -----------------------
     forecast_params_field_gas = reactiveVal(NULL)
     forecast_params_table_gas = reactiveVal(NULL)
@@ -1491,65 +1862,7 @@ server_app = function(input, output, session) {
         print('==================== END TRAINING GAS ====================')
         print('==================== ++++++++++++++++ ====================')
         print('')
-    })
-    
-    observe({
-        
-        req(react$forecast_params_field_pwr)
-        print('')
-        print('==================== +++++++++++++++++++++ ====================')
-        print('==================== START FORECASTING PWR ====================')
-        print('==================== +++++++++++++++++++++ ====================')
-        print('')
-        print('------------- FORECAST START -------------')
-        
-        ENV_FOR_GAS = forecast_gas(input_forecast = react$forecast_params_field_pwr)
-        ENV_FOR_PWR = forecast_pwr(input_forecast = react$forecast_params_field_pwr, gas_forecast = ENV_FOR_GAS)
-        
-        dt_pwr_for = ENV_FOR_PWR[, .(date, hour, forecast = final_forecast, RIC, season, peak, value_gas, value_bl = spot_forward_month_BL)]
-        dt_pwr_obs = react$forecast_params_field_pwr$saved_history_pwr[year(date) %in% unique(year(dt_pwr_for$date)) & RIC == unique(dt_pwr_for$RIC)][, .(date, hour, spot = value, RIC)]
-        dt_pwr = merge(dt_pwr_for, dt_pwr_obs, by = c('date', 'hour', 'RIC'), all = TRUE)
-        
-        setcolorder(dt_pwr, c('date', 'hour', 'season', 'peak', 'RIC', 'spot', 'forecast', 'value_bl', 'value_gas'))
-        setorder(dt_pwr, date, hour)
-        
-        ## ARCHIVE -------------------------------------
-        
-        ### LAST
-        last_path = file.path('HPFC', 'last', 'output', input$in_select_PWR_indicator_for)
-        if (!dir.exists(last_path)) {
-            dir.create(last_path, recursive = TRUE)
-        }
-        
-        saveRDS(dt_pwr, file.path(last_path, paste0('forecast_pwr.rds')))
-        
-        if(!is.null(input$sim_name)) {
-            if(nchar(input$sim_name) > 0) {
-                
-                last_path = file.path('HPFC', 'archive', 'output', input$in_select_PWR_indicator_for, input$sim_name)
-                if (!dir.exists(last_path)) {
-                    dir.create(last_path, recursive = TRUE)
-                }
-                
-                saveRDS(dt_pwr, file.path(last_path, paste0('forecast_pwr.rds')))
-            }
-        }
-        
-        object_with_forecast_data_pwr(dt_pwr)
-        
-        print('------------- FORECAST END -------------')        
-        print('')
-        print('==================== +++++++++++++++++++ ====================')
-        print('==================== END FORECASTING PWR ====================')
-        print('==================== +++++++++++++++++++ ====================')
-        print('')
-        
-    })
-    
-    
-    # SINGLE - FORECAST - GAS ------------------------------------------
-    
-    object_with_forecast_data_gas = reactiveVal(NULL) 
+    })    
     
     observeEvent(input$act_indicator_forecast_gas, {
         
@@ -1604,7 +1917,7 @@ server_app = function(input, output, session) {
     })    
     
     
-    ## Download forecasts -----------------------
+    ## DOWNLOAD FORECASTS -----------------------
     
     output$act_forecast_pwr_download = downloadHandler(
         filename = function() {
