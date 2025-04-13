@@ -89,7 +89,6 @@ load_inputs = function(params, manual_data = NULL, reuters_key = NULL, last_run_
         
         is_eikon_gas = HPFC::gas_mapped_codes[products %in% LST_PARAMS$selected_gas_code]$eikon
         is_eikon_pwr = HPFC::pwr_mapped_codes[countries == HPFC::spot_PWR_products_full[spot_PWR_code == pwr_codes]$countries]$eikon
-        print('is_eikon_gas');print(is_eikon_gas)
         if (is_eikon_gas == 'NO') {
             file_path = file.path(last_run_path, 'backup_spot_gas.xlsx')
             print(file_path)

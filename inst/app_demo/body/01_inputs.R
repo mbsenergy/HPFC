@@ -104,6 +104,26 @@ select_GAS_product_mult =
         selected = vec_gas_products
     )
 
+select_pwrplot_mult =
+    selectInput(
+        inputId = "in_select_pwrplot_mult",
+        label = NULL,
+        multiple = FALSE,
+        width = '100%',
+        choices = vec_pwr_products,
+        selected = 'Greece'
+    )
+
+select_gasplot_mult =
+    selectInput(
+        inputId = "in_select_gasplot_mult",
+        label = NULL,
+        multiple = FALSE,
+        width = '100%',
+        choices = vec_gas_products,
+        selected = 'TTF'
+    )
+
 
 #### BUTTON TO EXECUTE TRAINING --------------------------------
 product_train_pwr_mult =
@@ -129,9 +149,9 @@ product_train_gas_mult =
 
 ## Forecast ====================================================================================
 
-select_PWR_product_for_multi =
+select_PWR_product_for_mult =
     selectInput(
-        inputId = "in_select_PWR_indicator_for_multi",
+        inputId = "in_select_PWR_indicator_for_mult",
         label = "Power:",
         multiple = TRUE,
         width = '100%',
@@ -139,9 +159,9 @@ select_PWR_product_for_multi =
         selected = 'Greece'
     )
 
-select_GAS_product_for_multi =
+select_GAS_product_for_mult =
     selectInput(
-        inputId = "in_select_GAS_indicator_for_multi",
+        inputId = "in_select_GAS_indicator_for_mult",
         label = "Gas:",
         multiple = TRUE,
         width = '100%',
@@ -150,9 +170,9 @@ select_GAS_product_for_multi =
     )
 
 #### BUTTON TO EXECUTE FORECAST --------------------------------
-product_forecast_pwr_multi =
+product_forecast_pwr_mult =
     input_task_button(
-        id = 'act_indicator_forecast_pwr_multi',
+        id = 'act_indicator_forecast_pwr_mult',
         label = 'Forecast Power',
         label_busy = "Forecasting...",
         icon = shiny::icon('eye'),
@@ -160,9 +180,9 @@ product_forecast_pwr_multi =
         type = "danger"
     )
 
-product_forecast_gas_multi =
+product_forecast_gas_mult =
     input_task_button(
-        id = 'act_indicator_forecast_gas_multi',
+        id = 'act_indicator_forecast_gas_mult',
         label = 'Forecast Gas',
         label_busy = "Forecasting...",
         icon = shiny::icon('eye'),

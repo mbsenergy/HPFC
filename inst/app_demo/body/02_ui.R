@@ -34,7 +34,7 @@ ui_app = page_navbar(
     
     nav_menu(title = 'HPFC', 
              
-             nav_panel(title = 'TRAIN',
+             nav_panel(title = h2('TRAIN'),
                        layout_sidebar(
                            sidebar = sidebar(bg = 'white',
                                              title = 'Train',
@@ -68,58 +68,63 @@ ui_app = page_navbar(
                            
                            # Main Panel for the training
                            navset_card_pill(
-                               full_screen = TRUE,
                                nav_panel('Power Multiple',
-                                         layout_sidebar(
-                                             sidebar = sidebar(bg = 'white',
-                                                               reactableOutput('forecast_params_table_recap_pwr_multi'), position = 'right', open = FALSE, width = '450px'),
-                                             fluidRow(
-                                                 echarts4rOutput(outputId = 'pwr_history_plot_multi') %>% withSpinner(color = "#d08770"),
-                                                 hr(), br(),
-                                                 reactableOutput(outputId = 'pwr_history_table_multi') %>% withSpinner(color = "#d08770")
-                                             )
+                                         fluidRow(
+                                             select_pwrplot_mult,
+                                             card(full_screen = TRUE,
+                                                  card_body(
+                                                 echarts4rOutput(outputId = 'pwr_history_plot_mult') %>% withSpinner(color = "#F2606A")
+                                                 )),
+                                                 card(full_screen = TRUE,
+                                                      card_body(
+                                                 datagridOutput(outputId = 'pwr_history_table_mult') %>% withSpinner(color = "#F2606A")
+                                             ))
                                          )
                                ),
-                               
                                nav_panel('Gas Multiple',
-                                         layout_sidebar(
-                                             sidebar = sidebar(bg = 'white',
-                                                               reactableOutput('forecast_params_table_recap_gas_multi'), position = 'right', open = FALSE, width = '450px'),
-                                             fluidRow(
-                                                 echarts4rOutput(outputId = 'gas_history_plot_multi') %>% withSpinner(color = "#d08770"),
+                                         fluidRow(
+                                             select_gasplot_mult,
+                                             fluidRow( 
+                                                 echarts4rOutput(outputId = 'gas_history_plot_mult') %>% withSpinner(color = "#F2606A"),
                                                  hr(), br(),
-                                                 reactableOutput(outputId = 'gas_history_table_multi') %>% withSpinner(color = "#d08770")
+                                                 datagridOutput(outputId = 'gas_history_table_mult') %>% withSpinner(color = "#F2606A")
                                              )
                                          )
                                ),
                                nav_panel('Power Single',
                                          layout_sidebar(
                                              sidebar = sidebar(bg = 'white',
-                                                               reactableOutput('forecast_params_table_recap_pwr'), position = 'right', open = FALSE, width = '450px'),
-                                             fluidRow(
-                                                 echarts4rOutput(outputId = 'pwr_history_plot') %>% withSpinner(color = "#d08770"),
-                                                 hr(), br(),
-                                                 reactableOutput(outputId = 'pwr_history_table') %>% withSpinner(color = "#d08770")
-                                             )
+                                                               datagridOutput('forecast_params_table_recap_pwr'), position = 'right', open = FALSE, width = '450px'),
+                                             card(full_screen = TRUE,
+                                                  card_body(
+                                                 echarts4rOutput(outputId = 'pwr_history_plot') %>% withSpinner(color = "#F2606A")
+                                                 )),
+                                             card(full_screen = TRUE,
+                                                  card_body(
+                                                 datagridOutput(outputId = 'pwr_history_table') %>% withSpinner(color = "#F2606A")
+                                                  ))
                                          )
                                ),
                                
                                nav_panel('Gas Single',
                                          layout_sidebar(
                                              sidebar = sidebar(bg = 'white',
-                                                               reactableOutput('forecast_params_table_recap_gas'), position = 'right', open = FALSE, width = '450px'),
-                                             fluidRow(
-                                                 echarts4rOutput(outputId = 'gas_history_plot') %>% withSpinner(color = "#d08770"),
-                                                 hr(), br(),
-                                                 reactableOutput(outputId = 'gas_history_table') %>% withSpinner(color = "#d08770")
-                                             )
+                                                               datagridOutput('forecast_params_table_recap_gas'), position = 'right', open = FALSE, width = '450px'),
+                                             card(full_screen = TRUE,
+                                                  card_body(
+                                                 echarts4rOutput(outputId = 'gas_history_plot') %>% withSpinner(color = "#F2606A")
+                                                 )),
+                                             card(full_screen = TRUE,
+                                                  card_body(
+                                                 datagridOutput(outputId = 'gas_history_table') %>% withSpinner(color = "#F2606A")
+                                             ))
                                          )
                                )
                            )
                        )
              ),
              
-             nav_panel(title = 'FORECAST',
+             nav_panel(title = h2('FORECAST'),
                        layout_sidebar(
                            sidebar = sidebar(bg = 'white',
                                              title = 'Forecast',
@@ -133,11 +138,11 @@ ui_app = page_navbar(
                                              accordion(
                                                        accordion_panel(
                                                            title = 'Forecast Multiple',
-                                                           select_PWR_product_for_multi,
-                                                           select_GAS_product_for_multi,
-                                                           product_forecast_pwr_multi,
+                                                           select_PWR_product_for_mult,
+                                                           select_GAS_product_for_mult,
+                                                           product_forecast_pwr_mult,
                                                            br(),
-                                                           product_forecast_gas_multi,                                                           
+                                                           product_forecast_gas_mult,                                                           
                                                        ),
                                                        accordion_panel(
                                                            title = 'Forecasting Single',
@@ -154,34 +159,33 @@ ui_app = page_navbar(
                            
                            # Main Panel for the forecast
                            navset_card_pill(
-                               full_screen = TRUE,
                                nav_panel('Power Multiple',
                                          fluidRow(
-                                             echarts4rOutput(outputId = 'pwr_forecast_plot_multi') %>% withSpinner(color = "#d08770")
+                                             echarts4rOutput(outputId = 'pwr_forecast_plot_mult') %>% withSpinner(color = "#C05B8C")
                                          )
                                ),
                                
                                nav_panel('Gas Multiple',
                                          fluidRow(
-                                             echarts4rOutput(outputId = 'gas_forecast_plot_multi') %>% withSpinner(color = "#d08770")
+                                             echarts4rOutput(outputId = 'gas_forecast_plot_mult') %>% withSpinner(color = "#C05B8C")
                                          )
                                ),                               
                                nav_panel('Power Single',
                                          fluidRow(
-                                             echarts4rOutput(outputId = 'pwr_forecast_plot') %>% withSpinner(color = "#d08770")
+                                             echarts4rOutput(outputId = 'pwr_forecast_plot') %>% withSpinner(color = "#C05B8C")
                                          )
                                ),
                                
                                nav_panel('Gas Single',
                                          fluidRow(
-                                             echarts4rOutput(outputId = 'gas_forecast_plot') %>% withSpinner(color = "#d08770")
+                                             echarts4rOutput(outputId = 'gas_forecast_plot') %>% withSpinner(color = "#C05B8C")
                                          )
                                )
                            )
                        )
              ),
              
-             nav_panel(title = 'BACKTESTING',
+             nav_panel(title = h2('BACKTESTING'),
                        layout_sidebar(
                            sidebar = sidebar(bg = 'white',
                                              width = 400, padding = '40'

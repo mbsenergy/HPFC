@@ -186,9 +186,366 @@ server_app = function(input, output, session) {
         }
     })
     
+    # MULTIPLE - TRAIN - PWR ------------------------------------------
+    
+    plot_list_pwr_multi = reactiveVal(NULL)
+    
+    observeEvent(input$act_indicator_train_pwr_mult, {
+        
+        if(!is.null(react$dt_spot_manual) & input$in_source_train == 'Excel') {
+            
+            LST_PARAMS = list(
+                model_type = 'PWR',
+                selected_pwr_code = NULL,
+                selected_gas_code = 'TTF',
+                dependent_gas_code = 'TTF',
+                history_start = input$in_select_history[1],
+                history_end = input$in_select_history[2],
+                forecast_start = input$in_select_horizon[1],
+                forecast_end = input$in_select_horizon[2],
+                model_source = 'TRAIN',
+                data_source = input$in_source_train,
+                forecast_source = 'FWD',
+                sim_name = 'NO',
+                archive = 'NO',
+                shiny_sim = input$in_new_sim_name,
+                shiny_manual = react$dt_spot_manual
+            )            
+            
+            plot_list = lapply(input$in_select_PWR_indicator_mult, function(x, LST_PARAMS) {
+                
+                tryCatch({
+                    print('')
+                    print('==================== ++++++++++++++++++ ====================')
+                    print('==================== MANUAL MULTI TRAINING PWR ====================')
+                    print(x)
+                    print('==================== ++++++++++++++++++ ====================')
+                    
+                    LST_PARAMS$selected_pwr_code = x
+                    
+                    print('')
+                    print('==================== START TRAINING PWR ====================')
+                    print('')
+                    print('-------------------- LOAD INPUTS START  --------------------')
+                    
+                    list_inputs = HPFC::load_inputs(params = LST_PARAMS,
+                                                    manual_data = LST_PARAMS$shiny_manual,
+                                                    reuters_key = NULL)
+                    
+                    ## ARCHIVE
+                    last_path = file.path('HPFC', 'last', 'history', x)
+                    if (!dir.exists(last_path)) {
+                        dir.create(last_path, recursive = TRUE)
+                    }
+                    
+                    fwrite(list_inputs$ENV_SPOT$history_gas, file.path(last_path, paste0('history_gas.csv')))
+                    fwrite(list_inputs$ENV_SPOT$history_pwr, file.path(last_path, paste0('history_pwr.csv')))
+                    
+                    if(nchar(LST_PARAMS$shiny_sim) > 0) {
+                        
+                        last_path = file.path('HPFC', 'archive', 'history', x, LST_PARAMS$shiny_sim)
+                        if (!dir.exists(last_path)) {
+                            dir.create(last_path, recursive = TRUE)
+                        }
+                        
+                        fwrite(list_inputs$ENV_SPOT$history_gas, file.path(last_path, paste0('history_gas.csv')))
+                        fwrite(list_inputs$ENV_SPOT$history_pwr, file.path(last_path, paste0('history_pwr.csv')))
+                    }
+                    
+                    print('-------------------- LOAD INPUTS END   --------------------')     
+                    
+                    print('============= +++++++++++++ ====================')
+                    print('------------- PREPARE START --------------------')
+                    
+                    ENV_MODELS_GAS = prepare_gas(list_inputs = list_inputs)
+                    ENV_MODELS_PWR = prepare_pwr(list_inputs = list_inputs)
+                    
+                    print('------------- PREPARE END ----------------------')
+                    
+                    print('============= +++++++++++ ====================')
+                    print('------------- TRAIN START --------------------')
+                    
+                    ENV_MODELS_GAS$dt_lt_param_gasdep = 
+                        train_lt_gas(
+                            gas_data = ENV_MODELS_GAS$dt_lt_param_gasdep,
+                            ric_gas = unique(ENV_MODELS_GAS$dt_gas$RIC)
+                        )
+                    
+                    ENV_MODELS_PWR$dt_lt_param_pwr = 
+                        train_lt_pwr(
+                            pwr_data = ENV_MODELS_PWR$dt_lt_param_pwr,
+                            ric_pwr = unique(ENV_MODELS_PWR$dt_pwr$RIC),
+                            pwr_holidays = ENV_MODELS_PWR$calendar_holidays_pwr,
+                            gas_history = ENV_MODELS_PWR$gas_history
+                        )
+                    
+                    ENV_MODELS_PWR$lst_hr_param_pwr = 
+                        train_st_pwr(
+                            pwr_data = ENV_MODELS_PWR$dt_hr_param_pwr,
+                            gas_history = ENV_MODELS_PWR$gas_history
+                        )
+                    
+                    ## ARCHIVE -------------------------------------
+                    
+                    ### LAST
+                    last_path = file.path('HPFC', 'last', 'models', x)
+                    if (!dir.exists(last_path)) {
+                        dir.create(last_path, recursive = TRUE)
+                    }
+                    
+                    saveRDS(ENV_MODELS_GAS$dt_lt_param_gasdep, file.path(last_path, paste0('model_gas_lt.rds')))
+                    saveRDS(ENV_MODELS_PWR$dt_lt_param_pwr, file.path(last_path, paste0('model_pwr_lt.rds')))
+                    saveRDS(ENV_MODELS_PWR$lst_hr_param_pwr, file.path(last_path, paste0('model_pwr_st.rds')))
+                    
+                    if(nchar(LST_PARAMS$shiny_sim) > 0) {
+                        
+                        last_path = file.path('HPFC', 'archive', 'models', x, LST_PARAMS$shiny_sim)
+                        if (!dir.exists(last_path)) {
+                            dir.create(last_path, recursive = TRUE)
+                        }
+                        
+                        saveRDS(ENV_MODELS_GAS$dt_lt_param_gasdep, file.path(last_path, paste0('model_gas_lt.rds')))
+                        saveRDS(ENV_MODELS_PWR$dt_lt_param_pwr, file.path(last_path, paste0('model_pwr_lt.rds')))
+                        saveRDS(ENV_MODELS_PWR$lst_hr_param_pwr, file.path(last_path, paste0('model_pwr_st.rds')))
+                    }
+                    
+                    # models_gas_field_pwr(ENV_MODELS_GAS)
+                    # models_pwr_field(ENV_MODELS_PWR)
+                    
+                    print('------------- TRAIN END  --------------------') 
+                    
+                    print('============= +++++++++++ ====================')
+                    print('------------- PLOT START --------------------')
+                    
+                    DT = copy(list_inputs$ENV_SPOT$history_pwr)
+                    DT[, datetime := as.POSIXct(paste(date, sprintf("%02d:00:00", hour)), format = "%Y-%m-%d %H:%M:%S", tz = "CET")]
+                    rics = unique(DT$RIC) 
+                    setorder(DT, datetime, RIC)
+                    
+                    PLOT_X = 
+                        DT %>%
+                        e_charts(datetime) %>%
+                        e_line(value, name = rics, symbol = 'none') %>%
+                        e_title(text = paste("Hourly Spot Prices for", rics)) %>%
+                        e_x_axis(name = "Datetime") %>%
+                        e_y_axis(name = "Price") %>%
+                        e_tooltip(trigger = "axis") %>%
+                        e_datazoom(type = "slider") %>%
+                        e_theme("westeros") 
+                    
+                    print('------------- PLOT END  --------------------')
+                    showNotification(paste(x, 'completed!'), type = "default", duration = 20)
+                    
+                    DT_X = DT
+                    
+                    LIST_X = list(PLOT_X, DT_X)
+                    names(LIST_X) = c('PLOT_X', 'DT_X')
+                    
+                    return(LIST_X)
+                    
+                }, error = function(e) {
+                    msg = paste0("Error while training ", x, ": ", e$message)
+                    showNotification(msg, type = "error", duration = NULL)
+                    message(msg)
+                    return(NULL)
+                })
+            },
+            LST_PARAMS = LST_PARAMS
+            ) 
+            
+        } else {
+            
+            LST_PARAMS = list(
+                model_type = 'PWR',
+                selected_pwr_code = NULL,
+                selected_gas_code = 'TTF',
+                dependent_gas_code = 'TTF',
+                history_start = input$in_select_history[1],
+                history_end = input$in_select_history[2],
+                forecast_start = input$in_select_horizon[1],
+                forecast_end = input$in_select_horizon[2],
+                model_source = 'TRAIN',
+                data_source = input$in_source_train,
+                forecast_source = 'FWD',
+                sim_name = 'NO',
+                archive = 'NO',
+                shiny_sim = input$in_new_sim_name
+            )
+            
+            plot_list = lapply(input$in_select_PWR_indicator_mult, function(x, LST_PARAMS) {
+                
+                tryCatch({
+                    print('')
+                    print('==================== ++++++++++++++++++ ====================')
+                    print('==================== REUTERS MULTI TRAINING PWR ====================')
+                    print(x)
+                    print('==================== ++++++++++++++++++ ====================')
+                    
+                    LST_PARAMS$selected_pwr_code = x
+                    
+                    print('')
+                    print('==================== START TRAINING PWR ====================')
+                    print('')
+                    print('-------------------- LOAD INPUTS START  --------------------')
+                    
+                    list_inputs = HPFC::load_inputs(params = LST_PARAMS, manual_data = NULL,
+                                                    reuters_key = PLEASE_INSERT_REUTERS_KEY,
+                                                    last_run_path = file.path('HPFC', 'last', 'history')
+                    )
+                    
+                    ## ARCHIVE
+                    last_path = file.path('HPFC', 'last', 'history', x)
+                    if (!dir.exists(last_path)) {
+                        dir.create(last_path, recursive = TRUE)
+                    }
+                    
+                    fwrite(list_inputs$ENV_SPOT$history_gas, file.path(last_path, paste0('history_gas.csv')))
+                    fwrite(list_inputs$ENV_SPOT$history_pwr, file.path(last_path, paste0('history_pwr.csv')))
+                    
+                    if(nchar(LST_PARAMS$shiny_sim) > 0) {
+                        
+                        last_path = file.path('HPFC', 'archive', 'history', x, LST_PARAMS$shiny_sim)
+                        if (!dir.exists(last_path)) {
+                            dir.create(last_path, recursive = TRUE)
+                        }
+                        
+                        fwrite(list_inputs$ENV_SPOT$history_gas, file.path(last_path, paste0('history_gas.csv')))
+                        fwrite(list_inputs$ENV_SPOT$history_pwr, file.path(last_path, paste0('history_pwr.csv')))
+                    }
+                    
+                    print('-------------------- LOAD INPUTS END   --------------------')     
+                    
+                    print('============= +++++++++++++ ====================')
+                    print('------------- PREPARE START --------------------')
+                    
+                    ENV_MODELS_GAS = prepare_gas(list_inputs = list_inputs)
+                    ENV_MODELS_PWR = prepare_pwr(list_inputs = list_inputs)
+                    
+                    print('------------- PREPARE END ----------------------')
+                    
+                    print('============= +++++++++++ ====================')
+                    print('------------- TRAIN START --------------------')
+                    
+                    ENV_MODELS_GAS$dt_lt_param_gasdep = 
+                        train_lt_gas(
+                            gas_data = ENV_MODELS_GAS$dt_lt_param_gasdep,
+                            ric_gas = unique(ENV_MODELS_GAS$dt_gas$RIC)
+                        )
+                    
+                    ENV_MODELS_PWR$dt_lt_param_pwr = 
+                        train_lt_pwr(
+                            pwr_data = ENV_MODELS_PWR$dt_lt_param_pwr,
+                            ric_pwr = unique(ENV_MODELS_PWR$dt_pwr$RIC),
+                            pwr_holidays = ENV_MODELS_PWR$calendar_holidays_pwr,
+                            gas_history = ENV_MODELS_PWR$gas_history
+                        )
+                    
+                    ENV_MODELS_PWR$lst_hr_param_pwr = 
+                        train_st_pwr(
+                            pwr_data = ENV_MODELS_PWR$dt_hr_param_pwr,
+                            gas_history = ENV_MODELS_PWR$gas_history
+                        )
+                    
+                    ## ARCHIVE -------------------------------------
+                    
+                    ### LAST
+                    last_path = file.path('HPFC', 'last', 'models', x)
+                    if (!dir.exists(last_path)) {
+                        dir.create(last_path, recursive = TRUE)
+                    }
+                    
+                    saveRDS(ENV_MODELS_GAS$dt_lt_param_gasdep, file.path(last_path, paste0('model_gas_lt.rds')))
+                    saveRDS(ENV_MODELS_PWR$dt_lt_param_pwr, file.path(last_path, paste0('model_pwr_lt.rds')))
+                    saveRDS(ENV_MODELS_PWR$lst_hr_param_pwr, file.path(last_path, paste0('model_pwr_st.rds')))
+                    
+                    if(nchar(LST_PARAMS$shiny_sim) > 0) {
+                        
+                        last_path = file.path('HPFC', 'archive', 'models', x, LST_PARAMS$shiny_sim)
+                        if (!dir.exists(last_path)) {
+                            dir.create(last_path, recursive = TRUE)
+                        }
+                        
+                        saveRDS(ENV_MODELS_GAS$dt_lt_param_gasdep, file.path(last_path, paste0('model_gas_lt.rds')))
+                        saveRDS(ENV_MODELS_PWR$dt_lt_param_pwr, file.path(last_path, paste0('model_pwr_lt.rds')))
+                        saveRDS(ENV_MODELS_PWR$lst_hr_param_pwr, file.path(last_path, paste0('model_pwr_st.rds')))
+                    }
+                    
+                    # models_gas_field_pwr(ENV_MODELS_GAS)
+                    # models_pwr_field(ENV_MODELS_PWR)
+                    
+                    print('------------- TRAIN END  --------------------')     
+                    
+                    print('============= +++++++++++ ====================')
+                    print('------------- PLOT START --------------------')
+                    
+                    DT = copy(list_inputs$ENV_SPOT$history_pwr)
+                    DT[, datetime := as.POSIXct(paste(date, sprintf("%02d:00:00", hour)), format = "%Y-%m-%d %H:%M:%S", tz = "CET")]
+                    rics = unique(DT$RIC) 
+                    setorder(DT, datetime, RIC)
+                    
+                    PLOT_X = 
+                        DT %>%
+                        e_charts(datetime) %>%
+                        e_line(value, name = rics, symbol = 'none') %>%
+                        e_title(text = paste("Hourly Spot Prices for", rics)) %>%
+                        e_x_axis(name = "Datetime") %>%
+                        e_y_axis(name = "Price") %>%
+                        e_tooltip(trigger = "axis") %>%
+                        e_datazoom(type = "slider") %>%
+                        e_theme("westeros") 
+                    
+                    print('------------- PLOT END  --------------------')
+                    showNotification(paste(x, 'completed!'), type = "default", duration = 20)
+                    
+                    DT_X = DT
+                    
+                    LIST_X = list(PLOT_X, DT_X)
+                    names(LIST_X) = c('PLOT_X', 'DT_X')
+                    
+                    return(LIST_X)
+                    
+                }, error = function(e) {
+                    msg = paste0("Error while training ", x, ": ", e$message)
+                    showNotification(msg, type = "error", duration = NULL)
+                    message(msg)
+                    return(NULL)
+                })
+            },
+            LST_PARAMS = LST_PARAMS
+            )
+            
+        }
+        names(plot_list) = input$in_select_PWR_indicator_mult
+        valid_names = names(plot_list)[!sapply(plot_list, is.null)]
+        plot_list_pwr_multi(plot_list[valid_names])
+        
+        updateSelectInput(
+            session = session,
+            inputId = "in_select_pwrplot_mult",
+            choices = valid_names,
+            selected = if (length(valid_names) > 0) valid_names[1] else NULL
+        )
+        
+        plot_list_pwr_multi(plot_list)
+        
+    })
+    
+    output$pwr_history_plot_mult = renderEcharts4r({
+        req(react$plot_list_pwr_multi)
+        react$plot_list_pwr_multi[[input$in_select_pwrplot_mult]]$PLOT_X
+    })
+    
+    output$pwr_history_table_mult = renderDatagrid({
+        req(react$plot_list_pwr_multi)
+        DT = copy(react$plot_list_pwr_multi[[input$in_select_pwrplot_mult]]$DT_X)
+        setorder(DT, date, RIC)
+        datagrid(DT,
+                 filters = TRUE)
+    })
     
     
-    # TRAIN - PWR ------------------------------------------
+    
+    # SINGLE - TRAIN - PWR ------------------------------------------
     
     ## Inputs -----------------------
     params_input_pwr = reactiveVal(NULL)
@@ -363,7 +720,7 @@ server_app = function(input, output, session) {
     })
     
     
-    # TRAIN - GAS ------------------------------------------
+    # SINGLE - TRAIN - GAS ------------------------------------------
     
     ## Inputs -----------------------
     params_input_gas = reactiveVal(NULL)
@@ -548,7 +905,7 @@ server_app = function(input, output, session) {
     
     
     
-    # FORECAST - PWR ------------------------------------------
+    # SINGLE - FORECAST - PWR ------------------------------------------
     
     object_with_forecast_data_pwr = reactiveVal(NULL) 
     
@@ -843,7 +1200,7 @@ server_app = function(input, output, session) {
     })
     
     
-    # FORECAST - GAS ------------------------------------------
+    # SINGLE - FORECAST - GAS ------------------------------------------
     
     object_with_forecast_data_gas = reactiveVal(NULL) 
     
@@ -927,21 +1284,21 @@ server_app = function(input, output, session) {
     ## TRAIN ------------------------------------
     
     ## RECAP FORECAST PARAMS
-    output$forecast_params_table_recap_pwr = renderReactable({
+    output$forecast_params_table_recap_pwr = renderDatagrid({
         req(react$forecast_params_table_pwr)
-        reactable(react$forecast_params_table_pwr,
-                  defaultPageSize = 14)
+        datagrid(react$forecast_params_table_pwr,
+                  pagination = 14)
     })
     
-    output$forecast_params_table_recap_gas = renderReactable({
+    output$forecast_params_table_recap_gas = renderDatagrid({
         req(react$forecast_params_table_gas)
-        reactable(react$forecast_params_table_gas,
-                  defaultPageSize = 14)
+        datagrid(react$forecast_params_table_gas,
+                  pagination = 14)
     })
     
     
     # Outputs for the selected history period (for training)
-    output$pwr_history_plot <- renderEcharts4r({
+    output$pwr_history_plot = renderEcharts4r({
         
         req(react$list_inputs_field_pwr)
         
@@ -963,7 +1320,7 @@ server_app = function(input, output, session) {
         
     })
     
-    output$pwr_history_table <- renderReactable({
+    output$pwr_history_table = renderDatagrid({
         
         req(react$list_inputs_field_pwr)
         
@@ -971,12 +1328,12 @@ server_app = function(input, output, session) {
         DT = copy(list_inputs$ENV_SPOT$history_pwr)
         DT[, datetime := as.POSIXct(paste(date, sprintf("%02d:00:00", hour)), format = "%Y-%m-%d %H:%M:%S", tz = "CET")]
         setorder(DT, datetime, RIC)
-        reactable(DT,
-                  filterable = TRUE)
+        datagrid(DT,
+                  filters = TRUE)
     })
     
     
-    output$gas_history_plot <- renderEcharts4r({
+    output$gas_history_plot = renderEcharts4r({
         
         req(react$list_inputs_field_gas)
         
@@ -997,15 +1354,15 @@ server_app = function(input, output, session) {
         
     })
     
-    output$gas_history_table <- renderReactable({
+    output$gas_history_table = renderDatagrid({
         
         req(react$list_inputs_field_gas)
         
         list_inputs = react$list_inputs_field_gas
         DT = copy(list_inputs$ENV_SPOT$history_gas)
         setorder(DT, date, RIC)
-        reactable(DT,
-                  filterable = TRUE)
+        datagrid(DT,
+                 filters = TRUE)
     })
     
     
@@ -1013,7 +1370,7 @@ server_app = function(input, output, session) {
     ## FORECAST ------------------------------------
     
     # Forecast plots for Power and Gas using echarts4r
-    output$pwr_forecast_plot <- renderEcharts4r({
+    output$pwr_forecast_plot = renderEcharts4r({
         
         req(react$object_with_forecast_data_pwr)
         
@@ -1034,7 +1391,7 @@ server_app = function(input, output, session) {
         
     })
     
-    output$gas_forecast_plot <- renderEcharts4r({
+    output$gas_forecast_plot = renderEcharts4r({
         
         req(react$object_with_forecast_data_gas)
         
