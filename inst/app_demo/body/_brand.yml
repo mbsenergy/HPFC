@@ -1,11 +1,11 @@
 logo:
   small: logo.png
   medium: logo.png
-  large: logo.png
+  large: logo.png'
 
 meta:
   name: MBS Consulting | A Cerved Company
-  link: https://www.mbsconsuilting.com
+  link: https://www.mbsconsulting.com
   
 color:
   palette:
@@ -61,4 +61,4 @@ defaults:
     theme:
       preset: zephyr
       rules: |
-        .navbar-brand { color: $my-blue }        
+        .navbar-brand { color: $my-blue }     
