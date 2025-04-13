@@ -572,6 +572,8 @@ server_app = function(input, output, session) {
                 manual_gas = react$dt_forecast_manual_gas
             )
             
+            showNotification("Using manual data", type = "message")
+            
         } else {
             list_inputs_fwd = prepare_fwd(
                 fwd_pwr_code = input$in_select_PWR_indicator_for,
@@ -606,6 +608,8 @@ server_app = function(input, output, session) {
                 manual_pwr = NULL,
                 manual_gas = react$dt_forecast_manual_gas
             )
+            
+            showNotification("Using manual data", type = "message")
             
         } else {
             list_inputs_fwd = prepare_fwd(
