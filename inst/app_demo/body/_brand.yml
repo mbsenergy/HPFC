@@ -43,7 +43,7 @@ color:
     cyan: pool
     orange: terracotta
     
-  primary: blue
+  primary: sky
   success: green
   info: cyan
   warning: orange

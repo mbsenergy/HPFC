@@ -6,9 +6,9 @@
     })
 
     # Create a colorful message
-    cat(crayon::cyan("HPFC package loaded.\n"))
-    cat(crayon::yellow("Version: 0.9.5\n"))
+    cat(crayon::cyan("HPFC.\n"))
+    cat(crayon::yellow("Version: 1.0.0\n"))
     cat(crayon::yellow("Author: Eleonora Gasparri & Alejandro Abraham\n"))
-    cat(crayon::yellow("For internal use only. Reproduction and distribution are forbidden by license.\n"))
+    cat(crayon::yellow("Reproduction and distribution are forbidden by license.\n"))
 
 }

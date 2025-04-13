@@ -122,6 +122,8 @@ server_app = function(input, output, session) {
         req(react$dt_spot_manual_gas, react$dt_spot_manual_pwr)
         DTS = rbind(react$dt_spot_manual_pwr, react$dt_spot_manual_gas, fill = TRUE)
         dt_spot_manual(DTS)
+        
+        showNotification("Manual data prepared", type = "message")
     })    
     
     
@@ -184,24 +186,6 @@ server_app = function(input, output, session) {
         }
     })
     
-    
-    # Reactive input recap data -----------------
-    recap_data = reactive({
-        data.frame(
-            Input = c("History Period", "Forecast Horizon Period", "Power Products (Training)", "Gas Products (Training)"),
-            Value = c(paste(input$in_select_history[1], "to", input$in_select_history[2]),
-                      paste(input$in_select_horizon[1], "to", input$in_select_horizon[2]),
-                      paste(input$in_select_PWR_indicator, collapse = ", "),
-                      paste(input$in_select_GAS_indicator, collapse = ", "))
-        )
-    })
-    
-    # Render the recap table
-    output$input_recap_table = renderReactable({
-        reactable(recap_data(), columns = list(
-            Value = colDef(width = 200)
-        ))
-    })
     
     
     # TRAIN - PWR ------------------------------------------
