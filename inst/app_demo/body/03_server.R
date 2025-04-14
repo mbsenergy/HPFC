@@ -1255,8 +1255,6 @@ server_app = function(input, output, session) {
     
     # MULTIPLE - FORECAST - PWR ------------------------------------------
     
-    # PREPARE FWD ---------------------------------------------------
-    
     list_pwr_for_mult = reactiveVal(NULL)
     
     observeEvent(input$act_indicator_forecast_pwr_mult, {
@@ -1335,12 +1333,6 @@ server_app = function(input, output, session) {
                     ) 
                     
                     print('------------------- FORECAST PARAMS PREP END -----------------')
-                    
-                    print('')
-                    print('==================== ++++++++++++++++ ====================')
-                    print('==================== END TRAINING PWR ====================')
-                    print('==================== ++++++++++++++++ ====================')
-                    print('')
                     
                     print('')
                     print('==================== +++++++++++++++++++++ ====================')
@@ -1595,7 +1587,6 @@ server_app = function(input, output, session) {
         
         names(list_pwr) = input$in_select_PWR_indicator_for_mult
         valid_names = names(list_pwr)[!sapply(list_pwr, is.null)]
-        list_pwr_for_mult(list_pwr[valid_names])
         
         updateSelectInput(
             session = session,
@@ -1604,7 +1595,7 @@ server_app = function(input, output, session) {
             selected = if (length(valid_names) > 0) valid_names[1] else NULL
         )
         
-        list_pwr_for_mult(list_pwr)        
+        list_pwr_for_mult(list_pwr[valid_names])
         
     })
     
@@ -1622,6 +1613,333 @@ server_app = function(input, output, session) {
         datagrid(DT,
                  filters = TRUE)
     })
+    
+    
+    # MULTIPLE - FORECAST - GAS ------------------------------------------
+    
+    list_gas_for_mult = reactiveVal(NULL)
+    
+    observeEvent(input$act_indicator_forecast_gas_mult, {
+        
+        if(input$in_source_forecast == 'Excel') {
+            
+            showNotification("Using manual data", type = "message")
+            
+            list_gas = lapply(input$in_select_GAS_indicator_for_mult, function(x, list_inputs_fwd, start_date, end_date, shiny_run, shiny_sim) {
+                
+                tryCatch({
+                    
+                    list_inputs_fwd = prepare_fwd(
+                        fwd_gas_code = x,
+                        start_date = input$in_select_horizon[1],
+                        end_date = input$in_select_horizon[2],
+                        model_type = 'GAS',
+                        forecast_source = 'FWD',
+                        archive = 'NO',
+                        manual_pwr = NULL,
+                        manual_gas = react$dt_forecast_manual_gas
+                    )
+                    
+                    ## Forecast Parameters 
+                    
+                    print('=================== ++++++++++++++++++++++++++ =============')
+                    print('------------------- FORECAST PARAMS PREP START -------------')
+                    
+                    FWD = list_inputs_fwd$ENV_FWD
+                    
+                    if (shiny_run == 'Last') {
+                        last_path_models = file.path('HPFC', 'last', 'models', x)
+                        last_path_history = file.path('HPFC', 'last', 'history', x)
+                        
+                        ENV_MODELS_GAS = list()
+                        list_inputs = list()
+                        ENV_MODELS_GAS$dt_lt_param_gasdep = readRDS(file.path(last_path_models, 'model_gas_lt.rds'))
+                        list_inputs$history_gas = fread(file.path(last_path_history, 'history_gas.csv'))
+                    }
+                    
+                    if (shiny_run == 'Sim') {
+                        last_path_models = file.path('HPFC', 'archive', 'models', x, shiny_sim)
+                        last_path_history = file.path('HPFC', 'archive', 'history', x, shiny_sim)
+                        
+                        ENV_MODELS_GAS = list()
+                        list_inputs = list()
+                        ENV_MODELS_GAS$dt_lt_param_gasdep = readRDS(file.path(last_path_models, 'model_gas_lt.rds'))
+                        list_inputs$history_gas = fread(file.path(last_path_history, 'history_gas.csv'))
+                    }        
+                    
+                    LST_FOR = list(
+                        model_lt_gas = copy(ENV_MODELS_GAS$dt_lt_param_gasdep),
+                        dt_fwds = copy(FWD$dt_fwds),
+                        saved_history_gas = copy(list_inputs$history_gas),
+                        ric_spot_gas = HPFC::spot_GAS_products_full[products_GAS %in% unique(x)]$spot_GAS_code,
+                        ric_fwd_gas = HPFC::spot_GAS_products_full[products_GAS %in% unique(x)]$products_GAS_code,
+                        calendar_forecast = FWD$calendar_future,
+                        start_date = start_date,
+                        end_date = end_date,
+                        last_date = FWD$last_date
+                    ) 
+                    
+                    print('------------------- FORECAST PARAMS PREP END -----------------')
+                    
+                    print('')
+                    print('==================== +++++++++++++++++++++ ====================')
+                    print('==================== START FORECASTING GAS ====================')
+                    print('==================== +++++++++++++++++++++ ====================')
+                    print('')
+                    print('------------- FORECAST START -------------')
+                    
+                    ENV_FOR_GAS = forecast_gas(input_forecast = LST_FOR)
+                    
+                    dt_gas_for = ENV_FOR_GAS[, .(date, forecast = L_e_u_adj, RIC, value_gas = spot_forward_month_BL)]
+                    dt_gas_obs = LST_FOR$saved_history_gas[year(date) %in% unique(year(dt_gas_for$date)) & RIC == unique(dt_gas_for$RIC)][, .(date, spot = value, RIC)]
+                    dt_gas = merge(dt_gas_for, dt_gas_obs, by = c('date', 'RIC'), all = TRUE)
+                    
+                    setcolorder(dt_gas, c('date', 'RIC', 'spot', 'forecast', 'value_gas'))
+                    setorder(dt_gas, date)
+                    
+                    ## ARCHIVE 
+                    
+                    ### LAST
+                    last_path = file.path('HPFC', 'last', 'output', x)
+                    if (!dir.exists(last_path)) {
+                        dir.create(last_path, recursive = TRUE)
+                    }
+                    
+                    saveRDS(dt_gas, file.path(last_path, paste0('forecast_gas.rds')))
+                    
+                    if(!is.null(shiny_sim)) {
+                        if(nchar(shiny_sim) > 0) {
+                            
+                            last_path = file.path('HPFC', 'archive', 'output', x, shiny_sim)
+                            if (!dir.exists(last_path)) {
+                                dir.create(last_path, recursive = TRUE)
+                            }
+                            
+                            saveRDS(dt_gas, file.path(last_path, paste0('forecast_gas.rds')))
+                        }
+                    }
+                    
+                    print('------------- FORECAST END -------------')        
+                    print('')
+                    print('==================== +++++++++++++++++++ ====================')
+                    print('==================== END FORECASTING GAS ====================')
+                    print('==================== +++++++++++++++++++ ====================')
+                    print('')
+                    
+                    # Visualize 
+                    
+                    DTS = copy(dt_gas)
+                    dt_gas_lg = melt(DTS, id.vars = c('date', 'RIC'), variable.name = 'type', value.name = 'value')
+                    rics = unique(dt_gas_lg$RIC) 
+                    setorder(dt_gas_lg, date, RIC)
+                    
+                    PLOT_Y = 
+                        dt_gas_lg %>% 
+                        group_by(type) %>% 
+                        e_charts(date) %>% 
+                        e_line(value, smooth = TRUE, symbol='none') %>% 
+                        e_title(text = paste("Daily Forecast Prices for", rics)) %>%
+                        e_tooltip(trigger = "axis") %>% 
+                        e_toolbox_feature(feature = "saveAsImage") %>%
+                        e_toolbox_feature(feature = "dataZoom") %>%
+                        e_toolbox_feature(feature = "dataView") %>%
+                        e_toolbox_feature(feature = "restore") %>%
+                        e_datazoom(start = 0) %>% 
+                        e_theme('westeros')
+                    
+                    DT_Y = dt_gas
+                    
+                    LIST_Y = list(PLOT_Y, DT_Y)
+                    names(LIST_Y) = c('PLOT_Y', 'DT_Y')
+                    
+                }, error = function(e) {
+                    msg = paste0("Error while training ", x, ": ", e$message)
+                    showNotification(msg, type = "error", duration = NULL)
+                    message(msg)
+                    return(NULL)
+                })
+            },
+            list_inputs_fwd = list_inputs_fwd,
+            start_date = input$in_select_horizon[1],
+            end_date = input$in_select_horizon[2],
+            shiny_run = input$in_source_run,
+            shiny_sim = input$sim_name
+            )
+            
+        } else {
+            
+            list_gas = lapply(input$in_select_GAS_indicator_for_mult, function(x, list_inputs_fwd, start_date, end_date, shiny_run, shiny_sim) {
+                
+                tryCatch({
+                    
+                    list_inputs_fwd = prepare_fwd(
+                        fwd_gas_code = x,
+                        start_date = input$in_select_horizon[1],
+                        end_date = input$in_select_horizon[2],
+                        model_type = 'GAS',
+                        forecast_source = 'FWD',
+                        archive = 'NO',
+                        manual_pwr = NULL,
+                        manual_gas = NULL,
+                        reuters_key = PLEASE_INSERT_REUTERS_KEY
+                    ) 
+                    
+                    ## Forecast Parameters 
+                    
+                    print('=================== ++++++++++++++++++++++++++ =============')
+                    print('------------------- FORECAST PARAMS PREP START -------------')
+                    
+                    FWD = list_inputs_fwd$ENV_FWD
+                    
+                    if (shiny_run == 'Last') {
+                        last_path_models = file.path('HPFC', 'last', 'models', x)
+                        last_path_history = file.path('HPFC', 'last', 'history', x)
+                        
+                        ENV_MODELS_GAS = list()
+                        list_inputs = list()
+                        ENV_MODELS_GAS$dt_lt_param_gasdep = readRDS(file.path(last_path_models, 'model_gas_lt.rds'))
+                        list_inputs$history_gas = fread(file.path(last_path_history, 'history_gas.csv'))
+                    }
+                    
+                    if (shiny_run == 'Sim') {
+                        last_path_models = file.path('HPFC', 'archive', 'models', x, shiny_sim)
+                        last_path_history = file.path('HPFC', 'archive', 'history', x, shiny_sim)
+                        
+                        ENV_MODELS_GAS = list()
+                        list_inputs = list()
+                        ENV_MODELS_GAS$dt_lt_param_gasdep = readRDS(file.path(last_path_models, 'model_gas_lt.rds'))
+                        list_inputs$history_gas = fread(file.path(last_path_history, 'history_gas.csv'))
+                    }        
+                    
+                    LST_FOR = list(
+                        model_lt_gas = copy(ENV_MODELS_GAS$dt_lt_param_gasdep),
+                        dt_fwds = copy(FWD$dt_fwds),
+                        saved_history_gas = copy(list_inputs$history_gas),
+                        ric_spot_gas = HPFC::spot_GAS_products_full[products_GAS %in% unique(x)]$spot_GAS_code,
+                        ric_fwd_gas = HPFC::spot_GAS_products_full[products_GAS %in% unique(x)]$products_GAS_code,
+                        calendar_forecast = FWD$calendar_future,
+                        start_date = start_date,
+                        end_date = end_date,
+                        last_date = FWD$last_date
+                    ) 
+                    
+                    print('------------------- FORECAST PARAMS PREP END -----------------')
+                    
+                    print('')
+                    print('==================== +++++++++++++++++++++ ====================')
+                    print('==================== START FORECASTING GAS ====================')
+                    print('==================== +++++++++++++++++++++ ====================')
+                    print('')
+                    print('------------- FORECAST START -------------')
+                    
+                    ENV_FOR_GAS = forecast_gas(input_forecast = LST_FOR)
+                    
+                    dt_gas_for = ENV_FOR_GAS[, .(date, forecast = L_e_u_adj, RIC, value_gas = spot_forward_month_BL)]
+                    dt_gas_obs = LST_FOR$saved_history_gas[year(date) %in% unique(year(dt_gas_for$date)) & RIC == unique(dt_gas_for$RIC)][, .(date, spot = value, RIC)]
+                    dt_gas = merge(dt_gas_for, dt_gas_obs, by = c('date', 'RIC'), all = TRUE)
+                    
+                    setcolorder(dt_gas, c('date', 'RIC', 'spot', 'forecast', 'value_gas'))
+                    setorder(dt_gas, date)
+                    
+                    ## ARCHIVE 
+                    
+                    ### LAST
+                    last_path = file.path('HPFC', 'last', 'output', x)
+                    if (!dir.exists(last_path)) {
+                        dir.create(last_path, recursive = TRUE)
+                    }
+                    
+                    saveRDS(dt_gas, file.path(last_path, paste0('forecast_gas.rds')))
+                    if(!is.null(shiny_sim)) {
+                        if(nchar(shiny_sim) > 0) {
+                            
+                            last_path = file.path('HPFC', 'archive', 'output', x, shiny_sim)
+                            if (!dir.exists(last_path)) {
+                                dir.create(last_path, recursive = TRUE)
+                            }
+                            
+                            saveRDS(dt_gas, file.path(last_path, paste0('forecast_gas.rds')))
+                        }
+                    }
+                    
+                    print('------------- FORECAST END -------------')        
+                    print('')
+                    print('==================== +++++++++++++++++++ ====================')
+                    print('==================== END FORECASTING GAS ====================')
+                    print('==================== +++++++++++++++++++ ====================')
+                    print('')
+                    
+                    # Visualize 
+                    
+                    DTS = copy(dt_gas)
+                    dt_gas_lg = melt(DTS, id.vars = c('date', 'RIC'), variable.name = 'type', value.name = 'value')
+                    rics = unique(dt_gas_lg$RIC) 
+                    setorder(dt_gas_lg, date, RIC)
+                    
+                    PLOT_Y = 
+                        dt_gas_lg %>% 
+                        group_by(type) %>% 
+                        e_charts(date) %>% 
+                        e_line(value, smooth = TRUE, symbol='none') %>% 
+                        e_title(text = paste("Daily Forecast Prices for", rics)) %>%
+                        e_tooltip(trigger = "axis") %>% 
+                        e_toolbox_feature(feature = "saveAsImage") %>%
+                        e_toolbox_feature(feature = "dataZoom") %>%
+                        e_toolbox_feature(feature = "dataView") %>%
+                        e_toolbox_feature(feature = "restore") %>%
+                        e_datazoom(start = 0) %>% 
+                        e_theme('westeros')
+                
+                DT_Y = dt_gas
+                
+                LIST_Y = list(PLOT_Y, DT_Y)
+                names(LIST_Y) = c('PLOT_Y', 'DT_Y')
+                    
+                }, error = function(e) {
+                    msg = paste0("Error while training ", x, ": ", e$message)
+                    showNotification(msg, type = "error", duration = NULL)
+                    message(msg)
+                    return(NULL)
+                })
+            },
+            list_inputs_fwd = list_inputs_fwd,
+            start_date = input$in_select_horizon[1],
+            end_date = input$in_select_horizon[2],
+            shiny_run = input$in_source_run,
+            shiny_sim = input$sim_name
+            )
+            
+        }
+        
+        names(list_gas) = input$in_select_GAS_indicator_for_mult
+        valid_names = names(list_pwr)[!sapply(list_gas, is.null)]
+        
+        
+        updateSelectInput(
+            session = session,
+            inputId = "in_select_gasplot_mult_for",
+            choices = valid_names,
+            selected = if (length(valid_names) > 0) valid_names[1] else NULL
+        )
+        
+        list_gas_for_mult(list_gas[valid_names])
+        
+    })
+    
+    output$pwr_forecast_plot_mult = renderEcharts4r({
+        
+        req(react$list_pwr_for_mult)
+        react$list_pwr_for_mult[[input$in_select_pwrplot_mult_for]]$PLOT_Y
+        
+    })
+    
+    output$pwr_forecast_table_mult = renderDatagrid({
+        req(react$list_pwr_for_mult)
+        DT = copy(react$list_pwr_for_mult[[input$in_select_pwrplot_mult_for]]$DT_Y)
+        setorder(DT, date, RIC)
+        datagrid(DT,
+                 filters = TRUE)
+    })    
     
     
     

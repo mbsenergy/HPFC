@@ -156,7 +156,7 @@ select_PWR_product_for_mult =
         multiple = TRUE,
         width = '100%',
         choices = vec_pwr_products,
-        selected = 'Greece'
+        selected = vec_pwr_products
     )
 
 select_GAS_product_for_mult =
@@ -166,7 +166,7 @@ select_GAS_product_for_mult =
         multiple = TRUE,
         width = '100%',
         choices = vec_gas_products,
-        selected = 'TTF'
+        selected = vec_gas_products
     )
 
 select_pwrplot_mult_for =
