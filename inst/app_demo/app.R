@@ -13,6 +13,7 @@ options(shiny.host = "0.0.0.0")
 options(shiny.port = 8180)
 options(shiny.reactlog = TRUE)
 options(shiny.trace = FALSE)
+options(shiny.autoreload = FALSE)
 
 
 # App ===============================================================

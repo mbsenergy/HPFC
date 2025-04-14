@@ -10,7 +10,6 @@ library(shinycssloaders)
 library(magrittr)
 library(openxlsx)
 library(react)
-library(yaml)
 # library(HPFC)
 devtools::load_all()
 

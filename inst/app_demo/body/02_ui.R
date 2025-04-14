@@ -2,11 +2,7 @@
 
 ui_app = page_navbar(
     theme = mbs_theme,
-    #navbar_options = navbar_options(bg = "#001437", underline = FALSE, collapsible = TRUE, theme = 'dark'),
-    # bg = "#001437", 
-    # underline = FALSE, 
-    # collapsible = TRUE, 
-    # theme = 'dark',
+    navbar_options = navbar_options(bg = "#001437", underline = FALSE, collapsible = TRUE, theme = 'dark'),
     
     # Title Panel of the app
     title = span("HPFC", style = 'color: white'),
@@ -173,7 +169,14 @@ ui_app = page_navbar(
                                nav_panel('Power Multiple',
                                          fluidRow(
                                              select_pwrplot_mult_for,
+                                             card(
+                                                 card_body(                                             
                                              echarts4rOutput(outputId = 'pwr_forecast_plot_mult') %>% withSpinner(color = "#C05B8C")
+                                             )),
+                                             card(
+                                                 card_body(
+                                                     datagridOutput(outputId = 'pwr_forecast_table_mult') %>% withSpinner(color = "#C05B8C")
+                                                 ))                                             
                                          )
                                ),
                                

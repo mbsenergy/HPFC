@@ -1282,7 +1282,7 @@ server_app = function(input, output, session) {
                         manual_gas = react$dt_forecast_manual_gas
                     )
                     
-                    ## Forecast Parameters -----------------------
+                    ## Forecast Parameters 
                     
                     print('=================== ++++++++++++++++++++++++++ =============')
                     print('------------------- FORECAST PARAMS PREP START -------------')
@@ -1359,7 +1359,7 @@ server_app = function(input, output, session) {
                     setcolorder(dt_pwr, c('date', 'hour', 'season', 'peak', 'RIC', 'spot', 'forecast', 'value_bl', 'value_gas'))
                     setorder(dt_pwr, date, hour)
                     
-                    ## ARCHIVE -------------------------------------
+                    ## ARCHIVE 
                     
                     ### LAST
                     last_path = file.path('HPFC', 'last', 'output', x)
@@ -1388,7 +1388,34 @@ server_app = function(input, output, session) {
                     print('==================== +++++++++++++++++++ ====================')
                     print('')
                     
-                    return(dt_pwr)
+                    # Visualize 
+                    
+                    DTS = copy(dt_pwr)
+                    dt_pwr_lg = melt(DTS, id.vars = c('date', 'hour', 'season', 'peak', 'RIC'), variable.name = 'type', value.name = 'value')
+                    dt_pwr_lg[, datetime := as.POSIXct(paste(date, sprintf("%02d:00:00", hour)), format = "%Y-%m-%d %H:%M:%S", tz = "CET")]
+                    rics = unique(dt_pwr_lg$RIC) 
+                    setorder(dt_pwr_lg, datetime, RIC)
+                    
+                    PLOT_Y = 
+                        dt_pwr_lg %>% 
+                        group_by(type) %>% 
+                        e_charts(datetime) %>% 
+                        e_line(value, smooth = TRUE, symbol='none') %>% 
+                        e_title(text = paste("Hourly Forecast Prices for", rics)) %>%
+                        e_tooltip(trigger = "axis") %>% 
+                        e_toolbox_feature(feature = "saveAsImage") %>%
+                        e_toolbox_feature(feature = "dataZoom") %>%
+                        e_toolbox_feature(feature = "dataView") %>%
+                        e_toolbox_feature(feature = "restore") %>%
+                        e_datazoom(start = 0) %>% 
+                        e_theme('westeros')
+                    
+                    DT_Y = dt_pwr
+                    
+                    LIST_Y = list(PLOT_Y, DT_Y)
+                    names(LIST_Y) = c('PLOT_Y', 'DT_Y')
+                    
+                    return(LIST_Y)
                     
                 }, error = function(e) {
                     msg = paste0("Error while training ", x, ": ", e$message)
@@ -1423,7 +1450,7 @@ server_app = function(input, output, session) {
                         reuters_key = PLEASE_INSERT_REUTERS_KEY
                     ) 
                     
-                    ## Forecast Parameters -----------------------
+                    ## Forecast Parameters 
                     
                     print('=================== ++++++++++++++++++++++++++ =============')
                     print('------------------- FORECAST PARAMS PREP START -------------')
@@ -1492,7 +1519,8 @@ server_app = function(input, output, session) {
                     
                     setcolorder(dt_pwr, c('date', 'hour', 'season', 'peak', 'RIC', 'spot', 'forecast', 'value_bl', 'value_gas'))
                     setorder(dt_pwr, date, hour)
-                    ## ARCHIVE -------------------------------------
+                    
+                    ## ARCHIVE 
                     
                     ### LAST
                     last_path = file.path('HPFC', 'last', 'output', x)
@@ -1520,7 +1548,34 @@ server_app = function(input, output, session) {
                     print('==================== +++++++++++++++++++ ====================')
                     print('')
                     
-                    return(dt_pwr)
+                    # Visualize 
+                    
+                    DTS = copy(dt_pwr)
+                    dt_pwr_lg = melt(DTS, id.vars = c('date', 'hour', 'season', 'peak', 'RIC'), variable.name = 'type', value.name = 'value')
+                    dt_pwr_lg[, datetime := as.POSIXct(paste(date, sprintf("%02d:00:00", hour)), format = "%Y-%m-%d %H:%M:%S", tz = "CET")]
+                    rics = unique(dt_pwr_lg$RIC) 
+                    setorder(dt_pwr_lg, datetime, RIC)
+                    
+                    PLOT_Y = 
+                    dt_pwr_lg %>% 
+                        group_by(type) %>% 
+                        e_charts(datetime) %>% 
+                        e_line(value, smooth = TRUE, symbol='none') %>% 
+                        e_title(text = paste("Hourly Forecast Prices for", rics)) %>%
+                        e_tooltip(trigger = "axis") %>% 
+                        e_toolbox_feature(feature = "saveAsImage") %>%
+                        e_toolbox_feature(feature = "dataZoom") %>%
+                        e_toolbox_feature(feature = "dataView") %>%
+                        e_toolbox_feature(feature = "restore") %>%
+                        e_datazoom(start = 0) %>% 
+                        e_theme('westeros')
+                    
+                    DT_Y = dt_pwr
+                    
+                    LIST_Y = list(PLOT_Y, DT_Y)
+                    names(LIST_Y) = c('PLOT_Y', 'DT_Y')
+                    
+                    return(LIST_Y)
                     
                 }, error = function(e) {
                     msg = paste0("Error while training ", x, ": ", e$message)
@@ -1556,29 +1611,17 @@ server_app = function(input, output, session) {
     output$pwr_forecast_plot_mult = renderEcharts4r({
         
         req(react$list_pwr_for_mult)
-        
-        DTS = copy(react$list_pwr_for_mult[[input$in_select_pwrplot_mult_for]])
-        dt_pwr_lg = melt(DTS, id.vars = c('date', 'hour', 'season', 'peak', 'RIC'), variable.name = 'type', value.name = 'value')
-        dt_pwr_lg[, datetime := as.POSIXct(paste(date, sprintf("%02d:00:00", hour)), format = "%Y-%m-%d %H:%M:%S", tz = "CET")]
-        rics = unique(dt_pwr_lg$RIC) 
-        setorder(dt_pwr_lg, datetime, RIC)
-        
-        dt_pwr_lg %>% 
-            group_by(type) %>% 
-            e_charts(datetime) %>% 
-            e_line(value, smooth = TRUE, symbol='none') %>% 
-            e_title(text = paste("Hourly Forecast Prices for", rics)) %>%
-            e_tooltip(trigger = "axis") %>% 
-            e_toolbox_feature(feature = "saveAsImage") %>%
-            e_toolbox_feature(feature = "dataZoom") %>%
-            e_toolbox_feature(feature = "dataView") %>%
-            e_toolbox_feature(feature = "restore") %>%
-            e_datazoom(start = 0) %>% 
-            e_theme('westeros')
+        react$list_pwr_for_mult[[input$in_select_pwrplot_mult_for]]$PLOT_Y
         
     })
     
-    
+    output$pwr_forecast_table_mult = renderDatagrid({
+        req(react$list_pwr_for_mult)
+        DT = copy(react$list_pwr_for_mult[[input$in_select_pwrplot_mult_for]]$DT_Y)
+        setorder(DT, date, RIC)
+        datagrid(DT,
+                 filters = TRUE)
+    })
     
     
     
