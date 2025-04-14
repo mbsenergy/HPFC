@@ -28,9 +28,9 @@
 #' @importFrom stats var
 #' @importFrom zoo na.fill
 #' @export
-basket_selection = function(DT, mk_comm_0, basket = NULL, preview = FALSE, full = FALSE) {
+basket_selection = function(DT, mk_comm_0, basket = NULL, preview = FALSE, full = FALSE, start, end) {
     
-    dt_series_contcal = DT[COMMODITY %in% c(mk_comm_0, basket)]
+    dt_series_contcal = DT[DATE >= start & DATE <= end & COMMODITY %in% c(mk_comm_0, basket)]
     dt_series_contcal = unique(dt_series_contcal)
     
     dt_contcal_curves = 

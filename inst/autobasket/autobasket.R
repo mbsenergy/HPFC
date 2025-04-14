@@ -46,4 +46,49 @@ dt_cont = merge(melt(list_cont_codes, id.vars = 'COMMODITY', variable.name = 'TY
 
 list_autobasket = basket_selection(DT = dt_cont, mk_comm_0 = commodity_main, basket = commodity_basket)
 
-as.data.table(list_autobasket$coef_glm)
+coef_glm = as.data.table(list_autobasket$coef_glm)
+
+# Merge and weight time series
+dt_plot = merge(dt_cont, coef_glm[, .(RIC, weight)], by = "RIC")
+dt_plot[, weighted_value := VALUE * weight]
+
+dt_plot_main = dt_cont[COMMODITY == commodity_main, .(COMMODITY = commodity_main, VALUE = sum(VALUE)), by = 'DATE']
+dt_plot_proxy = dt_plot[, .(COMMODITY = 'BASKET', VALUE = sum(weighted_value)), by = 'DATE']
+dt_plot_basket = dt_plot[COMMODITY %in% commodity_basket, .(DATE, COMMODITY, VALUE)]
+
+# Combine data
+dt_all = rbindlist(list(dt_plot_main, dt_plot_proxy, dt_plot_basket), use.names = TRUE, fill = TRUE)
+
+# Plot
+dt_all |>
+    group_by(COMMODITY) |>
+    e_charts(DATE) |>
+    e_line(VALUE, bind = COMMODITY) |>
+    e_color(c("blue", "#C05B8C", rep("lightgray", length(unique(dt_plot_basket$COMMODITY))))) |>
+    e_tooltip(trigger = "axis")
+
+
+
+
+library(data.table)
+library(openxlsx)
+
+# Create hourly datetime sequence for 1 year
+dt = data.table(datetime = seq.POSIXt(from = as.POSIXct("2025-01-01 00:00:00"),
+                                      to   = as.POSIXct("2030-12-31 23:00:00"),
+                                      by   = "hour"))
+
+# Extract DATE and HOUR
+dt[, DATE := as.Date(datetime)]
+dt[, HOUR := hour(datetime)]
+
+# Assign random COMMODITY and generate VALUE
+commodities = c("Greece")
+dt[, COMMODITY := sample(commodities, .N, replace = TRUE)]
+dt[, VALUE := round(rnorm(.N, mean = 100, sd = 20), 2)]
+
+# Select and order columns
+dt_final = dt[, .(DATE, HOUR, COMMODITY, VALUE)]
+
+# Write to Excel
+openxlsx::write.xlsx(dt_final, file = "scenario_sample.xlsx")

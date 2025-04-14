@@ -228,6 +228,7 @@ ui_app = page_navbar(
                                              title = h3('LT Curve Creation'),
                                              width = 400, padding = '40',
                                              span('Get Basket coeff', style = 'font-weight: bold'),
+                                             select_lt_train,
                                              select_main_product,
                                              select_basket,
                                              product_basket_lt,

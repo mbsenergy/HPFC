@@ -2520,7 +2520,10 @@ server_app = function(input, output, session) {
     ## AUTO BASKET
 
     preparation_basket = reactiveVal(NULL)
+    plot_cont_main = reactiveVal(NULL)
     proxy_basket = reactiveVal(NULL)
+    in_commodity_main = reactiveVal(NULL)
+    in_commodity_basket = reactiveVal(NULL)
     
     observeEvent(input$act_product_basket_lt, {
         
@@ -2559,14 +2562,33 @@ server_app = function(input, output, session) {
         
         preparation_basket(dt_cont)
         
-        list_autobasket = basket_selection(DT = dt_cont, mk_comm_0 = commodity_main, basket = commodity_basket)
+        list_autobasket = basket_selection(DT = dt_cont, mk_comm_0 = commodity_main, basket = commodity_basket, start = input$in_select_lt_train[1], end = input$in_select_lt_train[2])
         
         coeff_table = as.data.table(list_autobasket$coef_glm)
         coeff_table[, RIC := NULL]
-        print(coeff_table)
         
         proxy_basket(coeff_table)
         
+        # PLOTS 
+        DT = dt_cont[COMMODITY == commodity_main][DATE >= input$in_select_lt_train[1] & DATE <= input$in_select_lt_train[2]]
+        DT = unique(DT)
+        setorder(DT, COMMODITY, DATE)
+        plot_main =
+        DT |>
+            e_charts(DATE) %>% 
+            e_line(VALUE, smooth = TRUE, symbol='none', color = '#2392A2') %>% 
+            e_title(text = paste("Main Power Cont.", commodity_main)) %>%
+            e_tooltip(trigger = "axis") %>% 
+            e_toolbox_feature(feature = "saveAsImage") %>%
+            e_toolbox_feature(feature = "dataZoom") %>%
+            e_toolbox_feature(feature = "dataView") %>%
+            e_toolbox_feature(feature = "restore") %>%
+            e_legend(bottom = 0) %>%
+            e_datazoom(start = 0) %>% 
+            e_theme('westeros')
+        plot_cont_main(plot_main)
+        in_commodity_main(commodity_main)
+        in_commodity_basket(commodity_basket)
     })
     
     manual_weights = reactiveVal(NULL)
@@ -2586,6 +2608,7 @@ server_app = function(input, output, session) {
         
         proxy_manual = proxy_manual[COMMODITY != "EMPTY"]
         proxy_manual[, weight := coeff / sum(coeff)]
+        proxy_manual[, coeff := coeff / 100]
         
         manual_weights(proxy_manual)
     })
@@ -2603,9 +2626,92 @@ server_app = function(input, output, session) {
                 selected_weights(react$manual_weights)
             }
     })
+    
+    dt_proxy_basket = reactiveVal(NULL)
+    observe({
+        req(react$preparation_basket)
+        req(react$selected_weights)
+        dt_plot = merge(react$preparation_basket, react$selected_weights[, .(COMMODITY, weight)], by = "COMMODITY")
+        dt_plot[, weighted_value := VALUE * weight]
         
+        dt_plot_main = react$preparation_basket[COMMODITY == react$in_commodity_main, .(COMMODITY = react$in_commodity_main, VALUE = sum(VALUE)), by = 'DATE']
+        dt_plot_proxy = dt_plot[, .(COMMODITY = 'BASKET', VALUE = sum(weighted_value)), by = 'DATE']
+        dt_plot_basket = dt_plot[COMMODITY %in% react$in_commodity_basket, .(DATE, COMMODITY, VALUE)]
+        
+        # Combine data
+        dt_all = rbindlist(list(dt_plot_main, dt_plot_proxy, dt_plot_basket), use.names = TRUE, fill = TRUE)
+        dt_all = unique(dt_all)
+        setorder(dt_all, COMMODITY, DATE)
+        dt_proxy_basket(dt_all)
+        
+    })
+    
+    output$pwr_lt_coeff_table = renderDatagrid({
+        req(react$selected_weights)
+        datagrid(react$selected_weights[, .(COMMODITY, coeff = round(coeff, 2), weight = round(weight, 2))])
+    })
+    
+    output$pwr_lt_main_plot = renderEcharts4r({
+        req(react$plot_cont_main)
+        react$plot_cont_main
+    })
+    
+    output$pwr_lt_basket_plot = renderEcharts4r({
+        req(react$dt_proxy_basket)
+        
+        react$dt_proxy_basket[DATE >= input$in_select_lt_train[1] & DATE <= input$in_select_lt_train[2]] |>
+            group_by(COMMODITY) |>
+            e_charts(DATE) %>% 
+            e_line(VALUE, smooth = TRUE, symbol='none', bind = COMMODITY) %>% 
+            e_title(text = paste("Basket Power Cont.")) %>%
+            e_tooltip(trigger = "axis") %>% 
+            e_color(c("#2392A2", "#C05B8C", rep("lightgray", length(unique(react$dt_proxy_basket$COMMODITY))))) |>
+            e_toolbox_feature(feature = "saveAsImage") %>%
+            e_toolbox_feature(feature = "dataZoom") %>%
+            e_toolbox_feature(feature = "dataView") %>%
+            e_toolbox_feature(feature = "restore") %>%
+            e_legend(bottom = 0) %>%
+            e_datazoom(start = 0) %>% 
+            e_theme('westeros')
+    })
+    
+    dt_scenario = reactive({
+        req(input$in_load_scenario)
+        file_path = input$in_load_scenario$datapath
+        df = openxlsx::read.xlsx(file_path)
+        dt = data.table::as.data.table(df)
+        setorder(dt, COMMODITY, DATE)
+        print(dt)
+    })
+    
+    dt_scenario = reactiveVal(NULL)
+    observe({
+        req(input$in_load_scenario)
+        file_path = input$in_load_scenario$datapath
+        df = openxlsx::read.xlsx(file_path, detectDates = TRUE)
+        dt = data.table::as.data.table(df)
+        setorder(dt, COMMODITY, DATE)
+        dt_scenario(dt)
+    })
+    
+    output$pwr_lt_scenario_plot = renderEcharts4r({
+        req(react$dt_scenario)
+            react$dt_scenario[, .(VALUE = mean(VALUE, na.rm = TRUE)), by = 'DATE'] |>
+            e_charts(DATE) %>% 
+            e_line(VALUE, smooth = TRUE, symbol='none', color = '#DE8969') %>% 
+            e_title(text = paste("Scenario Data")) %>%
+            e_tooltip(trigger = "axis") %>% 
+            e_toolbox_feature(feature = "saveAsImage") %>%
+            e_toolbox_feature(feature = "dataZoom") %>%
+            e_toolbox_feature(feature = "dataView") %>%
+            e_toolbox_feature(feature = "restore") %>%
+            e_legend(bottom = 0) %>%
+            e_datazoom(start = 0) %>% 
+            e_theme('westeros')
+    })
+    
+
     
     ## END
-    
     
 }

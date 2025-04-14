@@ -397,8 +397,8 @@ select_basket =
 product_basket_lt =
     input_task_button(
         id = 'act_product_basket_lt',
-        label = 'Estimate basket',
-        label_busy = "Estimating...",
+        label = 'Download & Estimate',
+        label_busy = "Processing...",
         icon = shiny::icon('rain'),
         width = '100%',
         type = "info"
@@ -418,6 +418,19 @@ select_lt_horizon =
     dateRangeInput(
         inputId = "in_select_lt_horizon",
         label = "Select LT Horizon Interval:",
+        start  = "2016-01-01",
+        end    = "2025-12-31",
+        min    = "2016-01-01",
+        max    = '2035-12-31',
+        format = "yyyy/mm/dd",
+        separator = " - ",
+        width = '100%'
+    )
+
+select_lt_train =
+    dateRangeInput(
+        inputId = "in_select_lt_train",
+        label = "Basket Train period:",
         start  = "2016-01-01",
         end    = "2025-12-31",
         min    = "2016-01-01",
