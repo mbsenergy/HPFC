@@ -1,6 +1,6 @@
 Package: HPFC
 Title: Hourly Price Forward Curve Model & Utils
-Version: 0.9.8
+Version: 0.9.9
 Authors@R: 
     person(given = "Alejandro",
            family = "Abraham",

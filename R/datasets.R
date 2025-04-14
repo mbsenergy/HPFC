@@ -75,3 +75,29 @@
 #' }
 #' @usage data(new_calendar_holidays)
 "new_calendar_holidays"
+
+#' Power Market Mapping Table
+#'
+#' A reference table mapping countries to availability in Eikon data.
+#'
+#' @format A `data.table` with 11 rows and 2 columns:
+#' \describe{
+#'   \item{countries}{Country name (character)}
+#'   \item{eikon}{Eikon data availability flag ("YES"/"NO")}
+#' }
+#' @usage data(pwr_mapped_codes)
+#' @keywords datasets
+"pwr_mapped_codes"
+
+#' Gas Market Mapping Table
+#'
+#' A reference table mapping gas products to availability in Eikon data.
+#'
+#' @format A `data.table` with 5 rows and 2 columns:
+#' \describe{
+#'   \item{product}{Country name (character)}
+#'   \item{eikon}{Eikon data availability flag ("YES"/"NO")}
+#' }
+#' @usage data(gas_mapped_codes)
+#' @keywords datasets
+"gas_mapped_codes"

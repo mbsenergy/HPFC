@@ -1,10 +1,10 @@
 # GENERAL ======================================================================
 
 ### RICS NAMES -----------------------------------------------------------------
-vec_pwr_products =        c(HPFC::spot_PWR_products_full$countries, 'Serbia')
-names(vec_pwr_products) = c(HPFC::spot_PWR_products_full$countries, 'Serbia')
-vec_gas_products =        c(HPFC::spot_GAS_products_full$products_GAS, 'BRM')
-names(vec_gas_products) = c(HPFC::spot_GAS_products_full$products_GAS, 'BRM')
+vec_pwr_products =        HPFC::spot_PWR_products_full$countries
+names(vec_pwr_products) = HPFC::spot_PWR_products_full$countries
+vec_gas_products =        HPFC::spot_GAS_products_full$products_GAS
+names(vec_gas_products) = HPFC::spot_GAS_products_full$products_GAS
 
 ## SIM NAME -------------------------------------------------------------------
 select_sim_name = 
@@ -91,7 +91,7 @@ select_PWR_product_mult =
         multiple = TRUE,
         width = '100%',
         choices = vec_pwr_products,
-        selected = 'Greece'
+        selected = vec_pwr_products
     )
 
 select_GAS_product_mult =
@@ -99,6 +99,26 @@ select_GAS_product_mult =
         inputId = "in_select_GAS_indicator_mult",
         label = "Gas:",
         multiple = TRUE,
+        width = '100%',
+        choices = vec_gas_products,
+        selected = vec_gas_products
+    )
+
+select_pwrplot_mult =
+    selectInput(
+        inputId = "in_select_pwrplot_mult",
+        label = NULL,
+        multiple = FALSE,
+        width = '100%',
+        choices = vec_pwr_products,
+        selected = 'Greece'
+    )
+
+select_gasplot_mult =
+    selectInput(
+        inputId = "in_select_gasplot_mult",
+        label = NULL,
+        multiple = FALSE,
         width = '100%',
         choices = vec_gas_products,
         selected = 'TTF'
@@ -129,9 +149,9 @@ product_train_gas_mult =
 
 ## Forecast ====================================================================================
 
-select_PWR_product_for_multi =
+select_PWR_product_for_mult =
     selectInput(
-        inputId = "in_select_PWR_indicator_for_multi",
+        inputId = "in_select_PWR_indicator_for_mult",
         label = "Power:",
         multiple = TRUE,
         width = '100%',
@@ -139,9 +159,9 @@ select_PWR_product_for_multi =
         selected = 'Greece'
     )
 
-select_GAS_product_for_multi =
+select_GAS_product_for_mult =
     selectInput(
-        inputId = "in_select_GAS_indicator_for_multi",
+        inputId = "in_select_GAS_indicator_for_mult",
         label = "Gas:",
         multiple = TRUE,
         width = '100%',
@@ -149,10 +169,30 @@ select_GAS_product_for_multi =
         selected = 'TTF'
     )
 
+select_pwrplot_mult_for =
+    selectInput(
+        inputId = "in_select_pwrplot_mult_for",
+        label = NULL,
+        multiple = FALSE,
+        width = '100%',
+        choices = vec_pwr_products,
+        selected = 'Greece'
+    )
+
+select_gasplot_mult_for =
+    selectInput(
+        inputId = "in_select_gasplot_mult_for",
+        label = NULL,
+        multiple = FALSE,
+        width = '100%',
+        choices = vec_gas_products,
+        selected = 'TTF'
+    )
+
 #### BUTTON TO EXECUTE FORECAST --------------------------------
-product_forecast_pwr_multi =
+product_forecast_pwr_mult =
     input_task_button(
-        id = 'act_indicator_forecast_pwr_multi',
+        id = 'act_indicator_forecast_pwr_mult',
         label = 'Forecast Power',
         label_busy = "Forecasting...",
         icon = shiny::icon('eye'),
@@ -160,9 +200,9 @@ product_forecast_pwr_multi =
         type = "danger"
     )
 
-product_forecast_gas_multi =
+product_forecast_gas_mult =
     input_task_button(
-        id = 'act_indicator_forecast_gas_multi',
+        id = 'act_indicator_forecast_gas_mult',
         label = 'Forecast Gas',
         label_busy = "Forecasting...",
         icon = shiny::icon('eye'),
