@@ -123,11 +123,11 @@ apply_shape = function(
     
     spot_pwr_code = unique(dt_spot_pwr$RIC)
     spot_gas_code = 'TTFDA'
-    fwd_pwr_code = unique(HPFC::spot_PWR_products_full[countries == country]$products_PWR_code)
+    fwd_pwr_code = unique(eikondata::pwr_products_full[countries == country]$products_PWR_code)
     fwd_gas_code = 'TFMB'
     
     last_date = as.Date(start_date) - 1
-    calendar_holidays = as.data.table(HPFC::new_calendar_holidays)
+    calendar_holidays = as.data.table(eikondata::new_calendar_holidays)
     setnames(calendar_holidays, paste0("holiday_", country), 'holiday', skip_absent = TRUE)
     calendar_future = calendar_holidays[, .(date, holiday)]
     calendar_future[,`:=` (year = as.character(data.table::year(date)), 

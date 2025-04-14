@@ -6,6 +6,7 @@ box::use(
     echarts4r[...],
     reactable[...],
     HPFC[...],
+    eikondata[...],
     openxlsx[...]
 )
 

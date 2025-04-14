@@ -1,10 +1,10 @@
 # GENERAL ======================================================================
 
 ### RICS NAMES -----------------------------------------------------------------
-vec_pwr_products =        HPFC::spot_PWR_products_full$countries
-names(vec_pwr_products) = HPFC::spot_PWR_products_full$countries
-vec_gas_products =        HPFC::spot_GAS_products_full$products_GAS
-names(vec_gas_products) = HPFC::spot_GAS_products_full$products_GAS
+vec_pwr_products =        eikondata::pwr_products_full$countries
+names(vec_pwr_products) = eikondata::pwr_products_full$countries
+vec_gas_products =        eikondata::gas_products_full$products_GAS
+names(vec_gas_products) = eikondata::gas_products_full$products_GAS
 
 ## SIM NAME -------------------------------------------------------------------
 select_sim_name = 

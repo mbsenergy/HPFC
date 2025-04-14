@@ -50,12 +50,12 @@ load_inputs = function(params, manual_data = NULL, reuters_key = NULL, last_run_
     
     ### CODES Parameters
     ENV_CODES = list()
-    calendar_holidays = as.data.table(HPFC::new_calendar_holidays)
+    calendar_holidays = as.data.table(eikondata::new_calendar_holidays)
     setnames(calendar_holidays, paste0("holiday_", LST_PARAMS$selected_pwr_code), 'holiday', skip_absent = TRUE)
     ENV_CODES$calendar_holidays = calendar_holidays[, .(date, holiday)]
     
-    gas_codes = HPFC::spot_GAS_products_full[products_GAS %in% LST_PARAMS$selected_gas_code]$spot_GAS_code
-    pwr_codes = HPFC::spot_PWR_products_full[countries %in% LST_PARAMS$selected_pwr_code]$spot_PWR_code
+    gas_codes = eikondata::gas_products_full[products_GAS %in% LST_PARAMS$selected_gas_code]$spot_GAS_code
+    pwr_codes = eikondata::pwr_products_full[countries %in% LST_PARAMS$selected_pwr_code]$spot_PWR_code
     # A. Spot Market Data
     ENV_SPOT = list()
     
@@ -87,8 +87,8 @@ load_inputs = function(params, manual_data = NULL, reuters_key = NULL, last_run_
         PLEASE_INSERT_REUTERS_KEY = reuters_key[[1]]
         eikondata::set_app_id(as.character(PLEASE_INSERT_REUTERS_KEY))
         
-        is_eikon_gas = HPFC::gas_mapped_codes[products %in% LST_PARAMS$selected_gas_code]$eikon
-        is_eikon_pwr = HPFC::pwr_mapped_codes[countries == HPFC::spot_PWR_products_full[spot_PWR_code == pwr_codes]$countries]$eikon
+        is_eikon_gas = eikondata::gas_mapped_codes[products %in% LST_PARAMS$selected_gas_code]$eikon
+        is_eikon_pwr = eikondata::pwr_mapped_codes[countries == eikondata::pwr_products_full[spot_PWR_code == pwr_codes]$countries]$eikon
         if (is_eikon_gas == 'NO') {
             file_path = file.path(last_run_path, 'backup_spot_gas.xlsx')
             print(file_path)
@@ -99,7 +99,7 @@ load_inputs = function(params, manual_data = NULL, reuters_key = NULL, last_run_
             ENV_SPOT$spot_gas_RIC = gas_codes
             print(ENV_SPOT$history_gas_full)
         } else {
-            ENV_SPOT$history_gas_full = HPFC::dt_spot_gas[RIC == gas_codes]
+            ENV_SPOT$history_gas_full = eikondata::dt_spot_gas[RIC == gas_codes]
             ENV_SPOT$spot_gas_RIC = gas_codes
         }
         
@@ -113,7 +113,7 @@ load_inputs = function(params, manual_data = NULL, reuters_key = NULL, last_run_
             ENV_SPOT$spot_pwr_RIC = LST_PARAMS$selected_pwr_code
             print(ENV_SPOT$history_pwr_full)
         } else {
-            ENV_SPOT$history_pwr_full = HPFC::dt_spot_pwr[RIC == pwr_codes]
+            ENV_SPOT$history_pwr_full = eikondata::dt_spot_pwr[RIC == pwr_codes]
             ENV_SPOT$spot_pwr_RIC = pwr_codes
         }
         
@@ -125,7 +125,7 @@ load_inputs = function(params, manual_data = NULL, reuters_key = NULL, last_run_
             
             ## GAS
             if(is_eikon_gas == 'YES' & as.character(LST_PARAMS$history_end) >= '2025-01-01') {
-                DT_NEW = HPFC::retrieve_spot(
+                DT_NEW = eikondata::retrieve_spot(
                     ric = gas_codes,
                     from_date = as.character('2025-01-01'),
                     to_date = as.character(LST_PARAMS$history_end),
@@ -143,7 +143,7 @@ load_inputs = function(params, manual_data = NULL, reuters_key = NULL, last_run_
             ## PWR
             if(is_eikon_pwr == 'YES' & as.character(LST_PARAMS$history_end) >= '2025-01-01') {
                 
-                DT_NEW = HPFC::retrieve_spot(
+                DT_NEW = eikondata::retrieve_spot(
                     ric = pwr_codes,
                     from_date = '2025-01-01',
                     to_date = LST_PARAMS$history_end,
@@ -257,19 +257,19 @@ prepare_fwd = function(fwd_pwr_code = NULL, fwd_gas_code = NULL, start_date, end
     
     if(model_type == 'GAS') {
         selected_gas_code = fwd_gas_code
-        ENV_FWD$fwd_gas_RIC = unique(HPFC::spot_GAS_products_full[products_GAS %in% c(selected_gas_code)]$products_GAS_code) ; selected_pwr_code = 'Greece'
+        ENV_FWD$fwd_gas_RIC = unique(eikondata::gas_products_full[products_GAS %in% c(selected_gas_code)]$products_GAS_code) ; selected_pwr_code = 'Greece'
         
     } else {
         selected_gas_code = fwd_gas_code
         selected_pwr_code = fwd_pwr_code
-        ENV_FWD$fwd_gas_RIC = unique(HPFC::spot_GAS_products_full[products_GAS %in% c(selected_gas_code)]$products_GAS_code)
-        ENV_FWD$fwd_pwr_RIC =  unique(HPFC::spot_PWR_products_full[countries %in% selected_pwr_code]$products_PWR_code)
+        ENV_FWD$fwd_gas_RIC = unique(eikondata::gas_products_full[products_GAS %in% c(selected_gas_code)]$products_GAS_code)
+        ENV_FWD$fwd_pwr_RIC =  unique(eikondata::pwr_products_full[countries %in% selected_pwr_code]$products_PWR_code)
     }
     
     ENV_FWD$last_date = as.Date(forecast_start) - 1
     
     ### CODES Parameters
-    calendar_holidays = as.data.table(HPFC::new_calendar_holidays)
+    calendar_holidays = as.data.table(eikondata::new_calendar_holidays)
     setnames(calendar_holidays, paste0("holiday_", selected_pwr_code), 'holiday', skip_absent = TRUE)
     calendar_future = calendar_holidays[, .(date, holiday)]
     calendar_future[,`:=` (year = as.character(data.table::year(date)), 
@@ -288,21 +288,21 @@ prepare_fwd = function(fwd_pwr_code = NULL, fwd_gas_code = NULL, start_date, end
     
     if(isFALSE(is_manual)) {
         
-        DT_GAS = HPFC::dt_fwds_gas[substr(RIC, 1, 4) == ENV_FWD$fwd_gas_RIC]
+        DT_GAS = eikondata::dt_fwds_gas[substr(RIC, 1, 4) == ENV_FWD$fwd_gas_RIC]
         if(model_type == 'PWR') {
             if(forecast_source == 'FWD') {
-                DT_PWR = HPFC::dt_fwds_pwr_fwddam[spot_PWR_code == HPFC::spot_PWR_products_full[countries %in% selected_pwr_code]$spot_PWR_code, .(date, RIC, value = FWD)]
+                DT_PWR = eikondata::dt_fwds_pwr_fwddam[spot_PWR_code == eikondata::pwr_products_full[countries %in% selected_pwr_code]$spot_PWR_code, .(date, RIC, value = FWD)]
             } else {
-                DT_PWR = HPFC::dt_fwds_pwr_fwddam[spot_PWR_code == HPFC::spot_PWR_products_full[countries %in% selected_pwr_code]$spot_PWR_code, .(date, RIC, value = DAM)]
+                DT_PWR = eikondata::dt_fwds_pwr_fwddam[spot_PWR_code == eikondata::pwr_products_full[countries %in% selected_pwr_code]$spot_PWR_code, .(date, RIC, value = DAM)]
             }
         }
         
         ## Generate RICS
-        lst_rics_gas = HPFC::generate_rics_gas(unique(ENV_FWD$fwd_gas_RIC), time_range = 2025:as.numeric(data.table::year(as.Date(forecast_end))))
+        lst_rics_gas = eikondata::generate_rics_gas(unique(ENV_FWD$fwd_gas_RIC), time_range = 2025:as.numeric(data.table::year(as.Date(forecast_end))))
         
         if(model_type == 'PWR') {
             ### POWER 
-            lst_rics_pwr = HPFC::generate_rics_pwr(selected_pwr_code, time_range = 2025:as.numeric(data.table::year(as.Date(forecast_end))))
+            lst_rics_pwr = eikondata::generate_rics_pwr(selected_pwr_code, time_range = 2025:as.numeric(data.table::year(as.Date(forecast_end))))
             ENV_FWD$lst_rics = c(lst_rics_pwr, lst_rics_gas) ; rm(lst_rics_pwr, lst_rics_gas)
             
         } else {
@@ -328,7 +328,7 @@ prepare_fwd = function(fwd_pwr_code = NULL, fwd_gas_code = NULL, start_date, end
             PLEASE_INSERT_REUTERS_KEY = reuters_key[[1]]
             eikondata::set_app_id(as.character(PLEASE_INSERT_REUTERS_KEY))
             
-            DT_NEW = HPFC::retrieve_fwd(ric = ENV_FWD$lst_rics, from_date = '2025-01-01', to_date = forecast_end)
+            DT_NEW = eikondata::retrieve_fwd(ric = ENV_FWD$lst_rics, from_date = '2025-01-01', to_date = forecast_end)
             
             ENV_FWD$dt_fwds = rbind(
                 ENV_FWD$dt_fwds,
@@ -348,11 +348,11 @@ prepare_fwd = function(fwd_pwr_code = NULL, fwd_gas_code = NULL, start_date, end
     
     if(isTRUE(is_manual)) {
         dt_fwd_gas = manual_gas
-        dt_fwd_prep_gas = merge(dt_fwd_gas, generate_monthrics_gas(unique(HPFC::spot_GAS_products_full[products_GAS %in% c(selected_gas_code)]$products_GAS_code), time_range = 2024), by.x = 'yymm', by.y ='date', all.x = TRUE) 
+        dt_fwd_prep_gas = merge(dt_fwd_gas, generate_monthrics_gas(unique(eikondata::gas_products_full[products_GAS %in% c(selected_gas_code)]$products_GAS_code), time_range = 2024), by.x = 'yymm', by.y ='date', all.x = TRUE) 
         
         if(model_type == 'PWR') {
             dt_fwd_pwr = manual_pwr
-            dt_fwd_prep_pwr = merge(dt_fwd_pwr, generate_monthrics_pwr(unique(HPFC::spot_PWR_products_full[countries %in% selected_pwr_code]$countries), time_range = 2024), by.x = 'yymm', by.y ='date', all.x = TRUE) 
+            dt_fwd_prep_pwr = merge(dt_fwd_pwr, generate_monthrics_pwr(unique(eikondata::pwr_products_full[countries %in% selected_pwr_code]$countries), time_range = 2024), by.x = 'yymm', by.y ='date', all.x = TRUE) 
             dt_fwds = rbind(dt_fwd_prep_pwr, dt_fwd_prep_gas)
             
         } else {
@@ -514,7 +514,7 @@ prepare_pwr = function(list_inputs = list_inputs) {
     ENV_MODELS_PWR$dt_hr_param_pwr[, RIC := NULL]
     
     ENV_MODELS_PWR$gas_history = ENV_SPOT$history_gas[date >= LST_PARAMS$history_start & date <= LST_PARAMS$history_end, .(date, value, RIC)]
-    ENV_MODELS_PWR$gas_history = ENV_MODELS_PWR$gas_history[RIC == HPFC::spot_GAS_products_full[products_GAS %in% unique(c(LST_PARAMS$LST_PARAMS$selected_gas_code, LST_PARAMS$dependent_gas_code))]$spot_GAS_code, .(date, value)] 
+    ENV_MODELS_PWR$gas_history = ENV_MODELS_PWR$gas_history[RIC == eikondata::gas_products_full[products_GAS %in% unique(c(LST_PARAMS$LST_PARAMS$selected_gas_code, LST_PARAMS$dependent_gas_code))]$spot_GAS_code, .(date, value)] 
     
     ENV_MODELS_PWR$calendar_holidays_pwr = copy(ENV_CODES$calendar_holidays)
     
@@ -639,10 +639,10 @@ forecast_gas = function(input_forecast = LST_FOR) {
     # dt_gas_dd_filt = HPFC::filter_outlier_dd(dt_gas)
     dt_gas_dd_filt = dt_gas
     
-    fwd_calendar = HPFC::calendar_holidays
+    fwd_calendar = eikondata::calendar_holidays
     fwd_calendar[, `:=` (year = as.character(data.table::year(date)), quarter = as.character(data.table::quarter(date)), month = as.character(data.table::month(date)))]
     
-    dt_fwd_gas = HPFC::prep_fwd_curve(DT = LST_FOR$dt_fwds,
+    dt_fwd_gas = eikondata::prep_fwd_curve(DT = LST_FOR$dt_fwds,
                                       list_rics = fwd_RIC,
                                       type = 'GAS',
                                       start_date = LST_FOR$start_date,
@@ -721,10 +721,10 @@ forecast_pwr = function(input_forecast = LST_FOR, gas_forecast = ENV_FOR_GAS, sm
     fwd_RIC_gas = LST_FOR$ric_fwd_gas
     fwd_RIC = LST_FOR$ric_fwd_pwr
     
-    fwd_calendar = HPFC::calendar_holidays
+    fwd_calendar = eikondata::calendar_holidays
     fwd_calendar[, `:=` (year = as.character(data.table::year(date)), quarter = as.character(data.table::quarter(date)), month = as.character(data.table::month(date)))]
     
-    dt_fwd_gas = HPFC::prep_fwd_curve(DT = LST_FOR$dt_fwds,
+    dt_fwd_gas = eikondata::prep_fwd_curve(DT = LST_FOR$dt_fwds,
                                       list_rics = fwd_RIC_gas,
                                       type = 'GAS',
                                       start_date = LST_FOR$start_date,
@@ -735,7 +735,7 @@ forecast_pwr = function(input_forecast = LST_FOR, gas_forecast = ENV_FOR_GAS, sm
     dt_gas_fwds = dt_fwd_gas[, .(year, quarter, month, forward_cal_BL_gas, forward_quarter_BL_gas, forward_month_BL_gas)]
     dt_gas_fwds = dt_gas_fwds[, lapply(.SD, as.numeric)]
     
-    dt_fwd_pwr = HPFC::prep_fwd_curve(DT = LST_FOR$dt_fwds,
+    dt_fwd_pwr = eikondata::prep_fwd_curve(DT = LST_FOR$dt_fwds,
                                       list_rics = fwd_RIC,
                                       type = 'PWR',
                                       start_date = LST_FOR$start_date,

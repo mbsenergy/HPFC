@@ -36,6 +36,7 @@ theme:
 box::use(data.table[...],
          reactable[...],
          echarts4r[...],
+         eikondata[...],
          magrittr[...])
 
 knitr::opts_chunk$set(
@@ -83,7 +84,7 @@ dt_pwr_fwd[, type := 'FOR']
 dt_pwr_fwd = dt_pwr_fwd[, .(date, hour, RIC, value = final_forecast, type)]
 
 # Spot
-dt_pwr_spot = HPFC::dt_spot_pwr[year(date) %in% unique(year(dt_pwr_fwd$date)) & RIC == unique(dt_pwr_fwd$RIC)]
+dt_pwr_spot = eikondata::dt_spot_pwr[year(date) %in% unique(year(dt_pwr_fwd$date)) & RIC == unique(dt_pwr_fwd$RIC)]
 dt_pwr_spot = dt_pwr_spot[, .(date, hour, RIC, value, type = 'OBS')]
 
 dt_pwr = rbind(dt_pwr_spot, dt_pwr_fwd)
