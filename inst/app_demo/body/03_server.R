@@ -1,7 +1,8 @@
 
 
-# SERVER  ------------------------------------------------------------------------------------------------- 
 server_app = function(input, output, session) {
+    
+    # 0. PREPARE ------------------------------------------------------
     
     ## Check Connection
     
@@ -206,7 +207,9 @@ server_app = function(input, output, session) {
         }
     })
     
-    # MULTIPLE - TRAIN - PWR ------------------------------------------
+    
+    
+    # A. MULTIPLE - TRAIN - PWR ------------------------------------------
     
     list_pwr_multi = reactiveVal(NULL)
     
@@ -305,7 +308,7 @@ server_app = function(input, output, session) {
                             gas_history = ENV_MODELS_PWR$gas_history
                         )
                     
-                    ## ARCHIVE -------------------------------------
+                    ## ARCHIVE
                     
                     ### LAST
                     last_path = file.path('HPFC', 'last', 'models', x)
@@ -470,7 +473,7 @@ server_app = function(input, output, session) {
                             gas_history = ENV_MODELS_PWR$gas_history
                         )
                     
-                    ## ARCHIVE -------------------------------------
+                    ## ARCHIVE
                     
                     ### LAST
                     last_path = file.path('HPFC', 'last', 'models', x)
@@ -558,22 +561,9 @@ server_app = function(input, output, session) {
         
     })
     
-    output$pwr_history_plot_mult = renderEcharts4r({
-        req(react$list_pwr_multi)
-        react$list_pwr_multi[[input$in_select_pwrplot_mult]]$PLOT_X
-    })
-    
-    output$pwr_history_table_mult = renderDatagrid({
-        req(react$list_pwr_multi)
-        DT = copy(react$list_pwr_multi[[input$in_select_pwrplot_mult]]$DT_X)
-        setorder(DT, date, RIC)
-        datagrid(DT,
-                 filters = TRUE)
-    })
     
     
-    
-    # MULTIPLE - TRAIN - GAS ------------------------------------------
+    # B. MULTIPLE - TRAIN - GAS ------------------------------------------
     
     list_gas_multi = reactiveVal(NULL)
     
@@ -655,7 +645,7 @@ server_app = function(input, output, session) {
                             ric_gas = unique(ENV_MODELS_GAS$dt_gas$RIC)
                         )
                     
-                    ## ARCHIVE -------------------------------------
+                    ## ARCHIVE
                     
                     ### LAST
                     last_path = file.path('HPFC', 'last', 'models', x)
@@ -795,7 +785,7 @@ server_app = function(input, output, session) {
                             ric_gas = unique(ENV_MODELS_GAS$dt_gas$RIC)
                         )
                     
-                    ## ARCHIVE -------------------------------------
+                    ## ARCHIVE
                     
                     ### LAST
                     last_path = file.path('HPFC', 'last', 'models', x)
@@ -875,24 +865,9 @@ server_app = function(input, output, session) {
         
     })
     
-    output$gas_history_plot_mult = renderEcharts4r({
-        req(react$list_gas_multi)
-        react$list_gas_multi[[input$in_select_gasplot_mult]]$PLOT_X
-    })
-    
-    output$gas_history_table_mult = renderDatagrid({
-        req(react$list_gas_multi)
-        DT = copy(react$list_gas_multi[[input$in_select_gasplot_mult]]$DT_X)
-        setorder(DT, date, RIC)
-        datagrid(DT,
-                 filters = TRUE)
-    })
     
     
-    
-    
-    
-    # SINGLE - TRAIN - PWR ------------------------------------------
+    # C. SINGLE - TRAIN - PWR ------------------------------------------
     
     ## Inputs -----------------------
     params_input_pwr = reactiveVal(NULL)
@@ -1035,7 +1010,7 @@ server_app = function(input, output, session) {
                 gas_history = ENV_MODELS_PWR$gas_history
             )
         
-        ## ARCHIVE -------------------------------------
+        ## ARCHIVE
         
         ### LAST
         last_path = file.path('HPFC', 'last', 'models', input$in_select_PWR_indicator)
@@ -1067,7 +1042,7 @@ server_app = function(input, output, session) {
     })
     
     
-    # SINGLE - TRAIN - GAS ------------------------------------------
+    # D. SINGLE - TRAIN - GAS ------------------------------------------
     
     ## Inputs -----------------------
     params_input_gas = reactiveVal(NULL)
@@ -1189,7 +1164,7 @@ server_app = function(input, output, session) {
             )
         
         
-        ## ARCHIVE -------------------------------------
+        ## ARCHIVE
         
         ### LAST
         last_path = file.path('HPFC', 'last', 'models', input$in_select_GAS_indicator)
@@ -1216,44 +1191,9 @@ server_app = function(input, output, session) {
     })
     
     
-    ## Download models -----------------------
-    object_with_train_data_pwr = reactiveVal(NULL)
-    
-    observe({
-        req(react$models_pwr_field)
-        object_with_train_data_pwr(react$models_pwr_field)
-    })
-    
-    output$act_train_pwr_download = downloadHandler(
-        filename = function() {
-            paste0("pwr_models_", input$in_select_PWR_indicator, '-', Sys.Date(), ".rds")
-        },
-        content = function(file) {
-            saveRDS(react$object_with_train_data_pwr, file)
-        }
-    )
     
     
-    object_with_train_data_gas = reactiveVal(NULL)
-    
-    observe({
-        req(react$models_gas_field_gas)
-        object_with_train_data_gas(react$models_gas_field_gas)
-    })
-    
-    output$act_train_gas_download = downloadHandler(
-        filename = function() {
-            paste0("gas_models_", input$in_select_GAS_indicator, '-', Sys.Date(), ".rds")
-        },
-        content = function(file) {
-            saveRDS(react$object_with_train_data_gas, file)
-        }
-    )    
-    
-    
-    
-    
-    # MULTIPLE - FORECAST - PWR ------------------------------------------
+    # E. MULTIPLE - FORECAST - PWR ------------------------------------------
     
     list_pwr_for_mult = reactiveVal(NULL)
     
@@ -1359,7 +1299,7 @@ server_app = function(input, output, session) {
                         dir.create(last_path, recursive = TRUE)
                     }
                     
-                    saveRDS(dt_pwr, file.path(last_path, paste0('forecast_pwr.rds')))
+                    fwrite(dt_pwr, file.path(last_path, paste0('forecast_pwr.csv')))
                     
                     if(!is.null(shiny_sim)) {
                         if(nchar(shiny_sim) > 0) {
@@ -1369,7 +1309,7 @@ server_app = function(input, output, session) {
                                 dir.create(last_path, recursive = TRUE)
                             }
                             
-                            saveRDS(dt_pwr, file.path(last_path, paste0('forecast_pwr.rds')))
+                            fwrite(dt_pwr, file.path(last_path, paste0('forecast_pwr.csv')))
                         }
                     }
                     
@@ -1520,7 +1460,7 @@ server_app = function(input, output, session) {
                         dir.create(last_path, recursive = TRUE)
                     }
                     
-                    saveRDS(dt_pwr, file.path(last_path, paste0('forecast_pwr.rds')))
+                    fwrite(dt_pwr, file.path(last_path, paste0('forecast_pwr.csv')))
                     if(!is.null(shiny_sim)) {
                         if(nchar(shiny_sim) > 0) {
                             
@@ -1529,7 +1469,7 @@ server_app = function(input, output, session) {
                                 dir.create(last_path, recursive = TRUE)
                             }
                             
-                            saveRDS(dt_pwr, file.path(last_path, paste0('forecast_pwr.rds')))
+                            fwrite(dt_pwr, file.path(last_path, paste0('forecast_pwr.csv')))
                         }
                     }
                     
@@ -1599,23 +1539,9 @@ server_app = function(input, output, session) {
         
     })
     
-    output$pwr_forecast_plot_mult = renderEcharts4r({
-        
-        req(react$list_pwr_for_mult)
-        react$list_pwr_for_mult[[input$in_select_pwrplot_mult_for]]$PLOT_Y
-        
-    })
-    
-    output$pwr_forecast_table_mult = renderDatagrid({
-        req(react$list_pwr_for_mult)
-        DT = copy(react$list_pwr_for_mult[[input$in_select_pwrplot_mult_for]]$DT_Y)
-        setorder(DT, date, RIC)
-        datagrid(DT,
-                 filters = TRUE)
-    })
     
     
-    # MULTIPLE - FORECAST - GAS ------------------------------------------
+    # F. MULTIPLE - FORECAST - GAS ------------------------------------------
     
     list_gas_for_mult = reactiveVal(NULL)
     
@@ -1705,7 +1631,7 @@ server_app = function(input, output, session) {
                         dir.create(last_path, recursive = TRUE)
                     }
                     
-                    saveRDS(dt_gas, file.path(last_path, paste0('forecast_gas.rds')))
+                    fwrite(dt_gas, file.path(last_path, paste0('forecast_gas.csv')))
                     
                     if(!is.null(shiny_sim)) {
                         if(nchar(shiny_sim) > 0) {
@@ -1715,7 +1641,7 @@ server_app = function(input, output, session) {
                                 dir.create(last_path, recursive = TRUE)
                             }
                             
-                            saveRDS(dt_gas, file.path(last_path, paste0('forecast_gas.rds')))
+                            fwrite(dt_gas, file.path(last_path, paste0('forecast_gas.csv')))
                         }
                     }
                     
@@ -1751,6 +1677,8 @@ server_app = function(input, output, session) {
                     
                     LIST_Y = list(PLOT_Y, DT_Y)
                     names(LIST_Y) = c('PLOT_Y', 'DT_Y')
+                    
+                    return(LIST_Y)
                     
                 }, error = function(e) {
                     msg = paste0("Error while training ", x, ": ", e$message)
@@ -1849,7 +1777,7 @@ server_app = function(input, output, session) {
                         dir.create(last_path, recursive = TRUE)
                     }
                     
-                    saveRDS(dt_gas, file.path(last_path, paste0('forecast_gas.rds')))
+                    fwrite(dt_gas, file.path(last_path, paste0('forecast_gas.csv')))
                     if(!is.null(shiny_sim)) {
                         if(nchar(shiny_sim) > 0) {
                             
@@ -1858,7 +1786,7 @@ server_app = function(input, output, session) {
                                 dir.create(last_path, recursive = TRUE)
                             }
                             
-                            saveRDS(dt_gas, file.path(last_path, paste0('forecast_gas.rds')))
+                            fwrite(dt_gas, file.path(last_path, paste0('forecast_gas.csv')))
                         }
                     }
                     
@@ -1894,6 +1822,8 @@ server_app = function(input, output, session) {
                 
                 LIST_Y = list(PLOT_Y, DT_Y)
                 names(LIST_Y) = c('PLOT_Y', 'DT_Y')
+                
+                return(LIST_Y)
                     
                 }, error = function(e) {
                     msg = paste0("Error while training ", x, ": ", e$message)
@@ -1912,7 +1842,7 @@ server_app = function(input, output, session) {
         }
         
         names(list_gas) = input$in_select_GAS_indicator_for_mult
-        valid_names = names(list_pwr)[!sapply(list_gas, is.null)]
+        valid_names = names(list_gas)[!sapply(list_gas, is.null)]
         
         
         updateSelectInput(
@@ -1926,28 +1856,13 @@ server_app = function(input, output, session) {
         
     })
     
-    output$pwr_forecast_plot_mult = renderEcharts4r({
-        
-        req(react$list_pwr_for_mult)
-        react$list_pwr_for_mult[[input$in_select_pwrplot_mult_for]]$PLOT_Y
-        
-    })
-    
-    output$pwr_forecast_table_mult = renderDatagrid({
-        req(react$list_pwr_for_mult)
-        DT = copy(react$list_pwr_for_mult[[input$in_select_pwrplot_mult_for]]$DT_Y)
-        setorder(DT, date, RIC)
-        datagrid(DT,
-                 filters = TRUE)
-    })    
     
     
-    
-    # SINGLE - FORECAST - PWR ------------------------------------------
+    # G. SINGLE - FORECAST - PWR ------------------------------------------
     
     object_with_forecast_data_pwr = reactiveVal(NULL) 
     
-    # PREPARE FWD ---------------------------------------------------
+    # PREPARE FWD
     
     fwd_pwr_field = reactiveVal(NULL)
     fwd_gas_field = reactiveVal(NULL)
@@ -1990,7 +1905,7 @@ server_app = function(input, output, session) {
     })
     
     
-    ## Forecast Parameters -----------------------
+    ## Forecast Parameters
     forecast_params_field_pwr = reactiveVal(NULL)
     forecast_params_table_pwr = reactiveVal(NULL)
     
@@ -2097,7 +2012,7 @@ server_app = function(input, output, session) {
         setcolorder(dt_pwr, c('date', 'hour', 'season', 'peak', 'RIC', 'spot', 'forecast', 'value_bl', 'value_gas'))
         setorder(dt_pwr, date, hour)
         
-        ## ARCHIVE -------------------------------------
+        ## ARCHIVE
         
         ### LAST
         last_path = file.path('HPFC', 'last', 'output', input$in_select_PWR_indicator_for)
@@ -2131,7 +2046,7 @@ server_app = function(input, output, session) {
     })
     
     
-    # SINGLE - FORECAST - GAS ------------------------------------------
+    # H. SINGLE - FORECAST - GAS ------------------------------------------
     
     object_with_forecast_data_gas = reactiveVal(NULL) 
     
@@ -2171,7 +2086,7 @@ server_app = function(input, output, session) {
         
     })    
     
-    ## Forecast Parameters -----------------------
+    ## Forecast Parameters
     forecast_params_field_gas = reactiveVal(NULL)
     forecast_params_table_gas = reactiveVal(NULL)
     
@@ -2263,7 +2178,7 @@ server_app = function(input, output, session) {
         setcolorder(dt_gas, c('date', 'RIC', 'spot', 'forecast', 'value_gas'))
         setorder(dt_gas, date)
         
-        ## ARCHIVE -------------------------------------
+        ## ARCHIVE
         
         ### LAST
         last_path = file.path('HPFC', 'last', 'output', input$in_select_GAS_indicator_for)
@@ -2297,7 +2212,39 @@ server_app = function(input, output, session) {
     })    
     
     
-    ## DOWNLOAD FORECASTS -----------------------
+    # I. DOWNLOADS -----------------------
+    object_with_train_data_pwr = reactiveVal(NULL)
+    
+    observe({
+        req(react$models_pwr_field)
+        object_with_train_data_pwr(react$models_pwr_field)
+    })
+    
+    output$act_train_pwr_download = downloadHandler(
+        filename = function() {
+            paste0("pwr_models_", input$in_select_PWR_indicator, '-', Sys.Date(), ".rds")
+        },
+        content = function(file) {
+            saveRDS(react$object_with_train_data_pwr, file)
+        }
+    )
+    
+    
+    object_with_train_data_gas = reactiveVal(NULL)
+    
+    observe({
+        req(react$models_gas_field_gas)
+        object_with_train_data_gas(react$models_gas_field_gas)
+    })
+    
+    output$act_train_gas_download = downloadHandler(
+        filename = function() {
+            paste0("gas_models_", input$in_select_GAS_indicator, '-', Sys.Date(), ".rds")
+        },
+        content = function(file) {
+            saveRDS(react$object_with_train_data_gas, file)
+        }
+    )    
     
     output$act_forecast_pwr_download = downloadHandler(
         filename = function() {
@@ -2319,20 +2266,28 @@ server_app = function(input, output, session) {
     
     
     
-    # VISUALIZE ------------------------------------------
+    # J. VISUALIZE ------------------------------------------
     
     ## TRAIN ------------------------------------
+    
+    ### POWER
+    output$pwr_history_plot_mult = renderEcharts4r({
+        req(react$list_pwr_multi)
+        react$list_pwr_multi[[input$in_select_pwrplot_mult]]$PLOT_X
+    })
+    
+    output$pwr_history_table_mult = renderDatagrid({
+        req(react$list_pwr_multi)
+        DT = copy(react$list_pwr_multi[[input$in_select_pwrplot_mult]]$DT_X)
+        setorder(DT, date, RIC)
+        datagrid(DT,
+                 filters = TRUE)
+    })
     
     ## RECAP FORECAST PARAMS
     output$forecast_params_table_recap_pwr = renderDatagrid({
         req(react$forecast_params_table_pwr)
         datagrid(react$forecast_params_table_pwr,
-                  pagination = 14)
-    })
-    
-    output$forecast_params_table_recap_gas = renderDatagrid({
-        req(react$forecast_params_table_gas)
-        datagrid(react$forecast_params_table_gas,
                   pagination = 14)
     })
     
@@ -2377,6 +2332,28 @@ server_app = function(input, output, session) {
     })
     
     
+    
+    ### GAS 
+    
+    output$gas_history_plot_mult = renderEcharts4r({
+        req(react$list_gas_multi)
+        react$list_gas_multi[[input$in_select_gasplot_mult]]$PLOT_X
+    })
+    
+    output$gas_history_table_mult = renderDatagrid({
+        req(react$list_gas_multi)
+        DT = copy(react$list_gas_multi[[input$in_select_gasplot_mult]]$DT_X)
+        setorder(DT, date, RIC)
+        datagrid(DT,
+                 filters = TRUE)
+    })
+    
+    output$forecast_params_table_recap_gas = renderDatagrid({
+        req(react$forecast_params_table_gas)
+        datagrid(react$forecast_params_table_gas,
+                 pagination = 14)
+    })
+    
     output$gas_history_plot = renderEcharts4r({
         
         req(react$list_inputs_field_gas)
@@ -2417,6 +2394,22 @@ server_app = function(input, output, session) {
     
     ## FORECAST ------------------------------------
     
+    ### POWER
+    output$pwr_forecast_plot_mult = renderEcharts4r({
+        
+        req(react$list_pwr_for_mult)
+        react$list_pwr_for_mult[[input$in_select_pwrplot_mult_for]]$PLOT_Y
+        
+    })
+    
+    output$pwr_forecast_table_mult = renderDatagrid({
+        req(react$list_pwr_for_mult)
+        DT = copy(react$list_pwr_for_mult[[input$in_select_pwrplot_mult_for]]$DT_Y)
+        setorder(DT, date, RIC)
+        datagrid(DT,
+                 filters = TRUE)
+    })
+    
     # Forecast plots for Power and Gas using echarts4r
     output$pwr_forecast_plot = renderEcharts4r({
         
@@ -2442,6 +2435,36 @@ server_app = function(input, output, session) {
         
     })
     
+    output$pwr_forecast_table = renderDatagrid({
+        
+        req(react$object_with_forecast_data_pwr)
+        
+        dt_pwr_lg = melt(react$object_with_forecast_data_pwr, id.vars = c('date', 'hour', 'season', 'peak', 'RIC'), variable.name = 'type', value.name = 'value')
+        dt_pwr_lg[, datetime := as.POSIXct(paste(date, sprintf("%02d:00:00", hour)), format = "%Y-%m-%d %H:%M:%S", tz = "CET")]
+        rics = unique(dt_pwr_lg$RIC) 
+        setorder(dt_pwr_lg, datetime, RIC)
+        
+        datagrid(dt_pwr_lg,
+                 filters = TRUE)
+    })
+    
+    
+    ### GAS 
+    output$gas_forecast_plot_mult = renderEcharts4r({
+        
+        req(react$list_gas_for_mult)
+        react$list_gas_for_mult[[input$in_select_gasplot_mult_for]]$PLOT_Y
+        
+    })
+    
+    output$gas_forecast_table_mult = renderDatagrid({
+        req(react$list_gas_for_mult)
+        DT = copy(react$list_gas_for_mult[[input$in_select_gasplot_mult_for]]$DT_Y)
+        setorder(DT, date, RIC)
+        datagrid(DT,
+                 filters = TRUE)
+    })
+    
     output$gas_forecast_plot = renderEcharts4r({
         
         req(react$object_with_forecast_data_gas)
@@ -2464,7 +2487,20 @@ server_app = function(input, output, session) {
             e_theme('westeros')
     })
     
+    output$gas_forecast_table = renderDatagrid({
+        
+        req(react$object_with_forecast_data_gas)
+        
+        dt_gas_lg = melt(react$object_with_forecast_data_gas, id.vars = c('date', 'RIC'), variable.name = 'type', value.name = 'value')
+        rics = unique(dt_gas_lg$RIC) 
+        setorder(dt_gas_lg, date, RIC)
+        
+        datagrid(dt_gas_lg,
+                 filters = TRUE)
+    })
     
     
     ## END
+    
+    
 }
