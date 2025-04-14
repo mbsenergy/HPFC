@@ -13,9 +13,9 @@ server_app = function(input, output, session) {
         check_reuters = FALSE
         
         ### Connection
-        eikonapir::set_proxy_port(9000L)
+        eikondata::set_proxy_port(9000L)
         print(PLEASE_INSERT_REUTERS_KEY[[1]])
-        eikonapir::set_app_id(as.character(PLEASE_INSERT_REUTERS_KEY[[1]]))
+        eikondata::set_app_id(as.character(PLEASE_INSERT_REUTERS_KEY[[1]]))
         
         tryCatch({
             get_rics_d('MSFT.O', from_date = Sys.Date() - (365 * 10), to_date = Sys.Date())

@@ -25,7 +25,7 @@ box::use(
     echarts4r[...],
     reactable[...],
     # HPFC[...],
-    eikonapir[...]
+    eikondata[...]
 )
 
 devtools::load_all()

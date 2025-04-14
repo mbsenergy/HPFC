@@ -7,15 +7,15 @@ box::use(data.table[...],
 devtools::load_all()
 
 
-eikonapir::set_proxy_port(9000L)
-eikonapir::set_app_id(as.character(Sys.getenv('REUTERS_KEY')))
+eikondata::set_proxy_port(9000L)
+eikondata::set_app_id(as.character(Sys.getenv('REUTERS_KEY')))
 
 
 
 # 0. Reuters  General ----------------------------------------
 ric = 'GMEIT'
 
-dt_rics_d = eikonapir::get_timeseries(ric, start_date = Sys.Date() - (365 * 10), end_date = Sys.Date(), interval = 'daily')
+dt_rics_d = eikondata::get_timeseries(ric, start_date = Sys.Date() - (365 * 10), end_date = Sys.Date(), interval = 'daily')
 dt_rics_d = get_rics(rics = ric, from_date = Sys.Date() - (365 * 10), to_date = Sys.Date(), interval = 'daily')
 
 

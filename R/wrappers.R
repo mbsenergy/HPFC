@@ -19,7 +19,7 @@
 #'
 #' @importFrom jsonlite fromJSON
 #' @importFrom data.table year quarter month setnames 
-#' @importFrom eikonapir set_proxy_port set_app_id
+#' @importFrom eikondata set_proxy_port set_app_id
 #' 
 #' @export
 load_inputs = function(params, manual_data = NULL, reuters_key = NULL, last_run_path = NULL) {
@@ -83,9 +83,9 @@ load_inputs = function(params, manual_data = NULL, reuters_key = NULL, last_run_
     if(LST_PARAMS$data_source != 'Excel') {
         
         ### Connection
-        eikonapir::set_proxy_port(9000L)
+        eikondata::set_proxy_port(9000L)
         PLEASE_INSERT_REUTERS_KEY = reuters_key[[1]]
-        eikonapir::set_app_id(as.character(PLEASE_INSERT_REUTERS_KEY))
+        eikondata::set_app_id(as.character(PLEASE_INSERT_REUTERS_KEY))
         
         is_eikon_gas = HPFC::gas_mapped_codes[products %in% LST_PARAMS$selected_gas_code]$eikon
         is_eikon_pwr = HPFC::pwr_mapped_codes[countries == HPFC::spot_PWR_products_full[spot_PWR_code == pwr_codes]$countries]$eikon
@@ -324,9 +324,9 @@ prepare_fwd = function(fwd_pwr_code = NULL, fwd_gas_code = NULL, start_date, end
         if(max(ENV_FWD$time_range) > 2024) {
             
             ### Connection
-            eikonapir::set_proxy_port(9000L)
+            eikondata::set_proxy_port(9000L)
             PLEASE_INSERT_REUTERS_KEY = reuters_key[[1]]
-            eikonapir::set_app_id(as.character(PLEASE_INSERT_REUTERS_KEY))
+            eikondata::set_app_id(as.character(PLEASE_INSERT_REUTERS_KEY))
             
             DT_NEW = HPFC::retrieve_fwd(ric = ENV_FWD$lst_rics, from_date = '2025-01-01', to_date = forecast_end)
             

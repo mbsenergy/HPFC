@@ -16,13 +16,13 @@
 #' data <- retrieve_gas("TTF", "2020-01-01", "2020-12-31")
 #'
 #' @import data.table
-#' @importFrom eikonapir get_rics_d get_rics_h
+#' @importFrom eikondata get_rics_d get_rics_h
 #' @export
 retrieve_spot = function(ric, from_date, to_date, type = 'PWR') {
     
     if(type == 'GAS') {
         
-        rics_db = data.table::rbindlist(lapply(ric, eikonapir::get_rics_d, from_date = from_date, to_date = to_date))
+        rics_db = data.table::rbindlist(lapply(ric, eikondata::get_rics_d, from_date = from_date, to_date = to_date))
         data.table::setDT(rics_db)
         rics_db = rics_db[, .(date = as.Date(date), value = value, RIC = ric)]
         
@@ -50,7 +50,7 @@ retrieve_spot = function(ric, from_date, to_date, type = 'PWR') {
         
     } else if(type == 'PWR') {
         
-        rics_db = data.table::rbindlist(lapply(ric, eikonapir::get_rics_h, from_date = from_date, to_date = to_date))
+        rics_db = data.table::rbindlist(lapply(ric, eikondata::get_rics_h, from_date = from_date, to_date = to_date))
         data.table::setDT(rics_db)
         
         rics_db = rics_db[, .(date = as.Date(date), hour = hour, value = value, RIC = ric)]
@@ -95,11 +95,11 @@ retrieve_spot = function(ric, from_date, to_date, type = 'PWR') {
 #' data <- retrieve_gas("TTF", "2020-01-01", "2020-12-31")
 #'
 #' @import data.table
-#' @importFrom eikonapir get_rics_f
+#' @importFrom eikondata get_rics_f
 #' @export
 retrieve_fwd = function(ric, from_date, to_date) {
     
-    rics_db = data.table::rbindlist(lapply(ric, eikonapir::get_rics_f, from_date = from_date, to_date = to_date))
+    rics_db = data.table::rbindlist(lapply(ric, eikondata::get_rics_f, from_date = from_date, to_date = to_date))
     data.table::setDT(rics_db)
     rics_db = rics_db[, .(date = as.Date(date), value, RIC = ric)]
     
