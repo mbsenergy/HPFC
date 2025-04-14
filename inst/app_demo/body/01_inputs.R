@@ -2,9 +2,12 @@
 
 ### RICS NAMES -----------------------------------------------------------------
 vec_pwr_products =        eikondata::pwr_products_full$countries
-names(vec_pwr_products) = eikondata::pwr_products_full$countries
 vec_gas_products =        eikondata::gas_products_full$products_GAS
+vec_basket = c(vec_pwr_products, vec_gas_products, 'CO2')
+names(vec_pwr_products) = eikondata::pwr_products_full$countries
 names(vec_gas_products) = eikondata::gas_products_full$products_GAS
+names(vec_basket) = vec_basket
+
 
 ## SIM NAME -------------------------------------------------------------------
 select_sim_name = 
@@ -365,4 +368,126 @@ plot_forecast_selector_pwr =
         multiple = FALSE,
         width = '100%',
         choices = c('TTF' = 'TFMB')
+    )
+
+
+
+## Autobasket -----------------------------------------
+select_main_product =
+    selectInput(
+        inputId = "in_select_main_product",
+        label = "Power:",
+        multiple = FALSE,
+        width = '100%',
+        choices = vec_pwr_products,
+        selected = 'Greece'
+    )
+
+select_basket =
+    selectInput(
+        inputId = "in_select_basket",
+        label = "Basket:",
+        multiple = TRUE,
+        width = '100%',
+        choices = vec_basket,
+        selected = c('Germany', 'TTF', 'CO2')
+    )
+
+product_basket_lt =
+    input_task_button(
+        id = 'act_product_basket_lt',
+        label = 'Estimate basket',
+        label_busy = "Estimating...",
+        icon = shiny::icon('rain'),
+        width = '100%',
+        type = "info"
+    )
+
+select_source_weights =
+    radioButtons(
+        inputId = "in_select_source_weights",
+        label = "Select weights:",
+        choices = c("Auto",
+                    "Manual"),
+        selected = "Auto",
+        inline = TRUE
+    )
+
+select_lt_horizon =
+    dateRangeInput(
+        inputId = "in_select_lt_horizon",
+        label = "Select LT Horizon Interval:",
+        start  = "2025-01-01",
+        end    = "2029-12-31",
+        min    = "2016-01-01",
+        max    = '2035-12-31',
+        format = "yyyy/mm/dd",
+        separator = " - ",
+        width = '100%'
+    )
+
+upload_scenario =
+    fileInput(
+        inputId = "in_load_scenario",
+        label = "Excel file with Scenario data",
+        accept = c(".xlsx", ".xls"),
+        multiple = FALSE
+    )
+
+select_cutoff_mkt =
+    sliderInput(
+        inputId = 'in_sleect_cutoff_mkt',
+        label = 'Select cut-off Main vs Basket',
+        min = 0,
+        max = 100,
+        value = 50
+    )
+
+select_cutoff_sce =
+    sliderInput(
+        inputId = 'in_sleect_cutoff_sce',
+        label = 'Select cut-off Market vs Scenario',
+        min = 0,
+        max = 100,
+        value = 50
+    )
+
+product_forecast_lt =
+    input_task_button(
+        id = 'act_product_forecast_lt',
+        label = 'Forecast LT',
+        label_busy = "Forecasting...",
+        icon = shiny::icon('eye'),
+        width = '100%',
+        type = "warning"
+    )
+
+
+manual_wg_basket_1 = 
+    numericInput(
+        inputId = "wg_1", 
+        label = "Com.1", 
+        value = 0,
+        step = 1
+    )
+manual_wg_basket_2 = 
+    numericInput(
+        inputId = "wg_2", 
+        label = "Com.2", 
+        value = 0,
+        step = 1
+    )
+manual_wg_basket_3 = 
+    numericInput(
+        inputId = "wg_3", 
+        label = "Com.3", 
+        value = 0,
+        step = 1
+    )
+manual_wg_basket_4 = 
+    numericInput(
+        inputId = "wg_4", 
+        label = "Com.4", 
+        value = 0,
+        step = 1
     )

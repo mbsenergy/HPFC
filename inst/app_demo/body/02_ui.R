@@ -225,9 +225,39 @@ ui_app = page_navbar(
              nav_panel(title = 'LT CURVE',
                        layout_sidebar(
                            sidebar = sidebar(bg = 'white',
-                                             width = 400, padding = '40'
+                                             title = h3('LT Curve Creation'),
+                                             width = 400, padding = '40',
+                                             span('Get Basket coeff', style = 'font-weight: bold'),
+                                             select_main_product,
+                                             select_basket,
+                                             fluidRow(
+                                                 column(3, manual_wg_basket_1),
+                                                 column(3, manual_wg_basket_2),
+                                                 column(3, manual_wg_basket_3),
+                                                 column(3, manual_wg_basket_4)
+                                             ),
+                                             select_source_weights,
+                                             product_basket_lt,
+                                             hr(),
+                                             span('Curve Preparation', style = 'font-weight: bold'),
+                                             select_lt_horizon,
+                                             upload_scenario,
+                                             select_cutoff_mkt,
+                                             select_cutoff_sce,
+                                             product_forecast_lt
+                                             
                            ),
-                           fluidRow()
+                           fluidRow('estimated curve'),
+                           fluidRow(
+                               column(width = 3,
+                                      'table coef'),
+                               column(width = 3,
+                                      'Main curve'),
+                               column(width = 3,
+                                      'Proxy curve'),
+                               column(width = 3,
+                                      'scenario curve')
+                           )
                        )
              ),
              
@@ -236,7 +266,6 @@ ui_app = page_navbar(
                            sidebar = sidebar(bg = 'white',
                                              width = 400, padding = '40'
                            ),
-                           fluidRow()
                        )
              )
              
