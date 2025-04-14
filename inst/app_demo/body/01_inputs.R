@@ -372,7 +372,7 @@ plot_forecast_selector_pwr =
 
 
 
-## Autobasket -----------------------------------------
+## Autobasket =======================================
 select_main_product =
     selectInput(
         inputId = "in_select_main_product",
@@ -418,8 +418,8 @@ select_lt_horizon =
     dateRangeInput(
         inputId = "in_select_lt_horizon",
         label = "Select LT Horizon Interval:",
-        start  = "2025-01-01",
-        end    = "2029-12-31",
+        start  = "2016-01-01",
+        end    = "2025-12-31",
         min    = "2016-01-01",
         max    = '2035-12-31',
         format = "yyyy/mm/dd",
@@ -468,28 +468,28 @@ manual_wg_basket_1 =
     numericInput(
         inputId = "wg_1", 
         label = "Com.1", 
-        value = 0,
+        value = 100,
         step = 1
     )
 manual_wg_basket_2 = 
     numericInput(
         inputId = "wg_2", 
         label = "Com.2", 
-        value = 0,
+        value = 100,
         step = 1
     )
 manual_wg_basket_3 = 
     numericInput(
         inputId = "wg_3", 
         label = "Com.3", 
-        value = 0,
+        value = 100,
         step = 1
     )
 manual_wg_basket_4 = 
     numericInput(
         inputId = "wg_4", 
         label = "Com.4", 
-        value = 0,
+        value = 100,
         step = 1
     )
 

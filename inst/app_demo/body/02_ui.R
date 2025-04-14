@@ -230,6 +230,7 @@ ui_app = page_navbar(
                                              span('Get Basket coeff', style = 'font-weight: bold'),
                                              select_main_product,
                                              select_basket,
+                                             product_basket_lt,
                                              fluidRow(
                                                  column(3, manual_wg_basket_1),
                                                  column(3, manual_wg_basket_2),
@@ -237,7 +238,6 @@ ui_app = page_navbar(
                                                  column(3, manual_wg_basket_4)
                                              ),
                                              select_source_weights,
-                                             product_basket_lt,
                                              hr(),
                                              span('Curve Preparation', style = 'font-weight: bold'),
                                              select_lt_horizon,

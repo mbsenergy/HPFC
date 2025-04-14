@@ -2518,6 +2518,92 @@ server_app = function(input, output, session) {
     
     
     ## AUTO BASKET
+
+    preparation_basket = reactiveVal(NULL)
+    proxy_basket = reactiveVal(NULL)
+    
+    observeEvent(input$act_product_basket_lt, {
+        
+        commodity_main = input$in_select_main_product
+        commodity_basket = input$in_select_basket
+        start_horizon = input$in_select_lt_horizon[1]
+        end_horizon = input$in_select_lt_horizon[2]
+        
+        ## Generate continuation codes ----------------------------------------
+        list_cont_codes = eikondata::products_continuation[COMMODITY %in% c(commodity_main, commodity_basket)]
+        
+        list_cont = lapply(list_cont_codes$c1, function(x) {
+            tryCatch({
+                DT = eikondata::get_timeseries(
+                    rics = x, 
+                    fields = c("TIMESTAMP", "CLOSE", "VOLUME"),
+                    start_date = paste0(start_horizon, 'T00:00:00'),
+                    end_date = paste0(end_horizon, 'T00:00:00'),
+                    interval = 'daily'
+                )
+                setDT(DT)
+            }, error = function(e) {
+                message(sprintf("Failed to retrieve data for RIC: %s - %s", x, e$message))
+                return(NULL)
+            })
+        })
+        
+        dt_cont = rbindlist(list_cont)
+        colnames(dt_cont) = c('DATE', 'VALUE', 'VOLUME', 'RIC')
+        dt_cont[, DATE := sub("T.*", "", DATE)]
+        dt_cont[, DATE := as.Date(DATE)]
+        dt_cont[, VALUE := as.numeric(VALUE)]
+        dt_cont[, VOLUME := as.numeric(VOLUME)]
+        
+        dt_cont = merge(melt(list_cont_codes, id.vars = 'COMMODITY', variable.name = 'TYPE', value.name = 'RIC'), dt_cont, by = 'RIC', all.y = TRUE)
+        
+        preparation_basket(dt_cont)
+        
+        list_autobasket = basket_selection(DT = dt_cont, mk_comm_0 = commodity_main, basket = commodity_basket)
+        
+        coeff_table = as.data.table(list_autobasket$coef_glm)
+        coeff_table[, RIC := NULL]
+        print(coeff_table)
+        
+        proxy_basket(coeff_table)
+        
+    })
+    
+    manual_weights = reactiveVal(NULL)
+    observe({
+        weights = c(input$wg_1, input$wg_2, input$wg_3, input$wg_4)
+        commodities = input$in_select_basket[1:4]  # Extract up to 4 selected commodities
+        
+        # Fill missing slots with "EMPTY" to align length
+        if (length(commodities) < 4) {
+            commodities = c(commodities, rep("EMPTY", 4 - length(commodities)))
+        }
+        
+        proxy_manual = data.table(
+            COMMODITY = commodities,
+            coeff = weights
+        )
+        
+        proxy_manual = proxy_manual[COMMODITY != "EMPTY"]
+        proxy_manual[, weight := coeff / sum(coeff)]
+        
+        manual_weights(proxy_manual)
+    })
+    
+    selected_weights = reactiveVal(NULL)
+    observe({
+
+        if(input$in_select_source_weights == 'Manual') {
+            selected_weights(react$manual_weights)
+        }
+        if(input$in_select_source_weights == 'Auto')
+            if(!is.null(react$proxy_basket)) {
+                selected_weights(react$proxy_basket)
+            } else {
+                selected_weights(react$manual_weights)
+            }
+    })
+        
     
     ## END
     
