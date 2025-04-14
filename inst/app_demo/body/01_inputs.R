@@ -384,11 +384,12 @@ select_main_product =
     )
 
 select_basket =
-    selectInput(
+    selectizeInput(
         inputId = "in_select_basket",
         label = "Basket:",
         multiple = TRUE,
         width = '100%',
+        options = list(maxItems = 4),
         choices = vec_basket,
         selected = c('Germany', 'TTF', 'CO2')
     )
@@ -490,4 +491,13 @@ manual_wg_basket_4 =
         label = "Com.4", 
         value = 0,
         step = 1
+    )
+
+lt_pwr_download =
+    downloadButton(
+        outputId = 'act_lt_pwr_download',
+        label = 'Curve Download',
+        icon = shiny::icon('download'),
+        style = "width:100%;",
+        class = "btn-secondary"
     )

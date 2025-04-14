@@ -2500,6 +2500,25 @@ server_app = function(input, output, session) {
     })
     
     
+    
+    # LONG TERM CURVE ------------------------------------------------------------------
+    observe({
+        req(input$in_select_basket)
+        
+        basket_1_1 = input$in_select_basket[[1]]
+        if(length(input$in_select_basket) > 1) {basket_1_2 = input$in_select_basket[[2]]} else {basket_1_2 = 'EMPTY'}
+        if(length(input$in_select_basket) > 2) {basket_1_3 = input$in_select_basket[[3]]} else {basket_1_3 = 'EMPTY'}
+        if(length(input$in_select_basket) > 3) {basket_1_4 = input$in_select_basket[[4]]} else {basket_1_4 = 'EMPTY'}
+        
+        updateNumericInput(session, inputId = 'wg_1', label = basket_1_1)
+        updateNumericInput(session, inputId = 'wg_2', label = basket_1_2)
+        updateNumericInput(session, inputId = 'wg_3', label = basket_1_3)
+        updateNumericInput(session, inputId = 'wg_4', label = basket_1_4)
+    })
+    
+    
+    ## AUTO BASKET
+    
     ## END
     
     

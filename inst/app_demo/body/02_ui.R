@@ -70,28 +70,28 @@ ui_app = page_navbar(
                            navset_card_pill(
                                nav_panel('Power Multiple',
                                          fluidRow(
-                                         select_pwrplot_mult,
-                                         card(
-                                             card_body(fill = TRUE,
-                                                 echarts4rOutput(outputId = 'pwr_history_plot_mult') %>% withSpinner(color = "#F2606A")
-                                             )),
-                                         card(
-                                             card_body(fill = TRUE,
-                                                 datagridOutput(outputId = 'pwr_history_table_mult') %>% withSpinner(color = "#F2606A")
-                                             ))
-                               )
+                                             select_pwrplot_mult,
+                                             card(
+                                                 card_body(fill = TRUE,
+                                                           echarts4rOutput(outputId = 'pwr_history_plot_mult') %>% withSpinner(color = "#F2606A")
+                                                 )),
+                                             card(
+                                                 card_body(fill = TRUE,
+                                                           datagridOutput(outputId = 'pwr_history_table_mult') %>% withSpinner(color = "#F2606A")
+                                                 ))
+                                         )
                                ),
                                nav_panel('Gas Multiple',
                                          fluidRow(
-                                         select_gasplot_mult,
-                                         card(
-                                             card_body(
-                                                 echarts4rOutput(outputId = 'gas_history_plot_mult') %>% withSpinner(color = "#F2606A")
-                                             )),
-                                         card(
-                                             card_body(
-                                                 datagridOutput(outputId = 'gas_history_table_mult') %>% withSpinner(color = "#F2606A")
-                                             ))
+                                             select_gasplot_mult,
+                                             card(
+                                                 card_body(
+                                                     echarts4rOutput(outputId = 'gas_history_plot_mult') %>% withSpinner(color = "#F2606A")
+                                                 )),
+                                             card(
+                                                 card_body(
+                                                     datagridOutput(outputId = 'gas_history_table_mult') %>% withSpinner(color = "#F2606A")
+                                                 ))
                                          )
                                ),
                                nav_panel('Power Single',
@@ -99,15 +99,15 @@ ui_app = page_navbar(
                                              sidebar = sidebar(bg = 'white',
                                                                datagridOutput('forecast_params_table_recap_pwr'), position = 'right', open = FALSE, width = '450px'),
                                              fluidRow(
-                                             card(
-                                                 card_body(
-                                                     echarts4rOutput(outputId = 'pwr_history_plot') %>% withSpinner(color = "#F2606A")
-                                                 )),
-                                             card(
-                                                 card_body(
-                                                     datagridOutput(outputId = 'pwr_history_table') %>% withSpinner(color = "#F2606A")
-                                                 ))
-                                         )
+                                                 card(
+                                                     card_body(
+                                                         echarts4rOutput(outputId = 'pwr_history_plot') %>% withSpinner(color = "#F2606A")
+                                                     )),
+                                                 card(
+                                                     card_body(
+                                                         datagridOutput(outputId = 'pwr_history_table') %>% withSpinner(color = "#F2606A")
+                                                     ))
+                                             )
                                          )
                                ),
                                
@@ -116,15 +116,15 @@ ui_app = page_navbar(
                                              sidebar = sidebar(bg = 'white',
                                                                datagridOutput('forecast_params_table_recap_gas'), position = 'right', open = FALSE, width = '450px'),
                                              fluidRow(
-                                             card(
-                                                 card_body(
-                                                     echarts4rOutput(outputId = 'gas_history_plot') %>% withSpinner(color = "#F2606A")
-                                                 )),
-                                             card(
-                                                 card_body(
-                                                     datagridOutput(outputId = 'gas_history_table') %>% withSpinner(color = "#F2606A")
-                                                 ))
-                                         )
+                                                 card(
+                                                     card_body(
+                                                         echarts4rOutput(outputId = 'gas_history_plot') %>% withSpinner(color = "#F2606A")
+                                                     )),
+                                                 card(
+                                                     card_body(
+                                                         datagridOutput(outputId = 'gas_history_table') %>% withSpinner(color = "#F2606A")
+                                                     ))
+                                             )
                                          )
                                )
                            )
@@ -168,54 +168,54 @@ ui_app = page_navbar(
                            navset_card_pill(
                                nav_panel('Power Multiple',
                                          fluidRow(
-                                         select_pwrplot_mult_for,
-                                         card(
-                                             card_body(                                             
-                                                 echarts4rOutput(outputId = 'pwr_forecast_plot_mult') %>% withSpinner(color = "#C05B8C")
-                                             )),
-                                         card(
-                                             card_body(
-                                                 datagridOutput(outputId = 'pwr_forecast_table_mult') %>% withSpinner(color = "#C05B8C")
-                                             ))       
+                                             select_pwrplot_mult_for,
+                                             card(
+                                                 card_body(                                             
+                                                     echarts4rOutput(outputId = 'pwr_forecast_plot_mult') %>% withSpinner(color = "#C05B8C")
+                                                 )),
+                                             card(
+                                                 card_body(
+                                                     datagridOutput(outputId = 'pwr_forecast_table_mult') %>% withSpinner(color = "#C05B8C")
+                                                 ))       
                                          )
                                ),
                                
                                nav_panel('Gas Multiple',
                                          fluidRow(
-                                         select_gasplot_mult_for,
-                                         card(
-                                             card_body(  
-                                                 echarts4rOutput(outputId = 'gas_forecast_plot_mult') %>% withSpinner(color = "#C05B8C")
-                                             )),
-                                         card(
-                                             card_body(  
-                                                 datagridOutput(outputId = 'gas_forecast_table_mult') %>% withSpinner(color = "#C05B8C")
-                                             ))
+                                             select_gasplot_mult_for,
+                                             card(
+                                                 card_body(  
+                                                     echarts4rOutput(outputId = 'gas_forecast_plot_mult') %>% withSpinner(color = "#C05B8C")
+                                                 )),
+                                             card(
+                                                 card_body(  
+                                                     datagridOutput(outputId = 'gas_forecast_table_mult') %>% withSpinner(color = "#C05B8C")
+                                                 ))
                                          )
                                ),                               
                                nav_panel('Power Single',
                                          fluidRow(
-                                         card(
-                                             card_body(
-                                                 echarts4rOutput(outputId = 'pwr_forecast_plot') %>% withSpinner(color = "#C05B8C")
-                                             )),
-                                         card(
-                                             card_body(
-                                                 datagridOutput(outputId = 'pwr_forecast_table') %>% withSpinner(color = "#C05B8C")
-                                             ))
+                                             card(
+                                                 card_body(
+                                                     echarts4rOutput(outputId = 'pwr_forecast_plot') %>% withSpinner(color = "#C05B8C")
+                                                 )),
+                                             card(
+                                                 card_body(
+                                                     datagridOutput(outputId = 'pwr_forecast_table') %>% withSpinner(color = "#C05B8C")
+                                                 ))
                                          )
                                ),
                                
                                nav_panel('Gas Single',
                                          fluidRow(
-                                         card(
-                                             card_body(
-                                                 echarts4rOutput(outputId = 'gas_forecast_plot') %>% withSpinner(color = "#C05B8C")
-                                             )),
-                                         card(
-                                             card_body(
-                                                 datagridOutput(outputId = 'gas_forecast_table') %>% withSpinner(color = "#C05B8C")
-                                             ))
+                                             card(
+                                                 card_body(
+                                                     echarts4rOutput(outputId = 'gas_forecast_plot') %>% withSpinner(color = "#C05B8C")
+                                                 )),
+                                             card(
+                                                 card_body(
+                                                     datagridOutput(outputId = 'gas_forecast_table') %>% withSpinner(color = "#C05B8C")
+                                                 ))
                                          )
                                )
                            )
@@ -244,19 +244,44 @@ ui_app = page_navbar(
                                              upload_scenario,
                                              select_cutoff_mkt,
                                              select_cutoff_sce,
-                                             product_forecast_lt
+                                             product_forecast_lt,
+                                             hr(),
+                                             lt_pwr_download
                                              
                            ),
-                           fluidRow('estimated curve'),
+                           fluidRow(
+                               column(width = 12,
+                                      card(card_header('Long-Term Final Curve'),
+                                          card_body(
+                                              echarts4rOutput(outputId = 'pwr_lt_final_plot') %>% withSpinner(color = "#ECB22E")
+                                          ))
+                               )
+                           ),
                            fluidRow(
                                column(width = 3,
-                                      'table coef'),
+                                      card(card_header('Coefficients Tables'),
+                                          card_body(
+                                              datagridOutput(outputId = 'pwr_lt_coeff_table') %>% withSpinner(color = "#ECB22E")
+                                          ))
+                               ),
                                column(width = 3,
-                                      'Main curve'),
+                                      card(card_header('Main Power Curve'),
+                                          card_body(
+                                              echarts4rOutput(outputId = 'pwr_lt_main_plot') %>% withSpinner(color = "#ECB22E")
+                                          )) 
+                               ),
                                column(width = 3,
-                                      'Proxy curve'),
+                                      card(card_header('Proxy Basket Curve'),
+                                          card_body(
+                                              echarts4rOutput(outputId = 'pwr_lt_basket_plot') %>% withSpinner(color = "#ECB22E")
+                                          ))
+                               ),
                                column(width = 3,
-                                      'scenario curve')
+                                      card(card_header('Scenario Curve'),
+                                          card_body(
+                                              echarts4rOutput(outputId = 'pwr_lt_scenario_plot') %>% withSpinner(color = "#ECB22E")
+                                          ))
+                               )
                            )
                        )
              ),
