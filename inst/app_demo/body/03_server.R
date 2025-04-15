@@ -2651,12 +2651,12 @@ server_app = function(input, output, session) {
         datagrid(react$selected_weights[, .(COMMODITY, coeff = round(coeff, 2), weight = round(weight, 2))])
     })
     
-    output$pwr_lt_main_plot = renderEcharts4r({
-        req(react$plot_cont_main)
-        react$plot_cont_main
-    })
+    # output$pwr_lt_main_plot = renderEcharts4r({
+    #     req(react$plot_cont_main)
+    #     react$plot_cont_main
+    # })
     
-    output$pwr_lt_basket_plot = renderEcharts4r({
+    output$pwr_lt_basketcorrelation_plot = renderEcharts4r({
         req(react$dt_proxy_basket)
         
         react$dt_proxy_basket[DATE >= input$in_select_lt_train[1] & DATE <= input$in_select_lt_train[2]] |>
@@ -2716,30 +2716,126 @@ server_app = function(input, output, session) {
     
     observeEvent(input$act_generate_fwd_curves, {
         
-        req(react$proxy_basket)
+        # req(react$proxy_basket)
+        # 
+        # commodity_main = input$in_select_main_product
+        # commodity_basket = input$in_select_basket
+        # start_horizon = input$in_select_lt_horizon[1]
+        # end_horizon = input$in_select_lt_horizon[2]
+        # dts =
+        #     fwd_pipeline(
+        #         commodity_main = commodity_main,
+        #         coef_glm = react$proxy_basket,
+        #         start_train = '2020-01-01',
+        #         end_train = Sys.Date(),
+        #         start_horizon = start_horizon,
+        #         end_horizon = end_horizon
+        #     )
+        # 
+        # fwd_main(dts[1])
+        # fwd_basket(dts[2])
         
-        commodity_main = input$in_select_main_product
-        commodity_basket = input$in_select_basket
-        start_horizon = input$in_select_lt_horizon[1]
-        end_horizon = input$in_select_lt_horizon[2]
-        dts =
-            fwd_pipeline(
-                commodity_main = commodity_main,
-                coef_glm = react$proxy_basket,
-                start_train = '2020-01-01',
-                end_train = Sys.Date(),
-                start_horizon = start_horizon,
-                end_horizon = end_horizon
-            )
-        
-        fwd_main(dts[1])
-        fwd_basket(dts[2])
-        
-        print(dts)
+        dt1 = readRDS(file = 'DT_FWD.rds')
+        dt2 = readRDS(file = 'DT_FWD2.rds')
+        fwd_main(dt1)
+        fwd_basket(dt2)
         
     })
     
-
+    
+    output$pwr_lt_basket_plot = renderEcharts4r({
+        
+        req(react$fwd_main)
+        req(react$fwd_basket)
+        
+        dt1_avg = react$fwd_main[, .(value_main = mean(forecast)), by = .(date)]
+        dt2_avg = react$fwd_basket[, .(value_proxy = mean(forecast)), by = .(date)]
+        
+        merged = merge(dt1_avg, dt2_avg, by = c("date"))
+        
+        # saveRDS(merged, 'merged.rds')
+        
+        merged[order(date)] %>%
+            e_charts(date) %>%
+            e_line(value_main, name = "Main", symbol = 'none') %>%
+            e_line(value_proxy, name = "Proxy", symbol = 'none') %>%
+            e_color(c("#2392A2", "#C05B8C")) %>%
+            e_tooltip(trigger = "axis") %>%
+            e_title("FWD Curves") %>%
+            e_y_axis(name = "Price") %>%
+            e_x_axis(name = "Date") %>%
+            e_legend(top = 30) %>% 
+            e_datazoom(start = 0) %>% 
+            e_theme('westeros')
+    })
+    
+    
+    ## CREATE FINAL CURVE
+    
+    dt_final_curve = reactiveVal(NULL)
+    observeEvent(input$act_product_create_lt, {
+        
+        req(react$fwd_main)
+        req(react$fwd_basket)
+        req(react$dt_scenario)
+        
+        dt_main = react$fwd_main[, .(date, hour, value = forecast, source = 'MAIN')]
+        dt_proxy = react$fwd_basket[, .(date, hour, value = forecast, source = 'PROXY')]
+        dt_sce = react$dt_scenario[, .(date = DATE, hour = HOUR, value = VALUE, source = 'SCENARIO')]
+        
+        T1 = input$in_select_cutoff_mkt
+        T2 = input$in_select_cutoff_sce
+        
+        dt_main_part = dt_main[date < T1]
+        dt_proxy_part = dt_proxy[date >= T1 & date < T2]
+        dt_sce_part = dt_sce[date >= T2]
+        
+        dt_final = rbindlist(list(dt_main_part, dt_proxy_part, dt_sce_part), use.names = TRUE)
+        dt_final = dt_final[date >= input$in_select_total_horizon[1] & date < input$in_select_total_horizon[2]]
+        
+        dt_final_curve(dt_final)
+        
+        last_path = file.path('HPFC', 'last', 'output', input$in_select_main_product)
+        if (!dir.exists(last_path)) {
+            dir.create(last_path, recursive = TRUE)
+        }
+        
+        saveRDS(dt_final, file.path(last_path, paste0('forecast_pwr_lt.rds')))
+        fwrite(dt_final, file.path(last_path, paste0('forecast_pwr_lt.csv')))
+        
+    })
+    
+    
+    output$pwr_lt_final_plot = renderEcharts4r({
+        
+        req(react$dt_final_curve)
+        
+        dt_avg = react$dt_final_curve[, .(value = mean(value)), by = .(date, source)]
+        
+        dt_avg[order(date)] |>
+            group_by(source)|>
+            e_charts(date) |>
+            e_line(serie = value, symbol = "none", bind = source) |>
+            e_tooltip(trigger = "axis") |>
+            e_color(c("#2392A2", "#C05B8C", "#DE8969")) |>
+            e_title("Long Term Forecast Curve") |>
+            e_y_axis(name = "Price") |>
+            e_x_axis(name = "Datetime") |>
+            e_legend(top = 30) %>% 
+            e_theme('westeros')
+    })
+    
+    
+    output$act_lt_pwr_download <- downloadHandler(
+        filename = function() {
+            paste0("forecast_pwr_lt_", input$in_select_main_product, '-', Sys.Date(), ".csv")
+        },
+        content = function(file) {
+            fwrite(react$dt_final_curve, file)  # for CSV
+            # saveRDS(dt_final, file)  # for RDS
+        }
+    )
+    
     
     ## END
     

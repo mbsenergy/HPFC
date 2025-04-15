@@ -245,11 +245,11 @@ ui_app = page_navbar(
                                              generate_fwd_curves,
                                              hr(),
                                              upload_scenario,
-                                             product_forecast_lt,
                                              hr(),
                                              select_cutoff_mkt,
                                              select_cutoff_sce,
                                              select_horizon_total,
+                                             product_create_lt,
                                              lt_pwr_download
                                              
                            ),
@@ -269,13 +269,13 @@ ui_app = page_navbar(
                                           ))
                                ),
                                column(width = 3,
-                                      card(card_header('Main Power Curve'),
+                                      card(card_header('Basket & Main Relationship'),
                                           card_body(
-                                              echarts4rOutput(outputId = 'pwr_lt_main_plot') %>% withSpinner(color = "#ECB22E")
+                                              echarts4rOutput(outputId = 'pwr_lt_basketcorrelation_plot') %>% withSpinner(color = "#ECB22E")
                                           )) 
                                ),
                                column(width = 3,
-                                      card(card_header('Proxy Basket Curve'),
+                                      card(card_header('FWD Curves: Main & Proxy'),
                                           card_body(
                                               echarts4rOutput(outputId = 'pwr_lt_basket_plot') %>% withSpinner(color = "#ECB22E")
                                           ))

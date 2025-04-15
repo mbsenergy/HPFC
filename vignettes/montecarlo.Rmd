@@ -85,7 +85,7 @@ dt_fwds[, sim := NULL]
 colnames(dt_fwds) = c('date', 'value', 'RIC')
 
 list_inputs_fwd = prepare_fwd(
-    fwd_pwr_code = 'Greece',
+    fwd_pwr_code = 'Italy',
     fwd_gas_code = 'TTF',
     start_date = min(dt_fwd_pwr$yymm, na.rm = TRUE),
     end_date = max(dt_fwd_pwr$yymm, na.rm = TRUE),
@@ -109,7 +109,7 @@ reactable(dt_fwds)
 DT_FWD = apply_shape(
                     country = 'Greece',
                     name = 'FWD',
-                    start_date = '2024-01-01',
+                    start_date = '2019-01-01',
                     end_date = '2024-12-31',
                     dt_fwd_pwr = dt_fwd_pwr,
                     dt_spot_pwr = dt_spot_pwr,
@@ -118,6 +118,8 @@ DT_FWD = apply_shape(
                     model_gas = ENV_MODELS_GAS,
                     model_pwr = ENV_MODELS_PWR
 )
+
+saveRDS(DT_FWD, 'DT_FWD2.rds')
 ```
 
 

@@ -328,7 +328,7 @@ fwd_pipeline = function(commodity_main, coef_glm, start_train, end_train, start_
     ENV_MODELS_GAS = list()
     ENV_MODELS_PWR = list()
     
-    last_path = file.path('inst', 'app_demo', 'HPFC', 'last', 'models', commodity_main)
+    last_path = file.path('HPFC', 'last', 'models', commodity_main)
     # last_path = file.path('HPFC', 'last', 'models', commodity_main)
     ENV_MODELS_GAS$dt_lt_param_gasdep = readRDS(file.path(last_path, paste0('model_gas_lt.rds')))
     ENV_MODELS_PWR$dt_lt_param_pwr = readRDS(file.path(last_path, paste0('model_pwr_lt.rds')))

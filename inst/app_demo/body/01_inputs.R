@@ -472,26 +472,22 @@ upload_scenario =
     )
 
 select_cutoff_mkt =
-    sliderInput(
-        inputId = 'in_sleect_cutoff_mkt',
+    dateInput(
+        inputId = 'in_select_cutoff_mkt',
         label = 'Select cut-off Main vs Basket',
-        min = 0,
-        max = 100,
-        value = 50
+        value = Sys.Date() + (365*2)
     )
 
 select_cutoff_sce =
-    sliderInput(
-        inputId = 'in_sleect_cutoff_sce',
+    dateInput(
+        inputId = 'in_select_cutoff_sce',
         label = 'Select cut-off Market vs Scenario',
-        min = 0,
-        max = 100,
-        value = 50
+        value = Sys.Date() + (365*4)
     )
 
-product_forecast_lt =
+product_create_lt =
     input_task_button(
-        id = 'act_product_forecast_lt',
+        id = 'act_product_create_lt',
         label = 'Forecast LT',
         label_busy = "Forecasting...",
         icon = shiny::icon('eye'),
