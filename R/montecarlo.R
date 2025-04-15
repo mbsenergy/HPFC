@@ -137,8 +137,8 @@ apply_shape = function(
     calendar_future = calendar_future[date >= start_date & date <= end_date]
     time_range = as.numeric(data.table::year(as.Date(start_date))):as.numeric(data.table::year(as.Date(end_date)))
     
-    dt_fwd_prep_pwr = merge(dt_fwd_pwr, generate_monthrics_pwr(country, time_range = 2024), by.x = 'yymm', by.y ='date', all.x = TRUE) 
-    dt_fwd_prep_gas = merge(dt_fwd_gas, generate_monthrics_gas(fwd_gas_code, time_range = 2024), by.x = 'yymm', by.y ='date', all.x = TRUE) 
+    dt_fwd_prep_pwr = merge(dt_fwd_pwr, generate_monthrics_pwr(country, time_range = year(start_date):year(end_date)), by.x = 'yymm', by.y ='date', all.x = TRUE) 
+    dt_fwd_prep_gas = merge(dt_fwd_gas, generate_monthrics_gas(fwd_gas_code, time_range = year(start_date):year(end_date)), by.x = 'yymm', by.y ='date', all.x = TRUE) 
     
     dt_fwds = rbind(dt_fwd_prep_pwr, dt_fwd_prep_gas)
     dt_fwds[, sim := NULL]

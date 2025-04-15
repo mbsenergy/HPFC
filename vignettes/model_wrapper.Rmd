@@ -173,6 +173,7 @@ list_inputs_fwd = prepare_fwd(
 
 ### Preparation
 ```{r, pred-prep, echo = TRUE}
+print(list_inputs_fwd$ENV_FWD$dt_fwds)
 LST_FOR = list(
     model_lt_gas = copy(ENV_MODELS_GAS$dt_lt_param_gasdep),
     model_lt_pwr = copy(ENV_MODELS_PWR$dt_lt_param_pwr),

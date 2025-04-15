@@ -24,7 +24,7 @@
 #' using the `glmnet` package. NA values are forward-filled (NOCB). Model performance is reported with R², MSE, MAE, and residuals' standard deviation.
 #'
 #' @import data.table
-#' @importFrom glmnet cv.glmnet coef makeX
+#' @importFrom glmnet cv.glmnet makeX
 #' @importFrom stats var
 #' @importFrom zoo na.fill
 #' @export

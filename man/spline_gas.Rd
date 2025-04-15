@@ -4,7 +4,7 @@
 \alias{spline_gas}
 \title{Apply Spline to Gas Data}
 \usage{
-spline_gas(DT, smoothig_parameter)
+spline_gas(DT, smoothig_parameter = 15)
 }
 \arguments{
 \item{DT}{A data.table containing the power data with the 'L_e_u' column.}

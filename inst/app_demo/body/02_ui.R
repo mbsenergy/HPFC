@@ -242,11 +242,14 @@ ui_app = page_navbar(
                                              hr(),
                                              span('Curve Preparation', style = 'font-weight: bold'),
                                              select_lt_horizon,
+                                             generate_fwd_curves,
+                                             hr(),
                                              upload_scenario,
-                                             select_cutoff_mkt,
-                                             select_cutoff_sce,
                                              product_forecast_lt,
                                              hr(),
+                                             select_cutoff_mkt,
+                                             select_cutoff_sce,
+                                             select_horizon_total,
                                              lt_pwr_download
                                              
                            ),

@@ -4,7 +4,7 @@
 \alias{spline_pwr}
 \title{Apply Spline to Power with Weekly Deviation Adjustment}
 \usage{
-spline_pwr(DT, smoothig_parameter)
+spline_pwr(DT, smoothig_parameter = 15)
 }
 \arguments{
 \item{DT}{A data.table containing the power data with the 'L_e_u' column.}

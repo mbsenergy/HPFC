@@ -2529,8 +2529,8 @@ server_app = function(input, output, session) {
         
         commodity_main = input$in_select_main_product
         commodity_basket = input$in_select_basket
-        start_horizon = input$in_select_lt_horizon[1]
-        end_horizon = input$in_select_lt_horizon[2]
+        start_horizon = input$in_select_lt_train[1]
+        end_horizon = input$in_select_lt_train[2]
         
         ## Generate continuation codes ----------------------------------------
         list_cont_codes = eikondata::products_continuation[COMMODITY %in% c(commodity_main, commodity_basket)]
@@ -2670,7 +2670,7 @@ server_app = function(input, output, session) {
             e_toolbox_feature(feature = "dataZoom") %>%
             e_toolbox_feature(feature = "dataView") %>%
             e_toolbox_feature(feature = "restore") %>%
-            e_legend(bottom = 0) %>%
+            e_legend(top = 30) %>%
             e_datazoom(start = 0) %>% 
             e_theme('westeros')
     })
@@ -2705,9 +2705,38 @@ server_app = function(input, output, session) {
             e_toolbox_feature(feature = "dataZoom") %>%
             e_toolbox_feature(feature = "dataView") %>%
             e_toolbox_feature(feature = "restore") %>%
-            e_legend(bottom = 0) %>%
+            e_legend(top = 30) %>%
             e_datazoom(start = 0) %>% 
             e_theme('westeros')
+    })
+    
+    
+    fwd_main = reactiveVal(NULL)
+    fwd_basket = reactiveVal(NULL)
+    
+    observeEvent(input$act_generate_fwd_curves, {
+        
+        req(react$proxy_basket)
+        
+        commodity_main = input$in_select_main_product
+        commodity_basket = input$in_select_basket
+        start_horizon = input$in_select_lt_horizon[1]
+        end_horizon = input$in_select_lt_horizon[2]
+        dts =
+            fwd_pipeline(
+                commodity_main = commodity_main,
+                coef_glm = react$proxy_basket,
+                start_train = '2020-01-01',
+                end_train = Sys.Date(),
+                start_horizon = start_horizon,
+                end_horizon = end_horizon
+            )
+        
+        fwd_main(dts[1])
+        fwd_basket(dts[2])
+        
+        print(dts)
+        
     })
     
 

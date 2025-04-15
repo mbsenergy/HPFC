@@ -260,9 +260,11 @@ prepare_fwd = function(fwd_pwr_code = NULL, fwd_gas_code = NULL, start_date, end
         ENV_FWD$fwd_gas_RIC = unique(eikondata::gas_products_full[products_GAS %in% c(selected_gas_code)]$products_GAS_code) ; selected_pwr_code = 'Greece'
         
     } else {
-        selected_gas_code = fwd_gas_code
+        if(!is.null(fwd_gas_code)) {
+            selected_gas_code = fwd_gas_code
+            ENV_FWD$fwd_gas_RIC = unique(eikondata::gas_products_full[products_GAS %in% c(selected_gas_code)]$products_GAS_code)
+        }
         selected_pwr_code = fwd_pwr_code
-        ENV_FWD$fwd_gas_RIC = unique(eikondata::gas_products_full[products_GAS %in% c(selected_gas_code)]$products_GAS_code)
         ENV_FWD$fwd_pwr_RIC =  unique(eikondata::pwr_products_full[countries %in% selected_pwr_code]$products_PWR_code)
     }
     
@@ -288,7 +290,9 @@ prepare_fwd = function(fwd_pwr_code = NULL, fwd_gas_code = NULL, start_date, end
     
     if(isFALSE(is_manual)) {
         
-        DT_GAS = eikondata::dt_fwds_gas[substr(RIC, 1, 4) == ENV_FWD$fwd_gas_RIC]
+        if(!is.null(fwd_gas_code)) {
+            DT_GAS = eikondata::dt_fwds_gas[substr(RIC, 1, 4) == ENV_FWD$fwd_gas_RIC]
+        }
         if(model_type == 'PWR') {
             if(forecast_source == 'FWD') {
                 DT_PWR = eikondata::dt_fwds_pwr_fwddam[spot_PWR_code == eikondata::pwr_products_full[countries %in% selected_pwr_code]$spot_PWR_code, .(date, RIC, value = FWD)]
@@ -298,12 +302,17 @@ prepare_fwd = function(fwd_pwr_code = NULL, fwd_gas_code = NULL, start_date, end
         }
         
         ## Generate RICS
-        lst_rics_gas = eikondata::generate_rics_gas(unique(ENV_FWD$fwd_gas_RIC), time_range = 2025:as.numeric(data.table::year(as.Date(forecast_end))))
-        
+        if(!is.null(fwd_gas_code)) {
+            lst_rics_gas = eikondata::generate_rics_gas(unique(ENV_FWD$fwd_gas_RIC), time_range = 2025:as.numeric(data.table::year(as.Date(forecast_end))))
+        }
         if(model_type == 'PWR') {
             ### POWER 
             lst_rics_pwr = eikondata::generate_rics_pwr(selected_pwr_code, time_range = 2025:as.numeric(data.table::year(as.Date(forecast_end))))
+            if(!is.null(fwd_gas_code)) {
             ENV_FWD$lst_rics = c(lst_rics_pwr, lst_rics_gas) ; rm(lst_rics_pwr, lst_rics_gas)
+            } else {
+                ENV_FWD$lst_rics = lst_rics_pwr
+            }
             
         } else {
             ENV_FWD$lst_rics = c(lst_rics_gas) ; rm(lst_rics_gas)
@@ -311,10 +320,14 @@ prepare_fwd = function(fwd_pwr_code = NULL, fwd_gas_code = NULL, start_date, end
         
         ## RETRIEVE
         if(model_type == 'PWR') {
+            if(!is.null(fwd_gas_code)) {
             ENV_FWD$dt_fwds = 
                 rbind(DT_GAS,
                       DT_PWR
                 )  
+            } else {
+                ENV_FWD$dt_fwds = DT_PWR
+            }
         } else {
             ENV_FWD$dt_fwds = DT_GAS
         }
@@ -347,13 +360,18 @@ prepare_fwd = function(fwd_pwr_code = NULL, fwd_gas_code = NULL, start_date, end
     }
     
     if(isTRUE(is_manual)) {
-        dt_fwd_gas = manual_gas
-        dt_fwd_prep_gas = merge(dt_fwd_gas, generate_monthrics_gas(unique(eikondata::gas_products_full[products_GAS %in% c(selected_gas_code)]$products_GAS_code), time_range = 2024), by.x = 'yymm', by.y ='date', all.x = TRUE) 
-        
+        if(!is.null(fwd_gas_code)) {
+            dt_fwd_gas = manual_gas
+            dt_fwd_prep_gas = merge(dt_fwd_gas, eikondata::generate_monthrics_gas(unique(eikondata::gas_products_full[products_GAS %in% c(selected_gas_code)]$products_GAS_code), time_range = 2024), by.x = 'yymm', by.y ='date', all.x = TRUE) 
+        }
         if(model_type == 'PWR') {
             dt_fwd_pwr = manual_pwr
-            dt_fwd_prep_pwr = merge(dt_fwd_pwr, generate_monthrics_pwr(unique(eikondata::pwr_products_full[countries %in% selected_pwr_code]$countries), time_range = 2024), by.x = 'yymm', by.y ='date', all.x = TRUE) 
+            dt_fwd_prep_pwr = merge(dt_fwd_pwr, eikondata::generate_monthrics_pwr(unique(eikondata::pwr_products_full[countries %in% selected_pwr_code]$countries), time_range = 2024), by.x = 'yymm', by.y ='date', all.x = TRUE) 
+            if(!is.null(fwd_gas_code)) {
             dt_fwds = rbind(dt_fwd_prep_pwr, dt_fwd_prep_gas)
+            } else {
+                dt_fwds = dt_fwd_prep_pwr
+            }
             
         } else {
             dt_fwds = dt_fwd_prep_gas

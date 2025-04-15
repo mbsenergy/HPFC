@@ -78,8 +78,8 @@ sim_result |>
 
 ## Hourly Shaping
 ```{r, setup fwds}
-dt_fwd_prep_pwr = merge(dt_fwd_pwr, generate_monthrics_pwr('Greece', time_range = 2024), by.x = 'yymm', by.y ='date', all.x = TRUE) 
-dt_fwd_prep_gas = merge(dt_fwd_gas, generate_monthrics_gas('TFMB', time_range = 2024), by.x = 'yymm', by.y ='date', all.x = TRUE) 
+dt_fwd_prep_pwr = merge(dt_fwd_pwr, eikondata::generate_monthrics_pwr('Greece', time_range = 2024), by.x = 'yymm', by.y ='date', all.x = TRUE) 
+dt_fwd_prep_gas = merge(dt_fwd_gas, eikondata::generate_monthrics_gas('TFMB', time_range = 2024), by.x = 'yymm', by.y ='date', all.x = TRUE) 
 dt_fwds = rbind(dt_fwd_prep_pwr, dt_fwd_prep_gas)
 dt_fwds[, sim := NULL]
 colnames(dt_fwds) = c('date', 'value', 'RIC')

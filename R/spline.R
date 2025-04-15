@@ -8,7 +8,7 @@
 #' @import data.table
 #' @export
 
-spline_gas = function(DT, smoothig_parameter) {
+spline_gas = function(DT, smoothig_parameter = 15) {
   
   # Ensure 'L_e_u' column exists and is numeric, and that 'smoothig_parameter' is numeric or integer
   if (!('L_e_u' %in% colnames(DT)) | class(DT$L_e_u) != 'numeric') {
@@ -56,7 +56,7 @@ spline_gas = function(DT, smoothig_parameter) {
 #' @import data.table
 #' @export
 
-spline_pwr = function(DT, smoothig_parameter) {
+spline_pwr = function(DT, smoothig_parameter = 15) {
   
   # Copy input data table
   DTW = copy(DT)
