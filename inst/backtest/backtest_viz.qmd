@@ -64,7 +64,7 @@ e_common(font_family = "Inter", theme = "westeros")
 ```
 
 ```{r, data-upload}
-paths = 'Italy-7-forecast.rds'
+paths = 'Italy-12-forecast.rds'
 dts_new = readRDS(file = paths)
 dts_new[, type := 'FOR_NEW']
 dts_old = readRDS(file = file.path('forecast_pwr-Greece.rds'))
@@ -237,6 +237,7 @@ dts %>%
   e_toolbox_feature(feature = "saveAsImage", title = "Save as image") %>% 
   e_datazoom(start = 0) 
 ```
+
 ```{r, daily-season-1-margin}
 #| fig-cap: "Curves Pseudo-Gini"
 

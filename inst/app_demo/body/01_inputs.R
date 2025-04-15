@@ -385,7 +385,7 @@ plot_forecast_selector_pwr =
 
 
 
-## Autobasket =======================================
+# LT CURVE =======================================
 select_main_product =
     selectInput(
         inputId = "in_select_main_product",
@@ -532,4 +532,63 @@ lt_pwr_download =
         icon = shiny::icon('download'),
         style = "width:100%;",
         class = "btn-secondary"
+    )
+
+
+
+
+# BACKTESTING =======================================
+
+select_PWR_backtest =
+    selectInput(
+        inputId = "in_select_PWR_backtest",
+        label = "Power model:",
+        multiple = FALSE,
+        width = '100%',
+        choices = vec_pwr_products,
+        selected = 'Greece'
+    )
+
+select_backtest_source =
+    radioButtons(
+        inputId = "in_select_backtest_source",
+        label = "Select model source:",
+        choices = c("Last",
+                    "Sim"),
+        selected = "Last",
+        inline = TRUE,
+        width = '100%'
+    )
+
+select_sim_name_backtest = 
+    textInput(
+        inputId = 'in_select_sim_name_backtest',
+        label = 'Archived Simulation Name',
+        placeholder = 'Select simulation to backtest...',
+        width = '100%'
+    )
+
+
+select_backtest_period =
+    dateRangeInput(
+        inputId = "in_select_backtest_period",
+        label = "Select backtesting Interval:",
+        start  = "2016-01-01",
+        end    = "2024-12-31",
+        min    = "2016-01-01",
+        max    = Sys.Date(),
+        format = "yyyy/mm/dd",
+        separator = " - ",
+        width = '100%'
+    )
+
+
+load_backtest =
+    input_task_button(
+        id = 'act_load_backtest',
+        label = 'Backtest',
+        label_busy = "Uploading...",
+        icon = shiny::icon('upload'),
+        width = '100%',
+        type = "warning"
     )

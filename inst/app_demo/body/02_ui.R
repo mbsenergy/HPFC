@@ -256,46 +256,131 @@ ui_app = page_navbar(
                            fluidRow(
                                column(width = 12,
                                       card(card_header('Long-Term Final Curve'),
-                                          card_body(
-                                              echarts4rOutput(outputId = 'pwr_lt_final_plot') %>% withSpinner(color = "#ECB22E")
-                                          ))
+                                           card_body(
+                                               echarts4rOutput(outputId = 'pwr_lt_final_plot') %>% withSpinner(color = "#ECB22E")
+                                           ))
                                )
                            ),
                            fluidRow(
                                column(width = 3,
                                       card(card_header('Coefficients Tables'),
-                                          card_body(
-                                              datagridOutput(outputId = 'pwr_lt_coeff_table') %>% withSpinner(color = "#ECB22E")
-                                          ))
+                                           card_body(
+                                               datagridOutput(outputId = 'pwr_lt_coeff_table') %>% withSpinner(color = "#ECB22E")
+                                           ))
                                ),
                                column(width = 3,
                                       card(card_header('Basket & Main Relationship'),
-                                          card_body(
-                                              echarts4rOutput(outputId = 'pwr_lt_basketcorrelation_plot') %>% withSpinner(color = "#ECB22E")
-                                          )) 
+                                           card_body(
+                                               echarts4rOutput(outputId = 'pwr_lt_basketcorrelation_plot') %>% withSpinner(color = "#ECB22E")
+                                           )) 
                                ),
                                column(width = 3,
                                       card(card_header('FWD Curves: Main & Proxy'),
-                                          card_body(
-                                              echarts4rOutput(outputId = 'pwr_lt_basket_plot') %>% withSpinner(color = "#ECB22E")
-                                          ))
+                                           card_body(
+                                               echarts4rOutput(outputId = 'pwr_lt_basket_plot') %>% withSpinner(color = "#ECB22E")
+                                           ))
                                ),
                                column(width = 3,
                                       card(card_header('Scenario Curve'),
-                                          card_body(
-                                              echarts4rOutput(outputId = 'pwr_lt_scenario_plot') %>% withSpinner(color = "#ECB22E")
-                                          ))
+                                           card_body(
+                                               echarts4rOutput(outputId = 'pwr_lt_scenario_plot') %>% withSpinner(color = "#ECB22E")
+                                           ))
                                )
                            )
                        )
              ),
              
              nav_panel(title = 'BACKTESTING',
-                       layout_sidebar(
-                           sidebar = sidebar(bg = 'white',
-                                             width = 400, padding = '40'
-                           ),
+                       fluidRow(column(width = 12,
+                                       
+                                       card(card_header('Select Power Model to backtest'),
+                                            card_body(
+                                                fluidRow(
+                                                    column(width = 1, select_backtest_source),
+                                                    column(width = 3, select_sim_name_backtest),
+                                                    column(width = 3, select_PWR_backtest),
+                                                    column(width = 3, select_backtest_period),
+                                                    column(width = 2, load_backtest)
+                                                )
+                                            )),
+                                       card(card_header('Select Power Model to backtest'),
+                                            card_body(
+                                                echarts4rOutput(outputId = 'backtest_overview_plot') %>% withSpinner(color = "#1E328F")
+                                            )
+                                       )
                        )
+                       ),
+                       fluidRow(
+                           column(width = 4,
+                                  card(card_header('Overview'),
+                                       card_body(echarts4rOutput(outputId = 'backtest_mean_day_plot', height = '250px') %>% withSpinner(color = "#1E328F"))
+                                  )
+                           ),
+                           column(width = 4,
+                                  card(card_header('Error Distribution'),
+                                       card_body(fluidRow(
+                                           column(width = 6,echarts4rOutput(outputId = 'backtest_error_gauge_pv', height = '250px') %>% withSpinner(color = "#1E328F")),
+                                           column(width = 6,echarts4rOutput(outputId = 'backtest_error_gauge_lv', height = '250px') %>% withSpinner(color = "#1E328F"))),
+                                       )
+                                  )
+                           ),
+                           column(width = 4,
+                                  card(card_header('Main Error Metrics'),
+                                       card_body(echarts4rOutput(outputId = 'backtest_error_distribution', height = '250px') %>% withSpinner(color = "#1E328F"))
+                                  )
+                           )
+                       ),
+                       fluidRow(
+                           column(width = 3,
+                                  card(card_header('Winter'),
+                                       card_body(echarts4rOutput(outputId = 'backtest_mean_day_winter', height = '250px') %>% withSpinner(color = "#1E328F"))
+                                  )
+                           ),
+                           column(width = 3,
+                                  card(card_header('Spring'),
+                                       card_body(echarts4rOutput(outputId = 'backtest_mean_day_spring', height = '250px') %>% withSpinner(color = "#1E328F"))
+                                  )
+                           ),
+                           column(width = 3,
+                                  card(card_header('Summer'),
+                                       card_body(echarts4rOutput(outputId = 'backtest_mean_day_summer', height = '250px') %>% withSpinner(color = "#1E328F"))
+                                  )
+                           ),
+                           column(width = 3,
+                                  card(card_header('Fall'),
+                                       card_body(echarts4rOutput(outputId = 'backtest_mean_day_fall', height = '250px') %>% withSpinner(color = "#1E328F"))
+                                  )
+                           )
+                       ),
+                       fluidRow(
+                           column(width = 4,
+                                  card(card_header('Table Error Metric: Seasons'),
+                                       card_body(datagridOutput(outputId = 'backtest_error_metric_seasons', height = '250px') %>% withSpinner(color = "#1E328F"))
+                                  )
+                           ),
+                           column(width = 4,
+                                  card(card_header('Table Error Metric: Weekday'),
+                                       card_body(datagridOutput(outputId = 'backtest_error_metric_weekday', height = '250px') %>% withSpinner(color = "#1E328F"))
+                                  )
+                           ),
+                           column(width = 4,
+                                  card(card_header('Table Error Metric: Peak-Off Peak'),
+                                       card_body(datagridOutput(outputId = 'backtest_error_metric_peak', height = '250px') %>% withSpinner(color = "#1E328F"))
+                                  )
+                           )
+                       ),
+                       fluidRow(
+                           column(width = 6,
+                                  card(card_header('Error Bias: Seasons'),
+                                       card_body(datagridOutput(outputId = 'backtest_error_bias_seasons', height = '250px') %>% withSpinner(color = "#1E328F"))
+                                  )
+                           ),
+                           column(width = 6,
+                                  card(card_header('Error Bias: Peak-Off Peak'),
+                                       card_body(datagridOutput(outputId = 'backtest_error_bias_peak', height = '250px') %>% withSpinner(color = "#1E328F"))
+                                  )
+                           )
+                       )                       
              )
              
     ),
