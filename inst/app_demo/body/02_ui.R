@@ -372,12 +372,22 @@ ui_app = page_navbar(
                        fluidRow(
                            column(width = 6,
                                   card(card_header('Error Bias: Seasons'),
-                                       card_body(datagridOutput(outputId = 'backtest_error_bias_seasons', height = '250px') %>% withSpinner(color = "#1E328F"))
+                                       card_body(
+                                           fluidRow(
+                                           column(width = 6, datagridOutput(outputId = 'backtest_error_bias_seasons_a', height = '250px') %>% withSpinner(color = "#1E328F")),
+                                           column(width = 6, datagridOutput(outputId = 'backtest_error_bias_seasons_b', height = '250px') %>% withSpinner(color = "#1E328F"))
+                                           )
+                                       )
                                   )
                            ),
                            column(width = 6,
                                   card(card_header('Error Bias: Peak-Off Peak'),
-                                       card_body(datagridOutput(outputId = 'backtest_error_bias_peak', height = '250px') %>% withSpinner(color = "#1E328F"))
+                                       card_body(
+                                           fluidRow(
+                                               column(width = 6, datagridOutput(outputId = 'backtest_error_bias_peak_a', height = '250px') %>% withSpinner(color = "#1E328F")),
+                                               column(width = 6, datagridOutput(outputId = 'backtest_error_bias_peak_b', height = '250px') %>% withSpinner(color = "#1E328F"))
+                                           )
+                                       )
                                   )
                            )
                        )                       

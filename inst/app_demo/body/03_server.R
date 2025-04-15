@@ -3073,7 +3073,7 @@ server_app = function(input, output, session) {
                  filters = TRUE)
     })
     
-    output$backtest_error_bias_seasons = renderDatagrid({
+    output$backtest_error_bias_seasons_a = renderDatagrid({
         req(react$dt_error)
         DT =
             react$dt_error[, .(
@@ -3084,14 +3084,38 @@ server_app = function(input, output, session) {
                  filters = TRUE)
     })
     
-    output$backtest_error_bias_peak = renderDatagrid({
+    output$backtest_error_bias_seasons_b = renderDatagrid({
+        req(react$dt_error)
+        DT =
+            react$dt_error[, .(
+                MAE = round(mean(abs(ERROR), na.rm = TRUE), 2)
+            ), by = .(season, DIR)] %>% dcast(season ~ DIR)
+        
+        datagrid(DT,
+                 filters = TRUE)
+    })    
+    
+    output$backtest_error_bias_peak_a = renderDatagrid({
         req(react$dt_error)
         
         ## error metrics
         DT =
             react$dt_error[, .(
                 MAE = round(mean(abs(ERROR), na.rm = TRUE), 2)
-            ), by = .(season, DIR)] %>% dcast(season ~ DIR)
+            ), by = .(peak)] 
+        
+        datagrid(DT,
+                 filters = TRUE)
+    })
+    
+    output$backtest_error_bias_peak_b = renderDatagrid({
+        req(react$dt_error)
+        
+        ## error metrics
+        DT =
+            react$dt_error[, .(
+                MAE = round(mean(abs(ERROR), na.rm = TRUE), 2)
+            ), by = .(peak, DIR)] %>% dcast(peak ~ DIR)
         
         datagrid(DT,
                  filters = TRUE)
