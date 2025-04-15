@@ -2842,24 +2842,16 @@ server_app = function(input, output, session) {
     
     dt_backtest = reactiveVal(NULL)
     observeEvent(input$act_load_backtest, {
-        in_select_PWR_backtest = 'Greece'
-        in_select_backtest_source = 'Last'
-        x = in_select_PWR_backtest
-        in_select_backtest_period_1 = '2024-01-01'
-        in_select_backtest_period_2 = '2024-12-31'
-        shiny_run = in_select_backtest_source
-        shiny_sim = NULL
         
-        start_date = in_select_backtest_period_1
-        end_date = in_select_backtest_period_2
+        if(input$in_select_backtest_source == 'Sim') {shiny_sim = input$in_select_sim_name_backtest} else {shiny_sim = NULL}
         
         backtest = run_forecast_backtest_pwr(
-            x,
-            in_select_backtest_source = 'Last',
-            in_select_backtest_period_1,
-            in_select_backtest_period_2,
-            shiny_sim = NULL,
-            reuters_key = Sys.getenv('REUTERS_KEY')
+            x = input$in_select_PWR_backtest,
+            in_select_backtest_source = input$in_select_backtest_source,
+            in_select_backtest_period_1 = input$in_select_backtest_period[1],
+            in_select_backtest_period_2 = input$in_select_backtest_period[2],
+            shiny_sim = shiny_sim,
+            reuters_key = PLEASE_INSERT_REUTERS_KEY
         )
         dt_backtest(backtest)
     })
