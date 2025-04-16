@@ -115,9 +115,6 @@ ui_app = page_navbar(
                                          )
                                ),
                                nav_panel('Power Single',
-                                         layout_sidebar(
-                                             sidebar = sidebar(bg = 'white',
-                                                               datagridOutput('forecast_params_table_recap_pwr'), position = 'right', open = FALSE, width = '450px'),
                                              fluidRow(
                                                  card(
                                                      card_body(
@@ -128,13 +125,9 @@ ui_app = page_navbar(
                                                          datagridOutput(outputId = 'pwr_history_table') %>% withSpinner(color = "#F2606A")
                                                      ))
                                              )
-                                         )
                                ),
                                
                                nav_panel('Gas Single',
-                                         layout_sidebar(
-                                             sidebar = sidebar(bg = 'white',
-                                                               datagridOutput('forecast_params_table_recap_gas'), position = 'right', open = FALSE, width = '450px'),
                                              fluidRow(
                                                  card(
                                                      card_body(
@@ -145,7 +138,6 @@ ui_app = page_navbar(
                                                          datagridOutput(outputId = 'gas_history_table') %>% withSpinner(color = "#F2606A")
                                                      ))
                                              )
-                                         )
                                )
                            )
                        )
@@ -322,11 +314,12 @@ ui_app = page_navbar(
                                        card(card_header('Select Power Model to backtest'),
                                             card_body(
                                                 fluidRow(
-                                                    column(width = 1, select_backtest_source),
-                                                    column(width = 3, select_sim_name_backtest),
-                                                    column(width = 3, select_PWR_backtest),
-                                                    column(width = 3, select_backtest_period),
-                                                    column(width = 2, load_backtest)
+                                                    column(width = 2, select_backtest_source),
+                                                    column(width = 2, select_sim_name_backtest),
+                                                    column(width = 2, select_PWR_backtest),
+                                                    column(width = 2, select_backtest_period),
+                                                    column(width = 2, load_backtest),
+                                                    column(width = 2, backtest_pwr_download),
                                                 )
                                             )),
                                        card(card_header('Select Power Model to backtest'),

@@ -23,7 +23,7 @@ select_history_period =
         inputId = "in_select_history",
         label = "Select history Interval:",
         start  = "2016-01-01",
-        end    = "2024-12-31",
+        end    = Sys.Date(),
         min    = "2016-01-01",
         max    = Sys.Date(),
         format = "yyyy/mm/dd",
@@ -49,8 +49,8 @@ select_horizon_horizon =
     dateRangeInput(
         inputId = "in_select_horizon",
         label = "Select forecast horizon Interval:",
-        start  = '2024-01-01',
-        end    = '2024-12-31', 
+        start  = Sys.Date(),
+        end    = Sys.Date() + (365*2), 
         min    = '2017-01-01',
         max    = '2030-12-31',
         format = "yyyy/mm/dd",
@@ -452,7 +452,7 @@ select_lt_horizon =
         inputId = "in_select_lt_horizon",
         label = "Select LT Horizon Interval:",
         start  = Sys.Date(),
-        end    = "2029-12-31",
+        end    = Sys.Date() + (365*2),
         min    = "2016-01-01",
         max    = '2035-12-31',
         format = "yyyy/mm/dd",
@@ -464,7 +464,7 @@ select_lt_train =
     dateRangeInput(
         inputId = "in_select_lt_train",
         label = "Basket Train period:",
-        start  = "2016-01-01",
+        start  = Sys.Date() - 365,
         end    = Sys.Date(),
         min    = "2016-01-01",
         max    = '2035-12-31',
@@ -485,14 +485,14 @@ select_cutoff_mkt =
     dateInput(
         inputId = 'in_select_cutoff_mkt',
         label = 'Select cut-off Main vs Basket',
-        value = Sys.Date() + (365*2)
+        value = Sys.Date() + (365)
     )
 
 select_cutoff_sce =
     dateInput(
         inputId = 'in_select_cutoff_sce',
         label = 'Select cut-off Market vs Scenario',
-        value = Sys.Date() + (365*4)
+        value = Sys.Date() + (365*1.5)
     )
 
 product_create_lt =
@@ -584,7 +584,7 @@ select_backtest_period =
         inputId = "in_select_backtest_period",
         label = "Select backtesting Interval:",
         start  = Sys.Date() - 365,
-        end    = "2024-12-31",
+        end    = Sys.Date(),
         min    = "2016-01-01",
         max    = Sys.Date(),
         format = "yyyy/mm/dd",
@@ -601,4 +601,14 @@ load_backtest =
         icon = shiny::icon('upload'),
         width = '100%',
         type = "warning"
+    )
+
+
+backtest_pwr_download =
+    downloadButton(
+        outputId = 'in_backtest_pwr_download',
+        label = 'Backtest Download',
+        icon = shiny::icon('download'),
+        style = "width:50%;",
+        class = "btn-secondary"
     )

@@ -1299,7 +1299,7 @@ server_app = function(input, output, session) {
                         dir.create(last_path, recursive = TRUE)
                     }
                     
-                    fwrite(dt_pwr, file.path(last_path, paste0('forecast_pwr.csv')))
+                    fwrite(dt_pwr, file.path(last_path, paste0('forecast_pwr', Sys.Date() ,'.csv')))
                     
                     if(!is.null(shiny_sim)) {
                         if(nchar(shiny_sim) > 0) {
@@ -1309,7 +1309,7 @@ server_app = function(input, output, session) {
                                 dir.create(last_path, recursive = TRUE)
                             }
                             
-                            fwrite(dt_pwr, file.path(last_path, paste0('forecast_pwr.csv')))
+                            fwrite(dt_pwr, file.path(last_path, paste0('forecast_pwr', Sys.Date() ,'.csv')))
                         }
                     }
                     
@@ -1460,7 +1460,7 @@ server_app = function(input, output, session) {
                         dir.create(last_path, recursive = TRUE)
                     }
                     
-                    fwrite(dt_pwr, file.path(last_path, paste0('forecast_pwr.csv')))
+                    fwrite(dt_pwr, file.path(last_path, paste0('forecast_pwr', Sys.Date() ,'.csv')))
                     if(!is.null(shiny_sim)) {
                         if(nchar(shiny_sim) > 0) {
                             
@@ -1469,7 +1469,7 @@ server_app = function(input, output, session) {
                                 dir.create(last_path, recursive = TRUE)
                             }
                             
-                            fwrite(dt_pwr, file.path(last_path, paste0('forecast_pwr.csv')))
+                            fwrite(dt_pwr, file.path(last_path, paste0('forecast_pwr', Sys.Date() ,'.csv')))
                         }
                     }
                     
@@ -1631,7 +1631,7 @@ server_app = function(input, output, session) {
                         dir.create(last_path, recursive = TRUE)
                     }
                     
-                    fwrite(dt_gas, file.path(last_path, paste0('forecast_gas.csv')))
+                    fwrite(dt_gas, file.path(last_path, paste0('forecast_gas', Sys.Date() ,'.csv')))
                     
                     if(!is.null(shiny_sim)) {
                         if(nchar(shiny_sim) > 0) {
@@ -1641,7 +1641,7 @@ server_app = function(input, output, session) {
                                 dir.create(last_path, recursive = TRUE)
                             }
                             
-                            fwrite(dt_gas, file.path(last_path, paste0('forecast_gas.csv')))
+                            fwrite(dt_gas, file.path(last_path, paste0('forecast_gas', Sys.Date() ,'.csv')))
                         }
                     }
                     
@@ -1777,7 +1777,7 @@ server_app = function(input, output, session) {
                         dir.create(last_path, recursive = TRUE)
                     }
                     
-                    fwrite(dt_gas, file.path(last_path, paste0('forecast_gas.csv')))
+                    fwrite(dt_gas, file.path(last_path, paste0('forecast_gas', Sys.Date() ,'.csv')))
                     if(!is.null(shiny_sim)) {
                         if(nchar(shiny_sim) > 0) {
                             
@@ -1786,7 +1786,7 @@ server_app = function(input, output, session) {
                                 dir.create(last_path, recursive = TRUE)
                             }
                             
-                            fwrite(dt_gas, file.path(last_path, paste0('forecast_gas.csv')))
+                            fwrite(dt_gas, file.path(last_path, paste0('forecast_gas', Sys.Date() ,'.csv')))
                         }
                     }
                     
@@ -2020,7 +2020,7 @@ server_app = function(input, output, session) {
             dir.create(last_path, recursive = TRUE)
         }
         
-        saveRDS(dt_pwr, file.path(last_path, paste0('forecast_pwr.rds')))
+        saveRDS(dt_pwr, file.path(last_path, paste0('forecast_pwr', Sys.Date() ,'.rds')))
         
         if(!is.null(input$sim_name)) {
             if(nchar(input$sim_name) > 0) {
@@ -2030,7 +2030,7 @@ server_app = function(input, output, session) {
                     dir.create(last_path, recursive = TRUE)
                 }
                 
-                saveRDS(dt_pwr, file.path(last_path, paste0('forecast_pwr.rds')))
+                saveRDS(dt_pwr, file.path(last_path, paste0('forecast_pwr', Sys.Date() ,'.rds')))
             }
         }
         
@@ -2186,7 +2186,7 @@ server_app = function(input, output, session) {
             dir.create(last_path, recursive = TRUE)
         }
         
-        saveRDS(dt_gas, file.path(last_path, paste0('forecast_gas.rds')))
+        saveRDS(dt_gas, file.path(last_path, paste0('forecast_gas', Sys.Date() ,'.rds')))
         
         if(!is.null(input$sim_name)) {
             if(nchar(input$sim_name) > 0) {
@@ -2196,7 +2196,7 @@ server_app = function(input, output, session) {
                     dir.create(last_path, recursive = TRUE)
                 }
                 
-                saveRDS(dt_gas, file.path(last_path, paste0('forecast_gas.rds')))
+                saveRDS(dt_gas, file.path(last_path, paste0('forecast_gas', Sys.Date() ,'.rds')))
             }
         }
         
@@ -2631,8 +2631,8 @@ server_app = function(input, output, session) {
     observe({
         req(react$preparation_basket)
         req(react$selected_weights)
-        dt_plot = merge(react$preparation_basket, react$selected_weights[, .(COMMODITY, weight)], by = "COMMODITY")
-        dt_plot[, weighted_value := VALUE * weight]
+        dt_plot = merge(react$preparation_basket, react$selected_weights[, .(COMMODITY, coeff)], by = "COMMODITY")
+        dt_plot[, weighted_value := VALUE * coeff]
         
         dt_plot_main = react$preparation_basket[COMMODITY == react$in_commodity_main, .(COMMODITY = react$in_commodity_main, VALUE = sum(VALUE)), by = 'DATE']
         dt_plot_proxy = dt_plot[, .(COMMODITY = 'BASKET', VALUE = sum(weighted_value)), by = 'DATE']
@@ -2731,13 +2731,13 @@ server_app = function(input, output, session) {
     
     
     observeEvent(input$act_generate_fwd_curves, {
-        req(react$proxy_basket)
+        req(react$selected_weights)
         req(react$list_data)
         
         dts =
             fwd_pipeline(
                 commodity_main = input$in_select_main_product,
-                coef_glm = react$proxy_basket,
+                coef_glm = react$selected_weights,
                 list_data = react$list_data,
                 start_train = input$in_select_lt_train[1],
                 end_train = input$in_select_lt_train[2],
@@ -2815,8 +2815,8 @@ server_app = function(input, output, session) {
             dir.create(last_path, recursive = TRUE)
         }
         
-        saveRDS(dt_final, file.path(last_path, paste0('forecast_pwr_lt.rds')))
-        fwrite(dt_final, file.path(last_path, paste0('forecast_pwr_lt.csv')))
+        saveRDS(dt_final, file.path(last_path, paste0('forecast_pwr_lt-', Sys.Date() ,'.rds')))
+        fwrite(dt_final, file.path(last_path, paste0('forecast_pwr_lt', Sys.Date() ,'.csv')))
         
     })
     
@@ -3135,6 +3135,17 @@ server_app = function(input, output, session) {
         datagrid(DT,
                  filters = TRUE)
     })
+    
+    
+    output$in_backtest_pwr_download = downloadHandler(
+        filename = function() {
+            paste0("backtest_pwr-", input$in_select_PWR_backtest, '-', Sys.Date(), ".csv")
+        },
+        content = function(file) {
+            fwrite(react$dt_backtest$dt_pwr_lg, file)
+        }
+    )
+    
     
     ## END
     
