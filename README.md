@@ -17,3 +17,8 @@ The package integrates with `eikondata` for data retrieval, and supports long-te
 remotes::install_github("mbsenergy/HPFC")
 ```
 
+## Run the App
+
+```r
+shiny::runApp(system.file("app_demo", package = "HPFC"))
+```

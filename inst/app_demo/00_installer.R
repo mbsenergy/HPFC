@@ -13,6 +13,7 @@ cran_packages = c(
     "knitr",
     "chron",
     "lubridate",
+    "glmnet",
     "neverhpfilter",
     "mFilter",
     "changepoint",
