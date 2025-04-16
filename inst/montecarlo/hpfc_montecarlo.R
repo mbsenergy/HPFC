@@ -10,6 +10,25 @@ box::use(
     openxlsx[...]
 )
 
+# INPUTS
+STARTING_PRICE = 100
+YEARS = 2
+N_SIMS = 20
+OVERRIDE_SIGMA = 'NO'
+AUX_SIGMA = 2
+
+START_DATE = 
+END_DATE =
+
+if(OVERRIDE_SIGMA == 'NO') {
+    in_aux_sigma = NULL
+} else {
+    in_aux_sigma = AUX_SIGMA
+}
+
+MAIN_CURVE = 'Greece'
+
+
 ## sim path
 sim_path = 'mc_run'
 
@@ -29,12 +48,12 @@ ENV_MODELS_PWR = readRDS(file.path(sim_path, 'models', 'ENV_MODELS_PWR.rds'))
 
 # SIMULATE PATHS -----------------------------------
 sim_result = montecarlo_sim(
-    S0 = 100,
-    Td = 365,
-    N = 20,
+    S0 = STARTING_PRICE,
+    Td = 365 * YEARS,
+    N = N_SIMS,
     dt_spot_pwr = dt_spot_pwr,
     dt_fwd_pwr = dt_fwd_pwr,
-    aux_sigma = NULL # 1.23262
+    aux_sigma = in_aux_sigma # 1.23262
 )
 
 
@@ -55,14 +74,14 @@ sim_result |>
 
 
 # PREPARE FOR SHAPING ---------------------------------------------
-dt_fwd_prep_pwr = merge(dt_fwd_pwr, generate_monthrics_pwr('Greece', time_range = 2024), by.x = 'yymm', by.y ='date', all.x = TRUE) 
+dt_fwd_prep_pwr = merge(dt_fwd_pwr, generate_monthrics_pwr(MAIN_CURVE, time_range = 2024), by.x = 'yymm', by.y ='date', all.x = TRUE) 
 dt_fwd_prep_gas = merge(dt_fwd_gas, generate_monthrics_gas('TFMB', time_range = 2024), by.x = 'yymm', by.y ='date', all.x = TRUE) 
 dt_fwds = rbind(dt_fwd_prep_pwr, dt_fwd_prep_gas)
 dt_fwds[, sim := NULL]
 colnames(dt_fwds) = c('date', 'value', 'RIC')
 
 list_inputs_fwd = prepare_fwd(
-    fwd_pwr_code = 'Greece',
+    fwd_pwr_code = MAIN_CURVE,
     fwd_gas_code = 'TTF',
     start_date = min(dt_fwd_pwr$yymm, na.rm = TRUE),
     end_date = max(dt_fwd_pwr$yymm, na.rm = TRUE),
@@ -76,7 +95,7 @@ list_inputs_fwd = prepare_fwd(
 
 ## APPLY TO REALIZED FWD -----------
 DT_FWD = apply_shape(
-    country = 'Greece',
+    country = MAIN_CURVE,
     name = 'FWD',
     start_date = '2024-01-01',
     end_date = '2024-12-31',
@@ -99,7 +118,7 @@ results = lapply(vec_sims, function(sim_id) {
     
     # Call the apply_shape function with the necessary parameters
     DTS = apply_shape(
-        country = 'Greece',
+        country = MAIN_CURVE,
         name = sim_id,
         start_date = '2024-01-01',
         end_date = '2024-12-31',

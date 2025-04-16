@@ -417,6 +417,16 @@ product_basket_lt =
         type = "info"
     )
 
+download_fwd_curves =
+    input_task_button(
+        id = 'act_download_fwd',
+        label = 'Download FWDs',
+        label_busy = "Processing...",
+        icon = shiny::icon('download'),
+        width = '100%',
+        type = "warning"
+    )
+
 generate_fwd_curves =
     input_task_button(
         id = 'act_generate_fwd_curves',
@@ -573,7 +583,7 @@ select_backtest_period =
     dateRangeInput(
         inputId = "in_select_backtest_period",
         label = "Select backtesting Interval:",
-        start  = "2016-01-01",
+        start  = Sys.Date() - 365,
         end    = "2024-12-31",
         min    = "2016-01-01",
         max    = Sys.Date(),

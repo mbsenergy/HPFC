@@ -2665,7 +2665,6 @@ server_app = function(input, output, session) {
             e_line(VALUE, smooth = TRUE, symbol='none', bind = COMMODITY) %>% 
             e_title(text = paste("Basket Power Cont.")) %>%
             e_tooltip(trigger = "axis") %>% 
-            e_color(c("#2392A2", "#C05B8C", rep("lightgray", length(unique(react$dt_proxy_basket$COMMODITY))))) |>
             e_toolbox_feature(feature = "saveAsImage") %>%
             e_toolbox_feature(feature = "dataZoom") %>%
             e_toolbox_feature(feature = "dataView") %>%
@@ -2715,7 +2714,7 @@ server_app = function(input, output, session) {
     fwd_basket = reactiveVal(NULL)
     list_data = reactiveVal(NULL)
     
-    observeEvent(input$act_generate_fwd_curves, {
+    observeEvent(input$act_download_fwd, {
         
         list_data = get_data_pipeline(commodity_main = input$in_select_main_product,
                                       commodity_basket = input$in_select_basket,
@@ -2731,7 +2730,7 @@ server_app = function(input, output, session) {
     })
     
     
-    observe({
+    observeEvent(input$act_generate_fwd_curves, {
         req(react$proxy_basket)
         req(react$list_data)
         
@@ -2869,6 +2868,7 @@ server_app = function(input, output, session) {
             shiny_sim = shiny_sim,
             reuters_key = PLEASE_INSERT_REUTERS_KEY
         )
+        backtest$dt_pwr_lg = backtest$dt_pwr_lg[date >= input$in_select_backtest_period[1] & date <= input$in_select_backtest_period[2]]
         dt_backtest(backtest)
     })
     
@@ -2943,13 +2943,20 @@ server_app = function(input, output, session) {
     
     output$backtest_error_gauge_pv = renderEcharts4r({
         req(react$dt_error)
+        pv_profile = readRDS('www/consumption_profiles.rds')
+        error_pv = merge(react$dt_error[, .(date, hour, ERROR)], pv_profile, by = c('date', 'hour'), all.x = TRUE)
+        error_pv = error_pv[, .(cp_delta = sum(ERROR * pv, na.rm = TRUE))]
+        
         e_charts() |> 
-            e_gauge(round(react$dt_error[, .(mean = mean(ERROR, na.rm = TRUE))][[1]], 2), "ERROR") |> 
+            e_gauge(round(error_pv[[1]], 2), "ERROR") |> 
             e_title("PV Profile")
     })
     
     output$backtest_error_gauge_lv = renderEcharts4r({
         req(react$dt_error)
+        lv_profile = readRDS('www/consumption_profiles.rds')
+        error_pv = merge(react$dt_error[, .(date, hour, ERROR)], lv_profile, by = c('date', 'hour'), all.x = TRUE)
+        error_pv = error_pv[, .(cp_delta = sum(ERROR * pv, na.rm = TRUE))]
         e_charts() |> 
             e_gauge(round(react$dt_error[, .(mean = mean(ERROR, na.rm = TRUE))][[1]], 2), "ERROR") |> 
             e_title("LV Profile")
@@ -2960,7 +2967,7 @@ server_app = function(input, output, session) {
         req(react$dt_backtest)
         
         dt_pwr = react$dt_backtest$dt_pwr_lg[type %in% c('spot', 'forecast')]
-        dts = dt_pwr[, .(value = round(mean(value))), by = .(hour, type)] 
+        dts = dt_pwr[, .(value = round(mean(value, na.rm = TRUE))), by = .(hour, type)] 
         dts %>% 
             group_by(type) %>% 
             e_charts(hour) %>% 
@@ -2976,7 +2983,7 @@ server_app = function(input, output, session) {
         req(react$dt_backtest)
         
         dt_pwr = react$dt_backtest$dt_pwr_lg[type %in% c('spot', 'forecast')]
-        dts = dt_pwr[season == 'winter', .(value = round(mean(value))), by = .(hour, type)] 
+        dts = dt_pwr[season == 'winter', .(value = round(mean(value, na.rm = TRUE))), by = .(hour, type)] 
         dts %>% 
             group_by(type) %>% 
             e_charts(hour) %>% 
@@ -2991,7 +2998,7 @@ server_app = function(input, output, session) {
         req(react$dt_backtest)
         
         dt_pwr = react$dt_backtest$dt_pwr_lg[type %in% c('spot', 'forecast')]
-        dts = dt_pwr[season == 'spring', .(value = round(mean(value))), by = .(hour, type)] 
+        dts = dt_pwr[season == 'spring', .(value = round(mean(value, na.rm = TRUE))), by = .(hour, type)] 
         dts %>% 
             group_by(type) %>% 
             e_charts(hour) %>% 
@@ -3006,7 +3013,7 @@ server_app = function(input, output, session) {
         req(react$dt_backtest)
         
         dt_pwr = react$dt_backtest$dt_pwr_lg[type %in% c('spot', 'forecast')]
-        dts = dt_pwr[season == 'summer', .(value = round(mean(value))), by = .(hour, type)] 
+        dts = dt_pwr[season == 'summer', .(value = round(mean(value, na.rm = TRUE))), by = .(hour, type)] 
         dts %>% 
             group_by(type) %>% 
             e_charts(hour) %>% 
@@ -3021,7 +3028,7 @@ server_app = function(input, output, session) {
         req(react$dt_backtest)
         
         dt_pwr = react$dt_backtest$dt_pwr_lg[type %in% c('spot', 'forecast')]
-        dts = dt_pwr[season == 'fall', .(value = round(mean(value))), by = .(hour, type)] 
+        dts = dt_pwr[season == 'fall', .(value = round(mean(value, na.rm = TRUE))), by = .(hour, type)] 
         dts %>% 
             group_by(type) %>% 
             e_charts(hour) %>% 
