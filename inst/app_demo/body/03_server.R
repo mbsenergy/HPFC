@@ -2732,8 +2732,10 @@ server_app = function(input, output, session) {
                 end_horizon = end_horizon
             )
 
-        fwd_main(dts[1])
-        fwd_basket(dts[2])
+        dts1 = as.data.table(dts[1])
+        dts2 = as.data.table(dts[2])
+        fwd_main(dts1)
+        fwd_basket(dts2)
         
         # dt1 = readRDS(file = 'DT_FWD.rds')
         # dt2 = readRDS(file = 'DT_FWD2.rds')
