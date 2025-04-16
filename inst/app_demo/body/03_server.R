@@ -2562,7 +2562,7 @@ server_app = function(input, output, session) {
         
         preparation_basket(dt_cont)
         
-        list_autobasket = basket_selection(DT = dt_cont, mk_comm_0 = commodity_main, basket = commodity_basket, start = input$in_select_lt_train[1], end = input$in_select_lt_train[2])
+        list_autobasket = HPFC::basket_selection(DT = dt_cont, mk_comm_0 = commodity_main, basket = commodity_basket, start = input$in_select_lt_train[1], end = input$in_select_lt_train[2])
         
         coeff_table = as.data.table(list_autobasket$coef_glm)
         coeff_table[, RIC := NULL]
