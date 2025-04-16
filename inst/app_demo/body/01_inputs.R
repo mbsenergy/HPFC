@@ -3,7 +3,7 @@
 ### RICS NAMES -----------------------------------------------------------------
 vec_pwr_products =        eikondata::pwr_products_full$countries
 vec_gas_products =        eikondata::gas_products_full$products_GAS
-vec_basket = c(vec_pwr_products, vec_gas_products, 'CO2')
+vec_basket = c(vec_pwr_products, vec_gas_products, 'C02')
 names(vec_pwr_products) = eikondata::pwr_products_full$countries
 names(vec_gas_products) = eikondata::gas_products_full$products_GAS
 names(vec_basket) = vec_basket
@@ -404,7 +404,7 @@ select_basket =
         width = '100%',
         options = list(maxItems = 4),
         choices = vec_basket,
-        selected = c('Germany', 'TTF', 'CO2')
+        selected = c('Germany', 'TTF', 'C02')
     )
 
 product_basket_lt =

@@ -85,7 +85,9 @@ fwd_pipeline = function(commodity_main, coef_glm, start_train, end_train, start_
         reuters_key = Sys.getenv('REUTERS_KEY')
     )
     main_inputs_fwd = main_inputs_fwd$ENV_FWD$dt_fwds
+    saveRDS(main_inputs_fwd, 'main_inputs_fwd.rds')
     
+    Sys.sleep(5)
     ### gas for apply_shape
     main_inputs_fwd_gas = prepare_fwd(
         fwd_pwr_code = NULL,
@@ -100,8 +102,9 @@ fwd_pipeline = function(commodity_main, coef_glm, start_train, end_train, start_
         reuters_key = Sys.getenv('REUTERS_KEY')
     )
     main_inputs_fwd_gas = main_inputs_fwd_gas$ENV_FWD$dt_fwds
+    saveRDS(main_inputs_fwd_gas, 'main_inputs_fwd_gas.rds')
     
-    
+    Sys.sleep(5)
     basketpwr_inputs_fwd = lapply(eikondata::pwr_products_full[countries %in% commodity_basket]$countries, function(x) {
         dts = prepare_fwd(
             fwd_pwr_code = x,
@@ -119,7 +122,10 @@ fwd_pipeline = function(commodity_main, coef_glm, start_train, end_train, start_
     })
     
     basketpwr_inputs_fwd = rbindlist(lapply(basketpwr_inputs_fwd, function(x) x$ENV_FWD$dt_fwds))
+    saveRDS(basketpwr_inputs_fwd, 'basketpwr_inputs_fwd.rds')
     
+    
+    Sys.sleep(5)
     basketgas_inputs_fwd = lapply(eikondata::gas_products_full[products_GAS %in% commodity_basket]$products_GAS, function(x) {
         dts = prepare_fwd(
             fwd_pwr_code = NULL,
@@ -137,6 +143,7 @@ fwd_pipeline = function(commodity_main, coef_glm, start_train, end_train, start_
     })
     
     basketgas_inputs_fwd = rbindlist(lapply(basketgas_inputs_fwd, function(x) x$ENV_FWD$dt_fwds))
+    saveRDS(basketgas_inputs_fwd, 'basketgas_inputs_fwd.rds')
     
     if(any(commodity_basket %in% 'C02')) {
         vec_co2 = paste0(eikondata::CO2_products_full$products_CO2_code, paste0('Z', 0:9))
@@ -175,6 +182,7 @@ fwd_pipeline = function(commodity_main, coef_glm, start_train, end_train, start_
         }, by = yymm]
         dt_co2_expanded = dt_co2_expanded[, .(yymm = yymm2, RIC, value)]
     }
+    saveRDS(dt_co2_expanded, 'dt_co2_expanded.rds')
     
     
     
@@ -350,7 +358,6 @@ fwd_pipeline = function(commodity_main, coef_glm, start_train, end_train, start_
         model_pwr = ENV_MODELS_PWR
     )
     
-    
     DT_FWD_basket = apply_shape(
         country = commodity_main,
         name = 'FWD',
@@ -366,6 +373,8 @@ fwd_pipeline = function(commodity_main, coef_glm, start_train, end_train, start_
     
     output = list(DT_FWD_main, DT_FWD_basket)
     names(output) =  c('MAIN', 'PROXY')
+    saveRDS(output, 'output.rds')
+    
     return(output)
     
 }
