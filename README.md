@@ -19,6 +19,8 @@ remotes::install_github("mbsenergy/HPFC")
 
 ## Run the App
 
+Once launched the app, open your browser at: `localhost:8180`
+
 ```r
 shiny::runApp(system.file("app_demo", package = "HPFC"))
 ```
