@@ -2717,15 +2717,15 @@ server_app = function(input, output, session) {
     
     observeEvent(input$act_generate_fwd_curves, {
         
-        # list_data = get_data_pipeline(commodity_main = input$in_select_main_product,
-        #                               commodity_basket = input$in_select_basket,
-        #                               start_train = input$in_select_lt_train[1],
-        #                               end_train = input$in_select_lt_train[2],
-        #                               start_horizon = input$in_select_lt_horizon[1],
-        #                               end_horizon = input$in_select_lt_horizon[2] 
-        #                               )
+        list_data = get_data_pipeline(commodity_main = input$in_select_main_product,
+                                      commodity_basket = input$in_select_basket,
+                                      start_train = input$in_select_lt_train[1],
+                                      end_train = input$in_select_lt_train[2],
+                                      start_horizon = input$in_select_lt_horizon[1],
+                                      end_horizon = input$in_select_lt_horizon[2]
+                                      )
         # saveRDS(list_data, 'list_data.rds')
-        list_data = readRDS('list_data.rds')
+        # list_data = readRDS('list_data.rds')
         
         list_data(list_data)
     })
