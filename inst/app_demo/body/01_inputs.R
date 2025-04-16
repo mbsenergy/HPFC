@@ -498,8 +498,8 @@ select_cutoff_sce =
 product_create_lt =
     input_task_button(
         id = 'act_product_create_lt',
-        label = 'Forecast LT',
-        label_busy = "Forecasting...",
+        label = 'Build LT Curve',
+        label_busy = "Building...",
         icon = shiny::icon('eye'),
         width = '100%',
         type = "warning"
