@@ -2732,6 +2732,7 @@ server_app = function(input, output, session) {
                 end_horizon = end_horizon
             )
 
+        saveRDS(dts, 'dts.rds')
         dts1 = as.data.table(dts[1])
         dts2 = as.data.table(dts[2])
         fwd_main(dts1)
@@ -2754,8 +2755,6 @@ server_app = function(input, output, session) {
         dt2_avg = react$fwd_basket[, .(value_proxy = mean(forecast)), by = .(date)]
         
         merged = merge(dt1_avg, dt2_avg, by = c("date"))
-        
-        # saveRDS(merged, 'merged.rds')
         
         merged[order(date)] %>%
             e_charts(date) %>%
