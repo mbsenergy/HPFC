@@ -2722,26 +2722,27 @@ server_app = function(input, output, session) {
         commodity_basket = input$in_select_basket
         start_horizon = input$in_select_lt_horizon[1]
         end_horizon = input$in_select_lt_horizon[2]
-        dts =
-            fwd_pipeline(
-                commodity_main = commodity_main,
-                coef_glm = react$proxy_basket,
-                start_train = '2020-01-01',
-                end_train = Sys.Date(),
-                start_horizon = start_horizon,
-                end_horizon = end_horizon
-            )
-
-        saveRDS(dts, 'dts.rds')
+        # dts =
+        #     fwd_pipeline(
+        #         commodity_main = commodity_main,
+        #         coef_glm = react$proxy_basket,
+        #         start_train = '2020-01-01',
+        #         end_train = Sys.Date(),
+        #         start_horizon = start_horizon,
+        #         end_horizon = end_horizon
+        #     )
+        # 
+        # saveRDS(dts, 'dts.rds')
+        dts = readRDS('output.rds')
+        
         dts1 = as.data.table(dts[1])
         dts2 = as.data.table(dts[2])
+        
+        colnames(dts1) = c('date', 'hour', 'forecast', 'name')
+        colnames(dts2) = c('date', 'hour', 'forecast', 'name')
+        
         fwd_main(dts1)
         fwd_basket(dts2)
-        
-        # dt1 = readRDS(file = 'DT_FWD.rds')
-        # dt2 = readRDS(file = 'DT_FWD2.rds')
-        # fwd_main(dt1)
-        # fwd_basket(dt2)
         
     })
     
