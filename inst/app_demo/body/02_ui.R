@@ -258,7 +258,8 @@ ui_app = page_navbar(
                                       card(card_header('Long-Term Final Curve'),
                                            card_body(
                                                echarts4rOutput(outputId = 'pwr_lt_final_plot') %>% withSpinner(color = "#ECB22E")
-                                           ))
+                                           ),
+                                           full_screen = TRUE)
                                )
                            ),
                            fluidRow(
@@ -266,25 +267,29 @@ ui_app = page_navbar(
                                       card(card_header('Coefficients Tables'),
                                            card_body(
                                                datagridOutput(outputId = 'pwr_lt_coeff_table') %>% withSpinner(color = "#ECB22E")
-                                           ))
+                                           ),
+                                           full_screen = TRUE)
                                ),
                                column(width = 3,
                                       card(card_header('Basket & Main Relationship'),
                                            card_body(
                                                echarts4rOutput(outputId = 'pwr_lt_basketcorrelation_plot') %>% withSpinner(color = "#ECB22E")
-                                           )) 
+                                           ),
+                                           full_screen = TRUE) 
                                ),
                                column(width = 3,
                                       card(card_header('FWD Curves: Main & Proxy'),
                                            card_body(
                                                echarts4rOutput(outputId = 'pwr_lt_basket_plot') %>% withSpinner(color = "#ECB22E")
-                                           ))
+                                           ),
+                                           full_screen = TRUE)
                                ),
                                column(width = 3,
                                       card(card_header('Scenario Curve'),
                                            card_body(
                                                echarts4rOutput(outputId = 'pwr_lt_scenario_plot') %>% withSpinner(color = "#ECB22E")
-                                           ))
+                                           ),
+                                           full_screen = TRUE)
                                )
                            )
                        )

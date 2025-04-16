@@ -62,10 +62,10 @@ select_horizon_total =
     dateRangeInput(
         inputId = "in_select_total_horizon",
         label = "Select curve total horizon:",
-        start  = '2024-01-01',
-        end    = '2024-12-31', 
-        min    = '2017-01-01',
-        max    = '2030-12-31',
+        start  = Sys.Date(),
+        end    = Sys.Date() + (365 * 5), 
+        min    = '2015-01-01',
+        max    = '2040-12-31',
         format = "yyyy/mm/dd",
         separator = " - ",
         width = '100%'
@@ -424,7 +424,7 @@ generate_fwd_curves =
         label_busy = "Processing...",
         icon = shiny::icon('download'),
         width = '100%',
-        type = "info"
+        type = "danger"
     )
 
 select_source_weights =

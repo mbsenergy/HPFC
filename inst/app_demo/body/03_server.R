@@ -2566,7 +2566,7 @@ server_app = function(input, output, session) {
         
         coeff_table = as.data.table(list_autobasket$coef_glm)
         coeff_table[, RIC := NULL]
-        
+        # saveRDS(coeff_table, 'coeff_table.rds')
         proxy_basket(coeff_table)
         
         # PLOTS 
@@ -2713,34 +2713,48 @@ server_app = function(input, output, session) {
     
     fwd_main = reactiveVal(NULL)
     fwd_basket = reactiveVal(NULL)
+    list_data = reactiveVal(NULL)
     
     observeEvent(input$act_generate_fwd_curves, {
         
+        # list_data = get_data_pipeline(commodity_main = input$in_select_main_product,
+        #                               commodity_basket = input$in_select_basket,
+        #                               start_train = input$in_select_lt_train[1],
+        #                               end_train = input$in_select_lt_train[2],
+        #                               start_horizon = input$in_select_lt_horizon[1],
+        #                               end_horizon = input$in_select_lt_horizon[2] 
+        #                               )
+        # saveRDS(list_data, 'list_data.rds')
+        list_data = readRDS('list_data.rds')
+        
+        list_data(list_data)
+    })
+    
+    
+    observe({
         req(react$proxy_basket)
+        req(react$list_data)
+        
+        dts =
+            fwd_pipeline(
+                commodity_main = input$in_select_main_product,
+                coef_glm = react$proxy_basket,
+                list_data = react$list_data,
+                start_train = input$in_select_lt_train[1],
+                end_train = input$in_select_lt_train[2],
+                start_horizon = input$in_select_lt_horizon[1],
+                end_horizon = input$in_select_lt_horizon[2]
+            )
 
-        commodity_main = input$in_select_main_product
-        commodity_basket = input$in_select_basket
-        start_horizon = input$in_select_lt_horizon[1]
-        end_horizon = input$in_select_lt_horizon[2]
-        # dts =
-        #     fwd_pipeline(
-        #         commodity_main = commodity_main,
-        #         coef_glm = react$proxy_basket,
-        #         start_train = '2020-01-01',
-        #         end_train = Sys.Date(),
-        #         start_horizon = start_horizon,
-        #         end_horizon = end_horizon
-        #     )
-        # 
-        # saveRDS(dts, 'dts.rds')
-        dts = readRDS('output.rds')
+        # dts = readRDS('output.rds')
         
         dts1 = as.data.table(dts[1])
         dts2 = as.data.table(dts[2])
-        
+
         colnames(dts1) = c('date', 'hour', 'forecast', 'name')
         colnames(dts2) = c('date', 'hour', 'forecast', 'name')
-        
+
+        saveRDS(dts, 'dts.rds')
         fwd_main(dts1)
         fwd_basket(dts2)
         
@@ -2748,15 +2762,15 @@ server_app = function(input, output, session) {
     
     
     output$pwr_lt_basket_plot = renderEcharts4r({
-        
+
         req(react$fwd_main)
         req(react$fwd_basket)
-        
+
         dt1_avg = react$fwd_main[, .(value_main = mean(forecast)), by = .(date)]
         dt2_avg = react$fwd_basket[, .(value_proxy = mean(forecast)), by = .(date)]
-        
+
         merged = merge(dt1_avg, dt2_avg, by = c("date"))
-        
+
         merged[order(date)] %>%
             e_charts(date) %>%
             e_line(value_main, name = "Main", symbol = 'none') %>%
@@ -2766,8 +2780,8 @@ server_app = function(input, output, session) {
             e_title("FWD Curves") %>%
             e_y_axis(name = "Price") %>%
             e_x_axis(name = "Date") %>%
-            e_legend(top = 30) %>% 
-            e_datazoom(start = 0) %>% 
+            e_legend(top = 30) %>%
+            e_datazoom(start = 0) %>%
             e_theme('westeros')
     })
     

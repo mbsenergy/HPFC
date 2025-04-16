@@ -7,6 +7,7 @@
 fwd_pipeline(
   commodity_main,
   coef_glm,
+  list_data,
   start_train,
   end_train,
   start_horizon,

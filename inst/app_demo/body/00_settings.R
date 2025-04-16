@@ -11,7 +11,8 @@ library(magrittr)
 library(openxlsx)
 library(react)
 library(eikondata)
-library(HPFC)
+# library(HPFC)
+devtools::load_all()
 
 mbs_theme =
     bs_theme(
