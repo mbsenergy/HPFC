@@ -925,7 +925,6 @@ server_app = function(input, output, session) {
         
         LST_PARAMS = react$params_input_pwr
         
-        
         if(input$in_source_train == 'Excel') {
             
             req(!is.null(react$dt_spot_manual_gas))
@@ -1234,6 +1233,9 @@ server_app = function(input, output, session) {
     observeEvent(input$act_indicator_forecast_pwr_mult, {
         
         if(input$in_source_forecast == 'Excel') {
+            
+            req(!is.null(react$dt_forecast_manual_pwr))
+            req(!is.null(react$dt_forecast_manual_gas))
             
             showNotification("Using manual data", type = "message")
             
@@ -1585,12 +1587,9 @@ server_app = function(input, output, session) {
     
     observeEvent(input$act_indicator_forecast_gas_mult, {
         
-        if (is.null(react$dt_forecast_manual_gas)) {
-            showNotification("Missing manual gas and/pwr fwds data. Forecasting cannot proceed.", type = "error", duration = NULL)
-            return()
-        }
-        
-        if(!is.null(react$dt_forecast_manual_gas) & input$in_source_forecast == 'Excel') {
+        if(input$in_source_forecast == 'Excel') {
+            
+            req(!is.null(react$dt_forecast_manual_gas))
             
             showNotification("Using manual data", type = "message")
             
@@ -1915,7 +1914,10 @@ server_app = function(input, output, session) {
     
     observeEvent(input$act_indicator_forecast_pwr, {
         
-        if(!is.null(react$dt_forecast_manual_pwr) & !is.null(react$dt_forecast_manual_gas) & input$in_source_forecast == 'Excel') {
+        if(input$in_source_forecast == 'Excel') {
+            
+            req(!is.null(react$dt_forecast_manual_pwr))
+            req(!is.null(react$dt_forecast_manual_gas))
         
             dt_forecast_manual_pwr = react$dt_forecast_manual_pwr[RIC == input$in_select_PWR_indicator_for]
             dt_forecast_manual_pwr[, RIC := NULL]
@@ -2104,7 +2106,9 @@ server_app = function(input, output, session) {
     
     observeEvent(input$act_indicator_forecast_gas, {
         
-        if(!is.null(react$dt_forecast_manual_gas) & input$in_source_forecast == 'Excel') {
+        if(input$in_source_forecast == 'Excel') {
+            
+            req(!is.null(react$dt_forecast_manual_gas))
             
             dt_forecast_manual_gas = react$dt_forecast_manual_gas[RIC == input$in_select_GAS_indicator_for]
             dt_forecast_manual_gas[, RIC := NULL]
