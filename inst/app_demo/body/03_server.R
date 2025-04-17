@@ -216,12 +216,14 @@ server_app = function(input, output, session) {
     
     observeEvent(input$act_indicator_train_pwr_mult, {
         
-        if (is.null(react$dt_spot_manual_gas)) {
-            showNotification("Missing manual gas spot data. Training cannot proceed.", type = "error", duration = NULL)
-            return()
-        }
         
         if(!is.null(react$dt_spot_manual) & !is.null(react$dt_spot_manual_gas) & input$in_source_train == 'Excel') {
+            
+            if (is.null(react$dt_spot_manual_gas)) {
+                showNotification("Missing manual gas spot data. Training cannot proceed.", type = "error", duration = NULL)
+                return()
+                
+            } else {
             
             LST_PARAMS = list(
                 model_type = 'PWR',
@@ -385,6 +387,8 @@ server_app = function(input, output, session) {
             },
             LST_PARAMS = LST_PARAMS
             ) 
+            
+            }
             
         } else {
             
@@ -913,19 +917,10 @@ server_app = function(input, output, session) {
         
         LST_PARAMS = react$params_input_pwr
         
-        if (is.null(react$dt_spot_manual_gas)) {
-            showNotification("Missing manual gas spot data. Training cannot proceed.", type = "error", duration = NULL)
-            return()
-        }
-        
-        if (is.null(react$dt_spot_manual_pwr)) {
-            showNotification("Missing manual pwr spot data. Training cannot proceed.", type = "error", duration = NULL)
-            return()
-        }
         
         if(!is.null(react$dt_spot_manual) & !is.null(react$dt_spot_manual_gas) & input$in_source_train == 'Excel') {
         
-            if(!is.null(react$dt_spot_manual)) {
+            if(!is.null(react$dt_spot_manual_pwr)) {
                 list_inputs = HPFC::load_inputs(params = LST_PARAMS,
                                                 manual_data = react$dt_spot_manual,
                                                 reuters_key = NULL)
@@ -1219,12 +1214,6 @@ server_app = function(input, output, session) {
     
     observeEvent(input$act_indicator_forecast_pwr_mult, {
         
-            
-            if (is.null(react$dt_forecast_manual_pwr) & is.null(react$dt_forecast_manual_gas)) {
-                showNotification("Missing manual gas and/pwr fwds data. Forecasting cannot proceed.", type = "error", duration = NULL)
-                return()
-            }
-            
         if(!is.null(react$dt_forecast_manual_pwr) & !is.null(react$dt_forecast_manual_gas) & input$in_source_forecast == 'Excel') {
             
             showNotification("Using manual data", type = "message")
