@@ -4,6 +4,7 @@ server_app = function(input, output, session) {
     
     # 0. PREPARE ------------------------------------------------------
     
+    # Replicate for each year
     ## Check Connection
     
     check_reuters = reactiveVal(FALSE)
@@ -2954,9 +2955,23 @@ server_app = function(input, output, session) {
     
     output$backtest_error_gauge_lv = renderEcharts4r({
         req(react$dt_error)
-        lv_profile = readRDS('www/consumption_profiles.rds')
+        
+        dt1 = openxlsx::read.xlsx('HPFC/manual/forecasted_volumes.xlsx', detectDates = TRUE)
+        setDT(dt1)
+        dt1 = dt1[, .(lv = mean(client_standard, na.rm = TRUE)), by = .(date = Date, hour = Hour)]
+        dt1 = dt1[!is.na(lv)]
+        dt1 = unique(dt1)
+        dt1$lv = dt1$lv / sum(dt1$lv, na.rm = TRUE)
+        years = 2016:2040
+        
+        lv_profile = rbindlist(lapply(years, function(y) {
+            tmp = copy(dt1)
+            tmp[, date := as.IDate(sprintf("%d-%02d-%02d", y, month(date), mday(date)))]
+            tmp
+        }))
+        
         error_pv = merge(react$dt_error[, .(date, hour, ERROR)], lv_profile, by = c('date', 'hour'), all.x = TRUE)
-        error_pv = error_pv[, .(cp_delta = sum(ERROR * pv, na.rm = TRUE))]
+        error_pv = error_pv[, .(cp_delta = sum(ERROR * lv, na.rm = TRUE))]
         e_charts() |> 
             e_gauge(round(react$dt_error[, .(mean = mean(ERROR, na.rm = TRUE))][[1]], 2), "ERROR") |> 
             e_title("LV Profile")
