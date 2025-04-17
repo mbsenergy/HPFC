@@ -59,6 +59,8 @@ run_forecast_backtest_pwr = function(
             reuters_key = reuters_key
         ) 
         
+        pwr_codes = eikondata::pwr_products_full[countries %in% x]$spot_PWR_code
+        
         FWD = list_inputs_fwd$ENV_FWD
         
         if (in_select_backtest_source == 'Last') {
@@ -105,6 +107,37 @@ run_forecast_backtest_pwr = function(
         dt_pwr_obs = LST_FOR$saved_history_pwr[year(date) %in% unique(year(dt_pwr_for$date)) & RIC == unique(dt_pwr_for$RIC)][, .(date, hour, spot = value, RIC)]
         dt_pwr = merge(dt_pwr_for, dt_pwr_obs, by = c('date', 'hour', 'RIC'), all = TRUE)
         
+        is_eikon_pwr = eikondata::pwr_mapped_codes[countries == eikondata::pwr_products_full[spot_PWR_code == pwr_codes]$countries]$eikon
+        if (is_eikon_pwr == 'NO') {
+            file_path = file.path(file.path('HPFC', 'last', 'history'), 'backup_spot_pwr.xlsx')
+            print(file_path)
+            sheet_names = openxlsx::getSheetNames(file_path)
+            print(sheet_names)
+            df = openxlsx::read.xlsx(file_path, sheet = pwr_codes, detectDates = TRUE)
+            history_pwr_full = data.table::as.data.table(df)
+        } else {
+            history_pwr_full = eikondata::dt_spot_pwr[RIC == pwr_codes]
+        }
+        
+        if(as.character(in_select_backtest_period_2) >= '2025-01-01') {
+            DT_NEW = eikondata::retrieve_spot(
+                ric = pwr_codes,
+                from_date = '2025-01-01',
+                to_date = in_select_backtest_period_2,
+                type = 'PWR')
+            
+            history_pwr_full = 
+                rbind(
+                    history_pwr_full,
+                    DT_NEW,
+                    use.names=TRUE
+                )
+        }
+        
+        dt_pwr = merge(dt_pwr, history_pwr_full, by = c('date', 'hour', 'RIC'), all.x = TRUE)
+        dt_pwr[, spot := value]
+        dt_pwr[, value := NULL]
+        
         setcolorder(dt_pwr, c('date', 'hour', 'season', 'peak', 'RIC', 'spot', 'forecast', 'value_bl', 'value_gas'))
         setorder(dt_pwr, date, hour)
         
@@ -126,7 +159,7 @@ run_forecast_backtest_pwr = function(
         
     }, error = function(e) {
         msg = paste0("Error while training ", x, ": ", e$message)
-        showNotification(msg, type = "error", duration = NULL)
+        # shiny::showNotification(msg, type = "error", duration = NULL)
         message(msg)
         return(NULL)
     })

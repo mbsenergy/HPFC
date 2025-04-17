@@ -12,13 +12,16 @@ devtools::load_all()
 
 pv_profile = readRDS('www/consumption_profiles.rds')
 
-in_select_PWR_backtest = 'Greece'
+in_select_PWR_backtest = 'Ser'
 in_select_backtest_source = 'Last'
 x = in_select_PWR_backtest
-in_select_backtest_period_1 = '2024-01-01'
+in_select_backtest_period_1 = '2023-01-01'
 in_select_backtest_period_2 = '2024-12-31'
 shiny_run = in_select_backtest_source
 shiny_sim = NULL
+
+pwr_codes = eikondata::pwr_products_full[countries %in% in_select_PWR_backtest]$spot_PWR_code
+history_pwr_full = eikondata::dt_spot_pwr[RIC == pwr_codes]
 
 trial = run_forecast_backtest_pwr(
     x,
@@ -28,6 +31,7 @@ trial = run_forecast_backtest_pwr(
     shiny_sim = NULL,
     reuters_key = Sys.getenv('REUTERS_KEY')
 )
+trial$dt_pwr
 
 trial$dt_pwr_lg %>% 
     group_by(type) %>% 

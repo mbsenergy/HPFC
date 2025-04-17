@@ -2879,7 +2879,7 @@ server_app = function(input, output, session) {
             group_by(type) %>% 
             e_charts(datetime) %>% 
             e_line(value, smooth = TRUE, symbol='none') %>% 
-            e_title(text = paste("Hourly Forecast Prices for", input$in_select_PWR_backtest)) %>%
+            e_title(text = paste("Hourly Forecast Prices")) %>%
             e_tooltip(trigger = "axis") %>% 
             e_toolbox_feature(feature = "saveAsImage") %>%
             e_toolbox_feature(feature = "dataZoom") %>%
