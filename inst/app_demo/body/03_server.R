@@ -214,9 +214,13 @@ server_app = function(input, output, session) {
     list_pwr_multi = reactiveVal(NULL)
     
     observeEvent(input$act_indicator_train_pwr_mult, {
-        req(react$dt_spot_manual_gas)
         
-        if(!is.null(react$dt_spot_manual) & input$in_source_train == 'Excel') {
+        if (is.null(react$dt_spot_manual_gas)) {
+            showNotification("Missing manual gas spot data. Training cannot proceed.", type = "error", duration = NULL)
+            return()
+        }
+        
+        if(!is.null(react$dt_spot_manual) & !is.null(react$dt_spot_manual_gas) & input$in_source_train == 'Excel') {
             
             LST_PARAMS = list(
                 model_type = 'PWR',
@@ -908,13 +912,24 @@ server_app = function(input, output, session) {
         
         LST_PARAMS = react$params_input_pwr
         
-        if(input$in_source_train == 'Excel') {
-            
+        if (is.null(react$dt_spot_manual_gas)) {
+            showNotification("Missing manual gas spot data. Training cannot proceed.", type = "error", duration = NULL)
+            return()
+        }
+        
+        if (is.null(react$dt_spot_manual_pwr)) {
+            showNotification("Missing manual pwr spot data. Training cannot proceed.", type = "error", duration = NULL)
+            return()
+        }
+        
+        if(!is.null(react$dt_spot_manual) & !is.null(react$dt_spot_manual_gas) & input$in_source_train == 'Excel') {
+        
             if(!is.null(react$dt_spot_manual)) {
                 list_inputs = HPFC::load_inputs(params = LST_PARAMS,
                                                 manual_data = react$dt_spot_manual,
                                                 reuters_key = NULL)
             }
+            
         } else {
             
             list_inputs = HPFC::load_inputs(params = LST_PARAMS, manual_data = NULL,
@@ -1084,12 +1099,15 @@ server_app = function(input, output, session) {
         LST_PARAMS = react$params_input_gas
         
         if(input$in_source_train == 'Excel') {
-            
+            req(!is.null(react$dt_spot_manual_gas))
             if(!is.null(react$dt_spot_manual_gas)) {
                 list_inputs = HPFC::load_inputs(params = LST_PARAMS, 
                                                 manual_data = react$dt_spot_manual_gas, 
                                                 reuters_key = NULL
                 )
+            } else {
+                showNotification("Missing manual gas spot data. Training cannot proceed.", type = "error", duration = NULL)
+                return()
             }
         } else {
             
@@ -1200,7 +1218,13 @@ server_app = function(input, output, session) {
     
     observeEvent(input$act_indicator_forecast_pwr_mult, {
         
-        if(input$in_source_forecast == 'Excel') {
+            
+            if (is.null(react$dt_forecast_manual_pwr) & is.null(react$dt_forecast_manual_gas)) {
+                showNotification("Missing manual gas and/pwr fwds data. Forecasting cannot proceed.", type = "error", duration = NULL)
+                return()
+            }
+            
+        if(!is.null(react$dt_forecast_manual_pwr) & !is.null(react$dt_forecast_manual_gas) & input$in_source_forecast == 'Excel') {
             
             showNotification("Using manual data", type = "message")
             
@@ -1548,7 +1572,12 @@ server_app = function(input, output, session) {
     
     observeEvent(input$act_indicator_forecast_gas_mult, {
         
-        if(input$in_source_forecast == 'Excel') {
+        if (is.null(react$dt_forecast_manual_gas)) {
+            showNotification("Missing manual gas and/pwr fwds data. Forecasting cannot proceed.", type = "error", duration = NULL)
+            return()
+        }
+        
+        if(!is.null(react$dt_forecast_manual_gas) & input$in_source_forecast == 'Excel') {
             
             showNotification("Using manual data", type = "message")
             
@@ -1870,7 +1899,13 @@ server_app = function(input, output, session) {
     
     observeEvent(input$act_indicator_forecast_pwr, {
         
-        if(input$in_source_forecast == 'Excel') {
+        if (is.null(react$dt_forecast_manual_pwr) & is.null(react$dt_forecast_manual_gas)) {
+            showNotification("Missing manual gas and/pwr fwds data. Forecasting cannot proceed.", type = "error", duration = NULL)
+            return()
+        }
+        
+        if(!is.null(react$dt_forecast_manual_pwr) & !is.null(react$dt_forecast_manual_gas) & input$in_source_forecast == 'Excel') {
+        
             list_inputs_fwd = prepare_fwd(
                 fwd_pwr_code = input$in_select_PWR_indicator_for,
                 fwd_gas_code = 'TTF',
@@ -2053,7 +2088,14 @@ server_app = function(input, output, session) {
     
     observeEvent(input$act_indicator_forecast_gas, {
         
-        if(input$in_source_forecast == 'Excel') {
+        
+        if (is.null(react$dt_forecast_manual_gas)) {
+            showNotification("Missing manual gas and/pwr fwds data. Forecasting cannot proceed.", type = "error", duration = NULL)
+            return()
+        }
+        
+        if(!is.null(react$dt_forecast_manual_gas) & input$in_source_forecast == 'Excel') {
+            
             req(react$dt_forecast_manual_gas)
             list_inputs_fwd = prepare_fwd(
                 fwd_gas_code = input$in_select_GAS_indicator_for,
@@ -2710,15 +2752,12 @@ server_app = function(input, output, session) {
                 end_horizon = input$in_select_lt_horizon[2]
             )
 
-        # dts = readRDS('output.rds')
-        
         dts1 = as.data.table(dts[1])
         dts2 = as.data.table(dts[2])
 
         colnames(dts1) = c('date', 'hour', 'forecast', 'name')
         colnames(dts2) = c('date', 'hour', 'forecast', 'name')
 
-        saveRDS(dts, 'dts.rds')
         fwd_main(dts1)
         fwd_basket(dts2)
         
