@@ -6,6 +6,26 @@ ui_app = page_navbar(
     
     # Title Panel of the app
     title = span("HPFC", style = 'color: white'),
+    tags$head(
+        tags$script(
+            HTML('
+          $(document).ready(function() {
+            $(".navbar-brand").replaceWith(
+              $("<a class = \'navbar-brand\' href = \'#\'></a>")
+            );
+            var containerHeight = $(".navbar .container-fluid").height() + "px";
+            $(".navbar-brand")
+              .append(
+                "<img id = \'logo\' src=\'logo.png\'" +
+                " height = " + containerHeight + ">"  
+              );
+            });'
+            )
+        ),
+        tags$style(
+            HTML('@media (max-width:992px) { .navbar-brand { padding-top: 0; padding-bottom: 0; }}')
+        )
+    ),
     
     header = tagList(
         useShinyjs(),
@@ -95,9 +115,6 @@ ui_app = page_navbar(
                                          )
                                ),
                                nav_panel('Power Single',
-                                         layout_sidebar(
-                                             sidebar = sidebar(bg = 'white',
-                                                               datagridOutput('forecast_params_table_recap_pwr'), position = 'right', open = FALSE, width = '450px'),
                                              fluidRow(
                                                  card(
                                                      card_body(
@@ -108,13 +125,9 @@ ui_app = page_navbar(
                                                          datagridOutput(outputId = 'pwr_history_table') %>% withSpinner(color = "#F2606A")
                                                      ))
                                              )
-                                         )
                                ),
                                
                                nav_panel('Gas Single',
-                                         layout_sidebar(
-                                             sidebar = sidebar(bg = 'white',
-                                                               datagridOutput('forecast_params_table_recap_gas'), position = 'right', open = FALSE, width = '450px'),
                                              fluidRow(
                                                  card(
                                                      card_body(
@@ -125,7 +138,6 @@ ui_app = page_navbar(
                                                          datagridOutput(outputId = 'gas_history_table') %>% withSpinner(color = "#F2606A")
                                                      ))
                                              )
-                                         )
                                )
                            )
                        )
@@ -242,6 +254,7 @@ ui_app = page_navbar(
                                              hr(),
                                              span('Curve Preparation', style = 'font-weight: bold'),
                                              select_lt_horizon,
+                                             download_fwd_curves,
                                              generate_fwd_curves,
                                              hr(),
                                              upload_scenario,
@@ -301,11 +314,12 @@ ui_app = page_navbar(
                                        card(card_header('Select Power Model to backtest'),
                                             card_body(
                                                 fluidRow(
-                                                    column(width = 1, select_backtest_source),
-                                                    column(width = 3, select_sim_name_backtest),
-                                                    column(width = 3, select_PWR_backtest),
-                                                    column(width = 3, select_backtest_period),
-                                                    column(width = 2, load_backtest)
+                                                    column(width = 2, select_backtest_source),
+                                                    column(width = 2, select_sim_name_backtest),
+                                                    column(width = 2, select_PWR_backtest),
+                                                    column(width = 2, select_backtest_period),
+                                                    column(width = 2, load_backtest),
+                                                    column(width = 2, backtest_pwr_download),
                                                 )
                                             )),
                                        card(card_header('Select Power Model to backtest'),
@@ -322,7 +336,7 @@ ui_app = page_navbar(
                                   )
                            ),
                            column(width = 4,
-                                  card(card_header('Error Distribution'),
+                                  card(card_header('Weighted Error'),
                                        card_body(fluidRow(
                                            column(width = 6,echarts4rOutput(outputId = 'backtest_error_gauge_pv', height = '250px') %>% withSpinner(color = "#1E328F")),
                                            column(width = 6,echarts4rOutput(outputId = 'backtest_error_gauge_lv', height = '250px') %>% withSpinner(color = "#1E328F"))),
@@ -396,6 +410,16 @@ ui_app = page_navbar(
                                   )
                            )
                        )                       
+             ),
+             
+             nav_panel(title = 'MONTECARLO',
+                       fluidRow(column(width = 12,
+                                       
+                                       card(card_header('Select Power Model to backtest'),
+                                            card_body()
+                                       )
+                       )
+                       )
              )
              
     ),

@@ -1299,7 +1299,7 @@ server_app = function(input, output, session) {
                         dir.create(last_path, recursive = TRUE)
                     }
                     
-                    fwrite(dt_pwr, file.path(last_path, paste0('forecast_pwr.csv')))
+                    fwrite(dt_pwr, file.path(last_path, paste0('forecast_pwr', Sys.Date() ,'.csv')))
                     
                     if(!is.null(shiny_sim)) {
                         if(nchar(shiny_sim) > 0) {
@@ -1309,7 +1309,7 @@ server_app = function(input, output, session) {
                                 dir.create(last_path, recursive = TRUE)
                             }
                             
-                            fwrite(dt_pwr, file.path(last_path, paste0('forecast_pwr.csv')))
+                            fwrite(dt_pwr, file.path(last_path, paste0('forecast_pwr', Sys.Date() ,'.csv')))
                         }
                     }
                     
@@ -1460,7 +1460,7 @@ server_app = function(input, output, session) {
                         dir.create(last_path, recursive = TRUE)
                     }
                     
-                    fwrite(dt_pwr, file.path(last_path, paste0('forecast_pwr.csv')))
+                    fwrite(dt_pwr, file.path(last_path, paste0('forecast_pwr', Sys.Date() ,'.csv')))
                     if(!is.null(shiny_sim)) {
                         if(nchar(shiny_sim) > 0) {
                             
@@ -1469,7 +1469,7 @@ server_app = function(input, output, session) {
                                 dir.create(last_path, recursive = TRUE)
                             }
                             
-                            fwrite(dt_pwr, file.path(last_path, paste0('forecast_pwr.csv')))
+                            fwrite(dt_pwr, file.path(last_path, paste0('forecast_pwr', Sys.Date() ,'.csv')))
                         }
                     }
                     
@@ -1631,7 +1631,7 @@ server_app = function(input, output, session) {
                         dir.create(last_path, recursive = TRUE)
                     }
                     
-                    fwrite(dt_gas, file.path(last_path, paste0('forecast_gas.csv')))
+                    fwrite(dt_gas, file.path(last_path, paste0('forecast_gas', Sys.Date() ,'.csv')))
                     
                     if(!is.null(shiny_sim)) {
                         if(nchar(shiny_sim) > 0) {
@@ -1641,7 +1641,7 @@ server_app = function(input, output, session) {
                                 dir.create(last_path, recursive = TRUE)
                             }
                             
-                            fwrite(dt_gas, file.path(last_path, paste0('forecast_gas.csv')))
+                            fwrite(dt_gas, file.path(last_path, paste0('forecast_gas', Sys.Date() ,'.csv')))
                         }
                     }
                     
@@ -1777,7 +1777,7 @@ server_app = function(input, output, session) {
                         dir.create(last_path, recursive = TRUE)
                     }
                     
-                    fwrite(dt_gas, file.path(last_path, paste0('forecast_gas.csv')))
+                    fwrite(dt_gas, file.path(last_path, paste0('forecast_gas', Sys.Date() ,'.csv')))
                     if(!is.null(shiny_sim)) {
                         if(nchar(shiny_sim) > 0) {
                             
@@ -1786,7 +1786,7 @@ server_app = function(input, output, session) {
                                 dir.create(last_path, recursive = TRUE)
                             }
                             
-                            fwrite(dt_gas, file.path(last_path, paste0('forecast_gas.csv')))
+                            fwrite(dt_gas, file.path(last_path, paste0('forecast_gas', Sys.Date() ,'.csv')))
                         }
                     }
                     
@@ -2020,7 +2020,7 @@ server_app = function(input, output, session) {
             dir.create(last_path, recursive = TRUE)
         }
         
-        saveRDS(dt_pwr, file.path(last_path, paste0('forecast_pwr.rds')))
+        saveRDS(dt_pwr, file.path(last_path, paste0('forecast_pwr', Sys.Date() ,'.rds')))
         
         if(!is.null(input$sim_name)) {
             if(nchar(input$sim_name) > 0) {
@@ -2030,7 +2030,7 @@ server_app = function(input, output, session) {
                     dir.create(last_path, recursive = TRUE)
                 }
                 
-                saveRDS(dt_pwr, file.path(last_path, paste0('forecast_pwr.rds')))
+                saveRDS(dt_pwr, file.path(last_path, paste0('forecast_pwr', Sys.Date() ,'.rds')))
             }
         }
         
@@ -2186,7 +2186,7 @@ server_app = function(input, output, session) {
             dir.create(last_path, recursive = TRUE)
         }
         
-        saveRDS(dt_gas, file.path(last_path, paste0('forecast_gas.rds')))
+        saveRDS(dt_gas, file.path(last_path, paste0('forecast_gas', Sys.Date() ,'.rds')))
         
         if(!is.null(input$sim_name)) {
             if(nchar(input$sim_name) > 0) {
@@ -2196,7 +2196,7 @@ server_app = function(input, output, session) {
                     dir.create(last_path, recursive = TRUE)
                 }
                 
-                saveRDS(dt_gas, file.path(last_path, paste0('forecast_gas.rds')))
+                saveRDS(dt_gas, file.path(last_path, paste0('forecast_gas', Sys.Date() ,'.rds')))
             }
         }
         
@@ -2631,8 +2631,8 @@ server_app = function(input, output, session) {
     observe({
         req(react$preparation_basket)
         req(react$selected_weights)
-        dt_plot = merge(react$preparation_basket, react$selected_weights[, .(COMMODITY, weight)], by = "COMMODITY")
-        dt_plot[, weighted_value := VALUE * weight]
+        dt_plot = merge(react$preparation_basket, react$selected_weights[, .(COMMODITY, coeff)], by = "COMMODITY")
+        dt_plot[, weighted_value := VALUE * coeff]
         
         dt_plot_main = react$preparation_basket[COMMODITY == react$in_commodity_main, .(COMMODITY = react$in_commodity_main, VALUE = sum(VALUE)), by = 'DATE']
         dt_plot_proxy = dt_plot[, .(COMMODITY = 'BASKET', VALUE = sum(weighted_value)), by = 'DATE']
@@ -2665,7 +2665,6 @@ server_app = function(input, output, session) {
             e_line(VALUE, smooth = TRUE, symbol='none', bind = COMMODITY) %>% 
             e_title(text = paste("Basket Power Cont.")) %>%
             e_tooltip(trigger = "axis") %>% 
-            e_color(c("#2392A2", "#C05B8C", rep("lightgray", length(unique(react$dt_proxy_basket$COMMODITY))))) |>
             e_toolbox_feature(feature = "saveAsImage") %>%
             e_toolbox_feature(feature = "dataZoom") %>%
             e_toolbox_feature(feature = "dataView") %>%
@@ -2715,7 +2714,7 @@ server_app = function(input, output, session) {
     fwd_basket = reactiveVal(NULL)
     list_data = reactiveVal(NULL)
     
-    observeEvent(input$act_generate_fwd_curves, {
+    observeEvent(input$act_download_fwd, {
         
         list_data = get_data_pipeline(commodity_main = input$in_select_main_product,
                                       commodity_basket = input$in_select_basket,
@@ -2731,14 +2730,14 @@ server_app = function(input, output, session) {
     })
     
     
-    observe({
-        req(react$proxy_basket)
+    observeEvent(input$act_generate_fwd_curves, {
+        req(react$selected_weights)
         req(react$list_data)
         
         dts =
             fwd_pipeline(
                 commodity_main = input$in_select_main_product,
-                coef_glm = react$proxy_basket,
+                coef_glm = react$selected_weights,
                 list_data = react$list_data,
                 start_train = input$in_select_lt_train[1],
                 end_train = input$in_select_lt_train[2],
@@ -2816,8 +2815,8 @@ server_app = function(input, output, session) {
             dir.create(last_path, recursive = TRUE)
         }
         
-        saveRDS(dt_final, file.path(last_path, paste0('forecast_pwr_lt.rds')))
-        fwrite(dt_final, file.path(last_path, paste0('forecast_pwr_lt.csv')))
+        saveRDS(dt_final, file.path(last_path, paste0('forecast_pwr_lt-', Sys.Date() ,'.rds')))
+        fwrite(dt_final, file.path(last_path, paste0('forecast_pwr_lt', Sys.Date() ,'.csv')))
         
     })
     
@@ -2869,6 +2868,7 @@ server_app = function(input, output, session) {
             shiny_sim = shiny_sim,
             reuters_key = PLEASE_INSERT_REUTERS_KEY
         )
+        backtest$dt_pwr_lg = backtest$dt_pwr_lg[date >= input$in_select_backtest_period[1] & date <= input$in_select_backtest_period[2]]
         dt_backtest(backtest)
     })
     
@@ -2943,13 +2943,20 @@ server_app = function(input, output, session) {
     
     output$backtest_error_gauge_pv = renderEcharts4r({
         req(react$dt_error)
+        pv_profile = readRDS('www/consumption_profiles.rds')
+        error_pv = merge(react$dt_error[, .(date, hour, ERROR)], pv_profile, by = c('date', 'hour'), all.x = TRUE)
+        error_pv = error_pv[, .(cp_delta = sum(ERROR * pv, na.rm = TRUE))]
+        
         e_charts() |> 
-            e_gauge(round(react$dt_error[, .(mean = mean(ERROR, na.rm = TRUE))][[1]], 2), "ERROR") |> 
+            e_gauge(round(error_pv[[1]], 2), "ERROR") |> 
             e_title("PV Profile")
     })
     
     output$backtest_error_gauge_lv = renderEcharts4r({
         req(react$dt_error)
+        lv_profile = readRDS('www/consumption_profiles.rds')
+        error_pv = merge(react$dt_error[, .(date, hour, ERROR)], lv_profile, by = c('date', 'hour'), all.x = TRUE)
+        error_pv = error_pv[, .(cp_delta = sum(ERROR * pv, na.rm = TRUE))]
         e_charts() |> 
             e_gauge(round(react$dt_error[, .(mean = mean(ERROR, na.rm = TRUE))][[1]], 2), "ERROR") |> 
             e_title("LV Profile")
@@ -2960,7 +2967,7 @@ server_app = function(input, output, session) {
         req(react$dt_backtest)
         
         dt_pwr = react$dt_backtest$dt_pwr_lg[type %in% c('spot', 'forecast')]
-        dts = dt_pwr[, .(value = round(mean(value))), by = .(hour, type)] 
+        dts = dt_pwr[, .(value = round(mean(value, na.rm = TRUE))), by = .(hour, type)] 
         dts %>% 
             group_by(type) %>% 
             e_charts(hour) %>% 
@@ -2976,7 +2983,7 @@ server_app = function(input, output, session) {
         req(react$dt_backtest)
         
         dt_pwr = react$dt_backtest$dt_pwr_lg[type %in% c('spot', 'forecast')]
-        dts = dt_pwr[season == 'winter', .(value = round(mean(value))), by = .(hour, type)] 
+        dts = dt_pwr[season == 'winter', .(value = round(mean(value, na.rm = TRUE))), by = .(hour, type)] 
         dts %>% 
             group_by(type) %>% 
             e_charts(hour) %>% 
@@ -2991,7 +2998,7 @@ server_app = function(input, output, session) {
         req(react$dt_backtest)
         
         dt_pwr = react$dt_backtest$dt_pwr_lg[type %in% c('spot', 'forecast')]
-        dts = dt_pwr[season == 'spring', .(value = round(mean(value))), by = .(hour, type)] 
+        dts = dt_pwr[season == 'spring', .(value = round(mean(value, na.rm = TRUE))), by = .(hour, type)] 
         dts %>% 
             group_by(type) %>% 
             e_charts(hour) %>% 
@@ -3006,7 +3013,7 @@ server_app = function(input, output, session) {
         req(react$dt_backtest)
         
         dt_pwr = react$dt_backtest$dt_pwr_lg[type %in% c('spot', 'forecast')]
-        dts = dt_pwr[season == 'summer', .(value = round(mean(value))), by = .(hour, type)] 
+        dts = dt_pwr[season == 'summer', .(value = round(mean(value, na.rm = TRUE))), by = .(hour, type)] 
         dts %>% 
             group_by(type) %>% 
             e_charts(hour) %>% 
@@ -3021,7 +3028,7 @@ server_app = function(input, output, session) {
         req(react$dt_backtest)
         
         dt_pwr = react$dt_backtest$dt_pwr_lg[type %in% c('spot', 'forecast')]
-        dts = dt_pwr[season == 'fall', .(value = round(mean(value))), by = .(hour, type)] 
+        dts = dt_pwr[season == 'fall', .(value = round(mean(value, na.rm = TRUE))), by = .(hour, type)] 
         dts %>% 
             group_by(type) %>% 
             e_charts(hour) %>% 
@@ -3128,6 +3135,17 @@ server_app = function(input, output, session) {
         datagrid(DT,
                  filters = TRUE)
     })
+    
+    
+    output$in_backtest_pwr_download = downloadHandler(
+        filename = function() {
+            paste0("backtest_pwr-", input$in_select_PWR_backtest, '-', Sys.Date(), ".csv")
+        },
+        content = function(file) {
+            fwrite(react$dt_backtest$dt_pwr_lg, file)
+        }
+    )
+    
     
     ## END
     

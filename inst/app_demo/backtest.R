@@ -10,6 +10,8 @@ box::use(
 )
 devtools::load_all()
 
+pv_profile = readRDS('www/consumption_profiles.rds')
+
 in_select_PWR_backtest = 'Greece'
 in_select_backtest_source = 'Last'
 x = in_select_PWR_backtest
@@ -61,8 +63,11 @@ dt_pwr_error[, ERROR := OBS - FOR]
 dt_pwr_error[, DIR := fifelse(ERROR >= 0, 'POS', 'NEG')]
 dt_pwr_error[, ERROR := round(ERROR, 2)]
 
+error_pv = merge(dt_pwr_error[, .(date, hour, ERROR)], pv_profile, by = c('date', 'hour'), all.x = TRUE)
+error_pv[, .(cp_obs = sum(ERROR * pv, na.rm = TRUE))]
+
 e_charts() |> 
-    e_gauge(round(dt_pwr_error[, .(mean = mean(ERROR, na.rm = TRUE))][[1]], 2), "ERROR") |> 
+    e_gauge(round(, 2), "ERROR") |> 
     e_title("Forecast Mean Error")
 
 ## DATAPOINTS DISTRIBUTION
