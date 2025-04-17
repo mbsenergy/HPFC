@@ -181,31 +181,39 @@ server_app = function(input, output, session) {
     
     observe({
         req(input$in_forecast_excel_pwr)
+        
         file_path = input$in_forecast_excel_pwr$datapath
         sheet_names = openxlsx::getSheetNames(file_path)
-        if (input$in_select_PWR_indicator %in% sheet_names) {
-            df = openxlsx::read.xlsx(file_path, sheet = input$in_select_PWR_indicator_for, detectDates = TRUE)
+        
+        list_dt = lapply(sheet_names, function(sheet) {
+            df = openxlsx::read.xlsx(file_path, sheet = sheet, detectDates = TRUE)
             dt = data.table::as.data.table(df)
-            dt_forecast_manual_pwr(dt)
-        } else {
-            dt_forecast_manual_pwr(NULL)
-            warning("Selected sheet not found in Excel file.")
-        }
+            dt[, RIC := sheet]
+            return(dt)
+        })
+        
+        dt_all = data.table::rbindlist(list_dt, fill = TRUE, use.names = TRUE)
+        dt_forecast_manual_pwr(dt_all)
     })
+    
     
     
     observe({
         req(input$in_forecast_excel_gas)
+        
         file_path = input$in_forecast_excel_gas$datapath
         sheet_names = openxlsx::getSheetNames(file_path)
-        if (input$in_select_GAS_indicator %in% sheet_names) {
-            df = openxlsx::read.xlsx(file_path, sheet = input$in_select_GAS_indicator_for, detectDates = TRUE)
+        
+        list_dt = lapply(sheet_names, function(sheet) {
+            df = openxlsx::read.xlsx(file_path, sheet = sheet, detectDates = TRUE)
             dt = data.table::as.data.table(df)
-            dt_forecast_manual_gas(dt)
-        } else {
-            dt_forecast_manual_gas(NULL)
-            warning("Selected sheet not found in Excel file.")
-        }
+            dt[, RIC := sheet]
+            return(dt)
+        })
+        
+        dt_all = data.table::rbindlist(list_dt, fill = TRUE, use.names = TRUE)
+        
+        dt_forecast_manual_gas(dt_all)
     })
     
     
@@ -918,12 +926,23 @@ server_app = function(input, output, session) {
         LST_PARAMS = react$params_input_pwr
         
         
-        if(!is.null(react$dt_spot_manual) & !is.null(react$dt_spot_manual_gas) & input$in_source_train == 'Excel') {
-        
-            if(!is.null(react$dt_spot_manual_pwr)) {
+        if(input$in_source_train == 'Excel') {
+            
+            req(!is.null(react$dt_spot_manual_gas))
+            req(!is.null(react$dt_spot_manual_pwr))
+            
+            if(!is.null(react$dt_spot_manual_gas)) {
+                if(!is.null(react$dt_spot_manual_pwr)) {
                 list_inputs = HPFC::load_inputs(params = LST_PARAMS,
                                                 manual_data = react$dt_spot_manual,
                                                 reuters_key = NULL)
+                } else {
+                    showNotification("Missing manual gas spot data. Training cannot proceed.", type = "error", duration = NULL)
+                    return()
+                }
+            } else {
+                showNotification("Missing manual gas spot data. Training cannot proceed.", type = "error", duration = NULL)
+                return()
             }
             
         } else {
@@ -1214,12 +1233,16 @@ server_app = function(input, output, session) {
     
     observeEvent(input$act_indicator_forecast_pwr_mult, {
         
-        if(!is.null(react$dt_forecast_manual_pwr) & !is.null(react$dt_forecast_manual_gas) & input$in_source_forecast == 'Excel') {
+        if(input$in_source_forecast == 'Excel') {
             
             showNotification("Using manual data", type = "message")
             
-            
             list_pwr = lapply(input$in_select_PWR_indicator_for_mult, function(x, list_inputs_fwd, start_date, end_date, shiny_run, shiny_sim) {
+                
+                dt_forecast_manual_pwr = react$dt_forecast_manual_pwr[RIC == x]
+                dt_forecast_manual_pwr[, RIC := NULL]
+                dt_forecast_manual_gas = react$dt_forecast_manual_gas[RIC == 'TTF']
+                dt_forecast_manual_gas[, RIC := NULL]
                 
                 tryCatch({
                     
@@ -1231,8 +1254,8 @@ server_app = function(input, output, session) {
                         model_type = 'PWR',
                         forecast_source = 'FWD',
                         archive = 'NO',
-                        manual_pwr = react$dt_forecast_manual_pwr,
-                        manual_gas = react$dt_forecast_manual_gas
+                        manual_pwr = dt_forecast_manual_pwr,
+                        manual_gas = dt_forecast_manual_gas 
                     )
                     
                     ## Forecast Parameters 
@@ -1573,6 +1596,9 @@ server_app = function(input, output, session) {
             
             list_gas = lapply(input$in_select_GAS_indicator_for_mult, function(x, list_inputs_fwd, start_date, end_date, shiny_run, shiny_sim) {
                 
+                dt_forecast_manual_gas = react$dt_forecast_manual_gas[RIC == x]
+                dt_forecast_manual_gas[, RIC := NULL]
+                
                 tryCatch({
                     
                     list_inputs_fwd = prepare_fwd(
@@ -1583,7 +1609,7 @@ server_app = function(input, output, session) {
                         forecast_source = 'FWD',
                         archive = 'NO',
                         manual_pwr = NULL,
-                        manual_gas = react$dt_forecast_manual_gas
+                        manual_gas = dt_forecast_manual_gas
                     )
                     
                     ## Forecast Parameters 
@@ -1889,13 +1915,13 @@ server_app = function(input, output, session) {
     
     observeEvent(input$act_indicator_forecast_pwr, {
         
-        if (is.null(react$dt_forecast_manual_pwr) & is.null(react$dt_forecast_manual_gas)) {
-            showNotification("Missing manual gas and/pwr fwds data. Forecasting cannot proceed.", type = "error", duration = NULL)
-            return()
-        }
-        
         if(!is.null(react$dt_forecast_manual_pwr) & !is.null(react$dt_forecast_manual_gas) & input$in_source_forecast == 'Excel') {
         
+            dt_forecast_manual_pwr = react$dt_forecast_manual_pwr[RIC == input$in_select_PWR_indicator_for]
+            dt_forecast_manual_pwr[, RIC := NULL]
+            dt_forecast_manual_gas = react$dt_forecast_manual_gas[RIC == 'TTF']
+            dt_forecast_manual_gas[, RIC := NULL]
+            
             list_inputs_fwd = prepare_fwd(
                 fwd_pwr_code = input$in_select_PWR_indicator_for,
                 fwd_gas_code = 'TTF',
@@ -1904,8 +1930,8 @@ server_app = function(input, output, session) {
                 model_type = 'PWR',
                 forecast_source = 'FWD',
                 archive = 'NO',
-                manual_pwr = react$dt_forecast_manual_pwr,
-                manual_gas = react$dt_forecast_manual_gas
+                manual_pwr = dt_forecast_manual_pwr,
+                manual_gas = dt_forecast_manual_gas
             )
             
             showNotification("Using manual data", type = "message")
@@ -2078,15 +2104,12 @@ server_app = function(input, output, session) {
     
     observeEvent(input$act_indicator_forecast_gas, {
         
-        
-        if (is.null(react$dt_forecast_manual_gas)) {
-            showNotification("Missing manual gas and/pwr fwds data. Forecasting cannot proceed.", type = "error", duration = NULL)
-            return()
-        }
-        
         if(!is.null(react$dt_forecast_manual_gas) & input$in_source_forecast == 'Excel') {
             
-            req(react$dt_forecast_manual_gas)
+            dt_forecast_manual_gas = react$dt_forecast_manual_gas[RIC == input$in_select_GAS_indicator_for]
+            dt_forecast_manual_gas[, RIC := NULL]
+            
+            print(dt_forecast_manual_gas)
             list_inputs_fwd = prepare_fwd(
                 fwd_gas_code = input$in_select_GAS_indicator_for,
                 start_date = input$in_select_horizon[1],
@@ -2095,7 +2118,7 @@ server_app = function(input, output, session) {
                 forecast_source = 'FWD',
                 archive = 'NO',
                 manual_pwr = NULL,
-                manual_gas = react$dt_forecast_manual_gas
+                manual_gas = dt_forecast_manual_gas
             )
             
             showNotification("Using manual data", type = "message")
