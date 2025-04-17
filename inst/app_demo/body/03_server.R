@@ -214,6 +214,7 @@ server_app = function(input, output, session) {
     list_pwr_multi = reactiveVal(NULL)
     
     observeEvent(input$act_indicator_train_pwr_mult, {
+        req(react$dt_spot_manual_gas)
         
         if(!is.null(react$dt_spot_manual) & input$in_source_train == 'Excel') {
             
@@ -235,7 +236,7 @@ server_app = function(input, output, session) {
                 shiny_manual = react$dt_spot_manual
             )            
             
-            list_gas = lapply(input$in_select_PWR_indicator_mult, function(x, LST_PARAMS) {
+            list_pwr = lapply(input$in_select_PWR_indicator_mult, function(x, LST_PARAMS) {
                 
                 tryCatch({
                     print('')
