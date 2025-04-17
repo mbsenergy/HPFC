@@ -182,8 +182,8 @@ server_app = function(input, output, session) {
         req(input$in_forecast_excel_pwr)
         file_path = input$in_forecast_excel_pwr$datapath
         sheet_names = openxlsx::getSheetNames(file_path)
-        if (input$in_select_PWR_indicator %in% sheet_names) {
-            df = openxlsx::read.xlsx(file_path, sheet = input$in_select_PWR_indicator_for, detectDates = TRUE)
+        if (input$in_select_PWR_indicator_for_mult %in% sheet_names) {
+            df = openxlsx::read.xlsx(file_path, sheet = input$in_select_PWR_indicator_for_mult, detectDates = TRUE)
             dt = data.table::as.data.table(df)
             dt_forecast_manual_pwr(dt)
         } else {
@@ -197,8 +197,8 @@ server_app = function(input, output, session) {
         req(input$in_forecast_excel_gas)
         file_path = input$in_forecast_excel_gas$datapath
         sheet_names = openxlsx::getSheetNames(file_path)
-        if (input$in_select_GAS_indicator %in% sheet_names) {
-            df = openxlsx::read.xlsx(file_path, sheet = input$in_select_GAS_indicator_for, detectDates = TRUE)
+        if (input$in_select_GAS_indicator_for_mult %in% sheet_names) {
+            df = openxlsx::read.xlsx(file_path, sheet = input$in_select_GAS_indicator_for_mult, detectDates = TRUE)
             dt = data.table::as.data.table(df)
             dt_forecast_manual_gas(dt)
         } else {
