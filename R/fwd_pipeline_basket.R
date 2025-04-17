@@ -252,7 +252,6 @@ fwd_pipeline = function(commodity_main, coef_glm, list_data, start_train, end_tr
     main_inputs_fwd_gas = list_fwds$main_inputs_fwd_gas
     basketpwr_inputs_fwd = list_fwds$basketpwr_inputs_fwd
     basketgas_inputs_fwd = list_fwds$basketgas_inputs_fwd
-    dt_co2_expanded = list_fwds$dt_co2_expanded
     
     
     fwd_calendar = eikondata::calendar_holidays
@@ -380,7 +379,7 @@ fwd_pipeline = function(commodity_main, coef_glm, list_data, start_train, end_tr
     dt_gas_freearb_fwds = dt_gas_freearb_fwds[, .(RIC = products_GAS, yymm, value)]
 
     if(any(commodity_basket %in% 'C02')) {
-        dt_basket = rbindlist(list(dt_pwr_freearb_fwds, dt_gas_freearb_fwds, dt_co2_expanded), use.names = TRUE)
+        dt_basket = rbindlist(list(dt_pwr_freearb_fwds, dt_gas_freearb_fwds, list_fwds$dt_co2_expanded), use.names = TRUE)
     } else {
         dt_basket = rbindlist(list(dt_pwr_freearb_fwds, dt_gas_freearb_fwds), use.names = TRUE)
 

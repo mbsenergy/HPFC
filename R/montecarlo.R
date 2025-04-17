@@ -61,7 +61,7 @@ montecarlo_sim = function(S0, Td, N, dt_spot_pwr, dt_fwd_pwr = NULL, seed = 42, 
     
     set.seed(seed)
     
-    if(!is.null(aux_sigma)) {
+    if(aux_sigma != 0) {
         sigma = aux_sigma
     } else {
         sigma = exp(compute_sigma(dt_spot_pwr))

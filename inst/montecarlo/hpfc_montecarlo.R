@@ -5,10 +5,12 @@ box::use(
     magrittr[...],
     echarts4r[...],
     reactable[...],
-    HPFC[...],
+    # HPFC[...],
     eikondata[...],
     openxlsx[...]
 )
+
+devtools::load_all()
 
 # INPUTS
 STARTING_PRICE = 100
@@ -17,24 +19,21 @@ N_SIMS = 20
 OVERRIDE_SIGMA = 'NO'
 AUX_SIGMA = 2
 
-START_DATE = 
-END_DATE =
+START_DATE = '2024-01-01'
+END_DATE = '2024-12-31'
 
-if(OVERRIDE_SIGMA == 'NO') {
-    in_aux_sigma = NULL
-} else {
-    in_aux_sigma = AUX_SIGMA
-}
+in_aux_sigma = if (toupper(OVERRIDE_SIGMA) == "NO") 0 else AUX_SIGMA
+
 
 MAIN_CURVE = 'Greece'
 
 
 ## sim path
-sim_path = 'mc_run'
+sim_path = file.path('inst', 'montecarlo','mc_run')
 
 ## Spot curve
 dt_spot_pwr = fread(file.path(sim_path, 'history', 'history_pwr.csv'))
-dt_spot_pwr = dt_spot_pwr[date >= '2023-01-01']
+dt_spot_pwr = dt_spot_pwr[date >= START_DATE]
 
 ## fwd curve
 dt_fwd_pwr = fread(file.path(sim_path, 'fwds', 'base_fwd_curve.csv'))
@@ -53,7 +52,7 @@ sim_result = montecarlo_sim(
     N = N_SIMS,
     dt_spot_pwr = dt_spot_pwr,
     dt_fwd_pwr = dt_fwd_pwr,
-    aux_sigma = in_aux_sigma # 1.23262
+    aux_sigma = in_aux_sigma
 )
 
 
@@ -61,7 +60,7 @@ sim_result = montecarlo_sim(
 sim_result |>
     group_by(sim) |>
     e_charts(yymm) |>
-    e_line(value) |>
+    e_line(value, symbol = 'none') |>
     e_title("Monte Carlo Simulation of a Random Walk") |>
     e_x_axis(name = "Time (Months)") |>
     e_y_axis(name = "Price") |>

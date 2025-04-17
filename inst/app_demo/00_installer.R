@@ -37,5 +37,6 @@ if (!requireNamespace("react", quietly = TRUE)) {
     remotes::install_github("dreamRs/react")
 }
 
+remotes::install_github("hadley/emo")
 remotes::install_github("mbsenergy/eikondata")
 remotes::install_github("mbsenergy/HPFC")
