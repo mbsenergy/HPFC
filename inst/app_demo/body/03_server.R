@@ -2674,42 +2674,6 @@ server_app = function(input, output, session) {
             e_theme('westeros')
     })
     
-    dt_scenario = reactive({
-        req(input$in_load_scenario)
-        file_path = input$in_load_scenario$datapath
-        df = openxlsx::read.xlsx(file_path)
-        dt = data.table::as.data.table(df)
-        setorder(dt, COMMODITY, DATE)
-        print(dt)
-    })
-    
-    dt_scenario = reactiveVal(NULL)
-    observe({
-        req(input$in_load_scenario)
-        file_path = input$in_load_scenario$datapath
-        df = openxlsx::read.xlsx(file_path, detectDates = TRUE)
-        dt = data.table::as.data.table(df)
-        setorder(dt, COMMODITY, DATE)
-        dt_scenario(dt)
-    })
-    
-    output$pwr_lt_scenario_plot = renderEcharts4r({
-        req(react$dt_scenario)
-            react$dt_scenario[, .(VALUE = mean(VALUE, na.rm = TRUE)), by = 'DATE'] |>
-            e_charts(DATE) %>% 
-            e_line(VALUE, smooth = TRUE, symbol='none', color = '#DE8969') %>% 
-            e_title(text = paste("Scenario Data")) %>%
-            e_tooltip(trigger = "axis") %>% 
-            e_toolbox_feature(feature = "saveAsImage") %>%
-            e_toolbox_feature(feature = "dataZoom") %>%
-            e_toolbox_feature(feature = "dataView") %>%
-            e_toolbox_feature(feature = "restore") %>%
-            e_legend(top = 30) %>%
-            e_datazoom(start = 0) %>% 
-            e_theme('westeros')
-    })
-    
-    
     fwd_main = reactiveVal(NULL)
     fwd_basket = reactiveVal(NULL)
     list_data = reactiveVal(NULL)
@@ -2784,6 +2748,41 @@ server_app = function(input, output, session) {
             e_theme('westeros')
     })
     
+    ## SCENARIOS
+    dt_scenario = reactive({
+        req(input$in_load_scenario)
+        file_path = input$in_load_scenario$datapath
+        df = openxlsx::read.xlsx(file_path)
+        dt = data.table::as.data.table(df)
+        setorder(dt, COMMODITY, DATE)
+        print(dt)
+    })
+    
+    dt_scenario = reactiveVal(NULL)
+    observe({
+        req(input$in_load_scenario)
+        file_path = input$in_load_scenario$datapath
+        df = openxlsx::read.xlsx(file_path, detectDates = TRUE)
+        dt = data.table::as.data.table(df)
+        setorder(dt, COMMODITY, DATE)
+        dt_scenario(dt)
+    })
+    
+    output$pwr_lt_scenario_plot = renderEcharts4r({
+        req(react$dt_scenario)
+        react$dt_scenario[, .(VALUE = mean(VALUE, na.rm = TRUE)), by = 'DATE'] |>
+            e_charts(DATE) %>% 
+            e_line(VALUE, smooth = TRUE, symbol='none', color = '#DE8969') %>% 
+            e_title(text = paste("Scenario Data")) %>%
+            e_tooltip(trigger = "axis") %>% 
+            e_toolbox_feature(feature = "saveAsImage") %>%
+            e_toolbox_feature(feature = "dataZoom") %>%
+            e_toolbox_feature(feature = "dataView") %>%
+            e_toolbox_feature(feature = "restore") %>%
+            e_legend(top = 30) %>%
+            e_datazoom(start = 0) %>% 
+            e_theme('westeros')
+    })
     
     ## CREATE FINAL CURVE
     

@@ -40,6 +40,7 @@
 #' @export
 get_data_pipeline = function(commodity_main, commodity_basket, start_train, end_train, start_horizon, end_horizon) {
     
+    ## FWDS
     main_inputs_fwd = prepare_fwd(
         fwd_pwr_code = commodity_main,
         fwd_gas_code = NULL,
@@ -151,46 +152,143 @@ get_data_pipeline = function(commodity_main, commodity_basket, start_train, end_
     }
     
     # saveRDS(dt_co2_expanded, 'dt_co2_expanded.rds')
-    list_fwds = list(main_inputs_fwd, main_inputs_fwd_gas, basketpwr_inputs_fwd, basketgas_inputs_fwd, dt_co2_expanded)
-    names(list_fwds) = c('main_inputs_fwd', 'main_inputs_fwd_gas', 'basketpwr_inputs_fwd', 'basketgas_inputs_fwd', 'dt_co2_expanded')
+    if(any(commodity_basket %in% 'C02')) {
+        list_fwds = list(main_inputs_fwd, main_inputs_fwd_gas, basketpwr_inputs_fwd, basketgas_inputs_fwd, dt_co2_expanded)
+        names(list_fwds) = c('main_inputs_fwd', 'main_inputs_fwd_gas', 'basketpwr_inputs_fwd', 'basketgas_inputs_fwd', 'dt_co2_expanded')
+    } else {
+        list_fwds = list(main_inputs_fwd, main_inputs_fwd_gas, basketpwr_inputs_fwd, basketgas_inputs_fwd)
+        names(list_fwds) = c('main_inputs_fwd', 'main_inputs_fwd_gas', 'basketpwr_inputs_fwd', 'basketgas_inputs_fwd')
+    }
     
-    history_main = lapply(eikondata::pwr_products_full[countries %in% commodity_main]$spot_PWR_code, function(x) {
-        eikondata::retrieve_spot(
-            ric = x,
-            from_date = start_train,
+    ## SPOTS
+    is_eikon_pwr = eikondata::pwr_mapped_codes[countries == commodity_main]$eikon
+    is_eikon_gas = eikondata::gas_mapped_codes[products %in% commodity_basket]$eikon
+    
+    
+    pwr_codes = eikondata::pwr_products_full[countries %in% commodity_main]$spot_PWR_code
+    
+    if (is_eikon_pwr == 'NO') {
+        file_path = file.path(file.path('HPFC', 'last', 'history'), 'backup_spot_pwr.xlsx')
+        print(file_path)
+        sheet_names = openxlsx::getSheetNames(file_path)
+        print(sheet_names)
+        df = openxlsx::read.xlsx(file_path, sheet = pwr_codes, detectDates = TRUE)
+        history_main = data.table::as.data.table(df)
+    } else {
+        history_main = eikondata::dt_spot_pwr[RIC == pwr_codes]
+    }
+    
+    if(is_eikon_pwr == 'YES' & as.character(end_train) >= '2025-01-01') {
+        DT_NEW = eikondata::retrieve_spot(
+            ric = pwr_codes,
+            from_date = '2025-01-01',
             to_date = end_train,
-            type = 'PWR'
-        )
+            type = 'PWR')
+        
+        history_main = 
+            rbind(
+                history_main,
+                DT_NEW,
+                use.names=TRUE
+            )
+    }
+    
+    history_main = history_main[date >= start_train & date <= end_train]
+    
+    gas_codes = eikondata::gas_products_full[products_GAS %in% 'TTF']$spot_GAS_code
+    history_ttf = eikondata::dt_spot_gas[RIC == gas_codes]
+    
+    if(as.character(end_train) >= '2025-01-01') {
+        DT_NEW = eikondata::retrieve_spot(
+            ric = gas_codes,
+            from_date = '2025-01-01',
+            to_date = end_train,
+            type = 'GAS')
+        
+        history_ttf = 
+            rbind(
+                history_ttf,
+                DT_NEW,
+                use.names=TRUE
+            )
+    }
+    
+    history_ttf = history_ttf[date >= start_train & date <= end_train]
+    
+    history_basket_pwr = lapply(eikondata::pwr_products_full[countries %in% commodity_basket]$countries, function(x) {
+        
+        pwr_codes = eikondata::pwr_products_full[countries %in% x]$spot_PWR_code
+        is_eikon_pwr = eikondata::pwr_mapped_codes[countries == x]$eikon
+        
+        if (is_eikon_pwr == 'NO') {
+            file_path = file.path(file.path('HPFC', 'last', 'history'), 'backup_spot_pwr.xlsx')
+            print(file_path)
+            sheet_names = openxlsx::getSheetNames(file_path)
+            print(sheet_names)
+            df = openxlsx::read.xlsx(file_path, sheet = x, detectDates = TRUE)
+            history_main = data.table::as.data.table(df)
+        } else {
+            history_main = eikondata::dt_spot_pwr[RIC == pwr_codes]
+        }
+        
+        if(is_eikon_pwr == 'YES' & as.character(end_train) >= '2025-01-01') {
+            DT_NEW = eikondata::retrieve_spot(
+                ric = pwr_codes,
+                from_date = '2025-01-01',
+                to_date = end_train,
+                type = 'PWR')
+            
+            history_main = 
+                rbind(
+                    history_main,
+                    DT_NEW,
+                    use.names=TRUE
+                )
+        }
+        
+        history_main
+        
     })
-    history_main = rbindlist(history_main)
     
-    history_ttf = 
-        eikondata::retrieve_spot(
-            ric = 'TTFDA',
-            from_date = start_train,
-            to_date = end_train,
-            type = 'GAS'
-        )
-    
-    history_basket_pwr = lapply(eikondata::pwr_products_full[countries %in% commodity_basket]$spot_PWR_code, function(x) {
-        eikondata::retrieve_spot(
-            ric = x,
-            from_date = start_train,
-            to_date = end_train,
-            type = 'PWR'
-        )
-    })
     history_basket_pwr = rbindlist(history_basket_pwr)
+    history_basket_pwr = history_basket_pwr[date >= start_train & date <= end_train]
     
-    history_basket_gas = lapply(eikondata::gas_products_full[products_GAS %in% commodity_basket]$spot_GAS_code, function(x) {
-        eikondata::retrieve_spot(
-            ric = x,
-            from_date = start_train,
-            to_date = end_train,
-            type = 'GAS'
-        )
+    
+    history_basket_gas = lapply(eikondata::gas_products_full[products_GAS %in% commodity_basket]$products_GAS, function(x) {
+        is_eikon_gas = eikondata::gas_mapped_codes[products %in% x]$eikon
+        gas_codes = eikondata::gas_products_full[products_GAS %in% x]$spot_GAS_code
+        
+        if (is_eikon_gas == 'NO') {
+            file_path = file.path(file.path('HPFC', 'last', 'history'), 'backup_spot_gas.xlsx')
+            print(file_path)
+            sheet_names = openxlsx::getSheetNames(file_path)
+            print(sheet_names)
+            df = openxlsx::read.xlsx(file_path, sheet = x, detectDates = TRUE)
+            history_basket_gas = data.table::as.data.table(df)
+        } else {
+            history_basket_gas = eikondata::dt_spot_gas[RIC == gas_codes]
+        }
+        
+        if(is_eikon_gas == 'YES' & as.character(end_train) >= '2025-01-01') {
+            DT_NEW = eikondata::retrieve_spot(
+                ric = gas_codes,
+                from_date = '2025-01-01',
+                to_date = end_train,
+                type = 'GAS')
+            
+            history_basket_gas = 
+                rbind(
+                    history_basket_gas,
+                    DT_NEW,
+                    use.names=TRUE
+                )
+        }
+        
+        history_basket_gas
     })
     history_basket_gas = rbindlist(history_basket_gas)
+    history_basket_gas = history_basket_gas[date >= start_train & date <= end_train]
+    
     
     list_history = list(history_main, history_ttf, history_basket_pwr, history_basket_gas)
     names(list_history) = c('history_main', 'history_ttf', 'history_basket_pwr', 'history_basket_gas')

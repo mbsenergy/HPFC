@@ -420,7 +420,7 @@ product_basket_lt =
 download_fwd_curves =
     input_task_button(
         id = 'act_download_fwd',
-        label = 'Download FWDs',
+        label = 'Prepare FWDs',
         label_busy = "Processing...",
         icon = shiny::icon('download'),
         width = '100%',
@@ -463,7 +463,7 @@ select_lt_horizon =
 select_lt_train =
     dateRangeInput(
         inputId = "in_select_lt_train",
-        label = "Basket Train period:",
+        label = "History period:",
         start  = Sys.Date() - 365,
         end    = Sys.Date(),
         min    = "2016-01-01",
